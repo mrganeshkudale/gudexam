@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\API;
-
+use Illuminate\Support\Facades\Config;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Student\Student;
@@ -14,6 +14,7 @@ class StudentController extends Controller
       $studData = array();
       if(Auth::user())
       {
+        $url = Config::get('constants.PROJURL');
         //------------------------Get Total Exams Allocation Count-----------------
         array_push($studData,[
           'username'        => Auth::user()->username,
@@ -30,6 +31,7 @@ class StudentController extends Controller
         return response()->json([
           "status"          =>  "success",
           "message"         =>  "Student Logged in Successfully...",
+          "logo"            =>  $url.'images/logo/gudExamLogo.png',
           "data"            =>  $studData,
         ], 200);
       }
@@ -137,6 +139,35 @@ class StudentController extends Controller
       if(Auth::user())
       {
         return $s->endExam($request->paper_code,$request->timer,$request->flag);
+      }
+      else
+      {
+        return response()->json([
+          "status"          =>  "failure",
+          "message"         =>  "Unauthorized User...",
+        ], 401);
+      }
+    }
+
+    public function searchSubjects(Request $request, Student $s)
+    {
+      if(Auth::user())
+      {
+        $data = $s->searchSubjects($request->paper_name);
+        if($data)
+        {
+          return response()->json([
+            "status"          =>  "success",
+            "data"            =>  $data,
+          ], 200);
+        }
+        else
+        {
+          return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Subject Not Found...",
+          ], 401);
+        }
       }
       else
       {

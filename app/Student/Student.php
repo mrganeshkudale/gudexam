@@ -670,10 +670,21 @@ class Student
 		->update(['elapsedTime' => $elapsedtime, 'updated_at' => $current_time]);
 		//--------------------------------------------------------------------------
 
+		//--------------------------------Get Statistics of Questions---------------
+		$answered 					= $this->answeredQuestCount($paper_code,$this->stdid,$this->inst);
+		$unanswered					= $this->unansweredQuestCount($paper_code,$this->stdid,$this->inst);
+		$reviewunanswered 	= $this->reviewunansweredQuestCount($paper_code,$this->stdid,$this->inst);
+		$reviewanswered 		= $this->reviewansweredQuestCount($paper_code,$this->stdid,$this->inst);
+		//--------------------------------------------------------------------------
+
 		return json_encode([
 				'status'   					=> 'success',
 				'paper_code'				=> $paper_code,
 				'stdid'							=> $this->stdid,
+				'answered'				 		=> $answered,
+				'unanswered'					=> $unanswered,
+				'reviewunanswered'		=> $reviewunanswered,
+				'reviewanswered'			=> $reviewanswered,
 		],200);
 	}
 
@@ -729,5 +740,104 @@ class Student
 	{
 		$cnt = DB::table('cand_questions')->where('stdid',$stdid)->where('paper_code',$paper_code)->where('inst',$inst)->where('answered','reviewandanswered')->count();
 		return $cnt;
+	}
+
+
+	public function searchSubjects($paper_name)
+	{
+		$validator = Validator::make(['paper_name' => $paper_name],
+		[
+			'paper_name' => 'required',
+		]);
+		if ($validator->fails())
+		{
+			return json_encode([
+					'status'						=>  'failure',
+					'message' 					=> 	$validator->errors()->first(),
+			],400);
+		}
+
+		//-------Search Subject Name in Students allocation List--------------------
+
+		//--------------------------------------------------------------------------
+
+		$data=array();
+
+    $exam_name='';
+    $exam_marks='';
+    $exam_tot_questions=0;
+    $exam_duration=0;
+    $conduction_date='';
+    $conduction_time='';
+    $stud_exam_start_time='';
+    $stud_exam_end_time='';
+    $current_exam_status='';
+    $stud_actual_start='';
+    $stud_actual_end='';
+
+
+    $results = DB::select("select * from student_exams where paper_code in(SELECT paper_code FROM subject_master where lower(paper_name) like lower('%$paper_name%')) and username='$this->stdid' and inst='$this->inst'");
+    if($results)
+    {
+      foreach($results as $result)
+      {
+        $results0 = DB::select("SELECT paper_code,exam_name,marks,questions,durations,from_date,from_time FROM `test` where paper_code='$result->paper_code' limit 1");
+        if($results0)
+        {
+          foreach($results0 as $result0)
+          {
+            $exam_name           = $result0->exam_name;
+            $exam_marks          = $result0->marks;
+            $exam_tot_questions  = $result0->questions;
+            $exam_duration       = $result0->durations;
+            $conduction_date     = $result0->from_date;
+            $conduction_time     = $result0->from_time;
+          }
+        }
+
+        $results1 = DB::select("SELECT stdid,inst,paper_code,course,starttime,endtime,status,entry_on,end_on FROM `cand_test` where stdid='$this->stdid' and inst='$this->inst' and paper_code='$result->paper_code' limit 1");
+        if($results1)
+        {
+          foreach($results1 as $result1)
+          {
+            $stud_exam_start_time = $result1->starttime;
+            $stud_exam_end_time   = $result1->endtime;
+            $current_exam_status  = $result1->status;
+            $stud_actual_start    = $result1->entry_on;
+            $stud_actual_end      = $result1->end_on;
+          }
+        }
+
+        array_push($data,[
+          'paper_code'          => $result->paper_code,
+          'stdid'               => $this->stdid,
+          'exam_name'           => $exam_name,
+          'exam_marks'          => $exam_marks,
+          'exam_tot_questions'  => $exam_tot_questions,
+          'exam_duration'       => $exam_duration,
+          'conduction_date'     => $conduction_date,
+          'conduction_time'     => $conduction_time,
+          'stud_exam_start_time'=> $stud_exam_start_time,
+          'stud_exam_end_time'  => $stud_exam_end_time,
+          'stud_actual_start'   => $stud_actual_start,
+          'stud_actual_end'     => $stud_actual_end,
+          'current_exam_status' => $current_exam_status
+        ]);
+        //----------------clear data of variables for next iteration------------
+        $exam_name='';
+        $exam_marks='';
+        $exam_tot_questions=0;
+        $exam_duration=0;
+        $conduction_date='';
+        $conduction_time='';
+        $stud_exam_start_time='';
+        $stud_exam_end_time='';
+        $current_exam_status='';
+        $stud_actual_start='';
+        $stud_actual_end='';
+        //----------------------------------------------------------------------
+      }
+    }
+    return $data;
 	}
 }

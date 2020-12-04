@@ -1,6 +1,6 @@
 <?php
 return array(
-    'PROJURL'       => 'http://localhost:8000/',
+    'PROJURL'       => 'http://15.207.171.126/',
     'SPASS'       => 'gudexams@123',
 );
 

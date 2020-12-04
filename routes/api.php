@@ -43,5 +43,6 @@ Route::middleware('auth:api')->group(function()
     Route::post('saveAnswer', [StudentController::class, 'saveAnswer'])->name('saveAnswer');
     Route::post('preEndExam', [StudentController::class, 'preEndExam'])->name('preEndExam');
     Route::post('endExam', [StudentController::class, 'endExam'])->name('endExam');
+    Route::post('searchSubjects', [StudentController::class, 'searchSubjects'])->name('searchSubjects');
 });
 ?>
