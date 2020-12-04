@@ -1,0 +1,8 @@
+services: 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: 'laravelapp'
+    ports:
+      - 8080:80

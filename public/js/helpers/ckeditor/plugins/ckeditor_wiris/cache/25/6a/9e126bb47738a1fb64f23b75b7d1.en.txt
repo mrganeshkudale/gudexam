@@ -1,0 +1,1 @@
+{"result":{"text":"integral subscript infinity superscript 1 fraction numerator x over denominator d x end fraction"},"status":"ok"}
