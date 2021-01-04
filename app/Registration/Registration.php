@@ -2,6 +2,7 @@
 namespace App\Registration;
 use App\Models\User;
 use App\Models\UserRegister;
+use Illuminate\Support\Facades\Config;
 use App\Models\OTPVerify;
 use App\Models\Session;
 use Illuminate\Http\Request;
@@ -81,11 +82,13 @@ Bynaric Systems Pvt. Ltd.");
 
   public function sendOTP()
   {
-    if($this->mobile=='' || $this->mobile=='0')
+    $validator = Validator::make(['mobile' => $this->mobile],
+    ['mobile' => 'required|digits:10']);
+    if ($validator->fails())
     {
-      return response()->json([
-        'status'    => 'failure',
-        'message'   => 'Mobile Number is Mandatory...',
+      return json_encode([
+          'status'						=>  'failure',
+          'message' 					=> 	$validator->errors()->first(),
       ],400);
     }
 
@@ -96,7 +99,7 @@ Bynaric Systems Pvt. Ltd.");
 
     if(!count($r))
     {
-        $result = OTPVerify::create([
+        $OTPresult = OTPVerify::create([
             'mobile'      => $this->mobile,
             'otp'         => $otp,
             'created_at'  => $current_time,
@@ -138,6 +141,7 @@ Bynaric Systems Pvt. Ltd.");
         {
               return response()->json([
                 'status'    => 'success',
+                'OTP_id'        => $OTPresult->id,
                 'message'   => 'OTP Sent Successfully',
               ],200);
         }
@@ -151,28 +155,30 @@ Bynaric Systems Pvt. Ltd.");
     }
   }
 
-  public function verifyOTP()
+  public function verifyOTP($OTP_id)
   {
-    if($this->mobile=='' || $this->mobile=='0')
+    $current_time 				= Carbon::now();
+    $validator = Validator::make(['mobile' => $this->mobile,'OTP' => $this->otp,'OTP_id' => $OTP_id],
+    [
+      'mobile'  => 'required|digits:10',
+      'OTP'     => 'required|digits:6',
+      'OTP_id'  => 'required|numeric',
+    ]);
+    if ($validator->fails())
     {
-      return response()->json([
-        'status'    => 'failure',
-        'message'   => 'Mobile Number is Mandatory...',
+      return json_encode([
+          'status'						=>  'failure',
+          'message' 					=> 	$validator->errors()->first(),
       ],400);
     }
 
-    if($this->otp=='' || $this->otp=='0')
-    {
-      return response()->json([
-        'status'    => 'failure',
-        'message'   => 'OTP is Mandatory...',
-      ],400);
-    }
 
-    $result = DB::select("SELECT otp FROM `otp_verify` where mobile=$this->mobile order by created_at DESC limit 1");
+    $result = DB::select("SELECT otp,time_to_sec(timediff('$current_time',created_at)) as mytime FROM `otp_verify` where mobile=$this->mobile and id='$OTP_id'");
+
     if($result)
     {
-        if($result[0]->otp == $this->otp)
+        $otpexpiry = Config::get('constants.OTPEXPIRY');
+        if(($result[0]->otp == $this->otp) && ($result[0]->mytime <= $otpexpiry))
         {
             return response()->json([
               'status'    => 'success',
@@ -183,7 +189,7 @@ Bynaric Systems Pvt. Ltd.");
         {
             return response()->json([
               'status'    => 'failure',
-              'message'   => 'Wrong OTP Entered',
+              'message'   => 'Wrong OTP Entered or OTP Expired',
             ],400);
         }
     }
@@ -220,9 +226,8 @@ Bynaric Systems Pvt. Ltd.");
       return response()->json([
             'status' 		=> 'failure',
             'message'		=> $validator->errors()->first(),
-          ],200);
+          ],400);
     }
-
 
     $username = '';
     if($this->reg_type=='Student')
@@ -245,11 +250,15 @@ Bynaric Systems Pvt. Ltd.");
                 'courses'       => 'GE',
                 'semester'      => '1',
                 'mobile'        => $this->mobile,
+                'email'         => $this->email,
                 'role'          => 'STUDENT',
                 'password'      => Hash::make($password),
                 'origpass'      => $this->password,
                 'pa'            => 'P',
                 'status'        => 'ON',
+                'regi_type'     => $this->reg_type,
+                'verified'      => 'verified',
+                'college_name'  => $this->inst_name,
                 'created_at'    => $current_time,
                 'updated_at'    => $current_time,
             ]);
@@ -331,6 +340,9 @@ Bynaric Systems Pvt. Ltd.");
                 'password'      => Hash::make($password),
                 'origpass'      => $this->password,
                 'status'        => 'ON',
+                'regi_type'     => $this->reg_type,
+                'verified'      => 'verified',
+                'college_name'  => $this->inst_name,
                 'created_at'    => $current_time,
                 'updated_at'    => $current_time,
             ]);
@@ -342,55 +354,7 @@ Bynaric Systems Pvt. Ltd.");
                 'message'		=> 'Problem Registering User...',
               ],400);
         }
-        //------------------Do Entry in Users Register Table---------------------
-        try
-        {
-            $user = UserRegister::create([
-                'regi_type'         => $this->reg_type,
-                'username'          => $username,
-                'eadmin_name'       => $this->name,
-                'inst_id'           => $this->inst_id,
-                'college_name'      => $this->inst_name,
-                'email'             => $this->email,
-                'mobile'            => $this->mobile,
-                'password'          => Hash::make($password),
-                'status'            => 'Verified',
-                'verify_on'         => $current_time,
-                'wallet_balance'    => '0',
-                'docpath'           => '',
-                'created_at'        => $current_time,
-                'updated_at'        => $current_time,
-            ]);
-        }
-        catch (\Exception $e)
-        {
-            $res=User::where('username',$username)->where('inst_id',$this->inst_id)
-            ->delete();
-            return response()->json([
-                  'status' 		=> 'failure',
-                  'message'		=> 'Problem Registering User...',
-                ],400);
-        }
-        //--------------------Do Entry in College Master Table----------------------
-        try
-        {
-            $user = CollegeMaster::create([
-                'inst_name'       => $this->inst_name,
-                'username'        => $username,
-                'inst_id'         => $this->inst_id,
-                'created_at'      => $current_time,
-                'updated_at'      => $current_time,
-            ]);
-        }
-        catch (\Exception $e)
-        {
-            $res=User::where('username',$username)->where('inst_id',$this->inst_id)
-            ->delete();
-            return response()->json([
-                  'status' 		=> 'failure',
-                  'message'		=> 'Problem Registering User...',
-                ],400);
-        }
+
         //---------------------------------------------------------------------------
         if($user)
         {

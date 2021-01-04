@@ -1,7 +1,14 @@
 <?php
 namespace App\Student;
 use App\Models\User;
+use App\Http\Resources\ExamCollection;
+use App\Http\Resources\AnswerCollection;
+use App\Models\QuestionSet;
+use App\Models\CandQuestion;
+use App\Models\CandTest;
+use App\Models\SubjectMaster;
 use App\Models\Session;
+use App\Models\ExamSession;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
@@ -11,6 +18,7 @@ use Auth;
 
 class Student
 {
+	private $uid;
 	private $stdid;
   private $region;
 	private $inst;
@@ -21,6 +29,7 @@ class Student
 
   public function __construct($arr)
 	{
+		$this->uid 					= $arr->uid;
     $this->stdid        = $arr->username;
     $this->region       = $arr->region;
     $this->inst         = $arr->inst_id;
@@ -29,9 +38,9 @@ class Student
     $this->mobile       = $arr->mobile;
 	}
 
-	public function getDuration($paper_code)
+	public function getDuration($paper_id)
   {
-    $result = DB::table("test")->select("durations")->where('paper_code',$paper_code)->first();
+    $result = DB::table("subject_master")->select("durations")->where('id',$paper_id)->first();
 		if($result)
 		{
 			return $result->durations;
@@ -65,779 +74,398 @@ class Student
   {
     return $this->mobile;
   }
-  public function getStudentsPaperList()
-  {
-    $results = DB::select("SELECT group_concat(paper_code) as list FROM `student_exams` where username='$this->stdid' and inst='$this->inst' limit 1");
-    if($results)
-    {
-      foreach($results as $result)
-      {
-        $this->paper_codes = $result->list;
-      }
-      return $this->paper_codes;
-    }
-    else
-    {
-      return '';
-    }
-  }
 
-  public function getAllocatedSubjectCount()
-  {
-    $result = DB::select("SELECT id FROM `student_exams` where username='$this->stdid' and inst='$this->inst'");
-    if($result)
-    {
-      return count($result);
-    }
-    else
-    {
-      return 0;
-    }
-  }
-
-  public function getExamCompleatedCount()
-  {
-    $result = DB::select("SELECT stdid FROM `cand_test` where status='over' and stdid='$this->stdid' and inst='$this->inst'");
-    if($result)
-    {
-      return count($result);
-    }
-    else
-    {
-      return 0;
-    }
-  }
-
-  public function getExamOngoingCount()
-  {
-    $result = DB::select("SELECT stdid FROM `cand_test` where status='inprogress' and stdid='$this->stdid' and inst='$this->inst'");
-    if($result)
-    {
-      return count($result);
-    }
-    else
-    {
-      return 0;
-    }
-  }
-
-  public function getExamExpiredCount()
-  {
-    $result = DB::select("SELECT stdid FROM `cand_test` where status='expired' and stdid='$this->stdid' and inst='$this->inst'");
-    if($result)
-    {
-      return count($result);
-    }
-    else
-    {
-      return 0;
-    }
-  }
-
-  public function getExamYetNotGivenCount()
-  {
-    $cnt  = ($this->getAllocatedSubjectCount() - $this->getExamCompleatedCount() - $this->getExamOngoingCount() - $this->getExamExpiredCount());
-    if($cnt >= 0)
-    {
-      return $cnt;
-    }
-    else
-    {
-      return 0;
-    }
-  }
-
-  public function getStudentExamData()
-  {
-    $data=array();
-
-    $exam_name='';
-    $exam_marks='';
-    $exam_tot_questions=0;
-    $exam_duration=0;
-    $conduction_date='';
-    $conduction_time='';
-    $stud_exam_start_time='';
-    $stud_exam_end_time='';
-    $current_exam_status='';
-    $stud_actual_start='';
-    $stud_actual_end='';
-
-
-    $results = DB::select("SELECT distinct paper_code FROM `student_exams` where username='$this->stdid' and inst='$this->inst'");
-    if($results)
-    {
-      foreach($results as $result)
-      {
-        $results0 = DB::select("SELECT paper_code,exam_name,marks,questions,durations,from_date,from_time FROM `test` where paper_code='$result->paper_code' limit 1");
-        if($results0)
-        {
-          foreach($results0 as $result0)
-          {
-            $exam_name           = $result0->exam_name;
-            $exam_marks          = $result0->marks;
-            $exam_tot_questions  = $result0->questions;
-            $exam_duration       = $result0->durations;
-            $conduction_date     = $result0->from_date;
-            $conduction_time     = $result0->from_time;
-          }
-        }
-
-        $results1 = DB::select("SELECT stdid,inst,paper_code,course,starttime,endtime,status,entry_on,end_on FROM `cand_test` where stdid='$this->stdid' and inst='$this->inst' and paper_code='$result->paper_code' limit 1");
-        if($results1)
-        {
-          foreach($results1 as $result1)
-          {
-            $stud_exam_start_time = $result1->starttime;
-            $stud_exam_end_time   = $result1->endtime;
-            $current_exam_status  = $result1->status;
-            $stud_actual_start    = $result1->entry_on;
-            $stud_actual_end      = $result1->end_on;
-          }
-        }
-
-        array_push($data,[
-          'paper_code'          => $result->paper_code,
-          'stdid'               => $this->stdid,
-          'exam_name'           => $exam_name,
-          'exam_marks'          => $exam_marks,
-          'exam_tot_questions'  => $exam_tot_questions,
-          'exam_duration'       => $exam_duration,
-          'conduction_date'     => $conduction_date,
-          'conduction_time'     => $conduction_time,
-          'stud_exam_start_time'=> $stud_exam_start_time,
-          'stud_exam_end_time'  => $stud_exam_end_time,
-          'stud_actual_start'   => $stud_actual_start,
-          'stud_actual_end'     => $stud_actual_end,
-          'current_exam_status' => $current_exam_status
-        ]);
-        //----------------clear data of variables for next iteration------------
-        $exam_name='';
-        $exam_marks='';
-        $exam_tot_questions=0;
-        $exam_duration=0;
-        $conduction_date='';
-        $conduction_time='';
-        $stud_exam_start_time='';
-        $stud_exam_end_time='';
-        $current_exam_status='';
-        $stud_actual_start='';
-        $stud_actual_end='';
-        //----------------------------------------------------------------------
-      }
-    }
-    return $data;
-  }
-
-	public function getInstructions($paper_code)
+	public function getExams()
 	{
-		$validator = Validator::make(['paper_code' => $paper_code], ['paper_code' => 'required']);
-		if ($validator->fails())
+		$exams 	= User::find($this->uid)->exams;
+		if($exams)
 		{
-			return json_encode([
-					'status'						=>  'failure',
-					'message' 					=> 	$validator->errors()->first(),
-			],400);
-    }
-
-		$results = DB::select("SELECT paper_code,exam_name,marks,questions,durations,instructions,negative_marking FROM `test` where paper_code='$paper_code' limit 1");
-		if($results)
-		{
-			foreach($results as $result)
-			{
-				return json_encode([
-						'status'						=>  'success',
-						'paper_code' 				=> 	$result->paper_code,
-						'exam_name' 				=> 	$result->exam_name,
-						'marks'							=>	$result->marks,
-						'questions'					=>	$result->questions,
-						'duration'					=>	$result->durations,
-						'instructions'			=>	$result->instructions,
-						'negative_marking'	=>	$result->negative_marking,
-				],200);
-			}
+			return new ExamCollection($exams);
 		}
 		else
 		{
-				return json_encode([
-						'status'						=>  'failure',
-						'paper_code' 				=> 	'Invalid Paper Code',
-				],400);
+			return json_encode([
+				'status' => 'failure'
+			],200);
 		}
 	}
 
-	public function startexam($paper_code,$flag)
+	public function startExam($exam_id)
 	{
-			$validator = Validator::make(['paper_code' => $paper_code, 'flag' => $flag],
-			['paper_code' => 'required','flag' => 'required|numeric|min:0|max:1']);
-			if ($validator->fails())
+		//-------------Get Data from Paper Resource (Subject Master)---------------
+			$elapsed =0 ;
+			$continueexam =0;
+			$exam = CandTest::find($exam_id);
+			if($exam)
+			{
+				$paper_id = $exam->paper_id;
+				$stdid 		= $exam->stdid;
+				if($stdid != Auth::user()->uid)
+				{
+					return json_encode([
+						'status' => 'failure'
+					],401);
+				}
+		//-----------Validate Paper time with current time before exam start-------
+				$subject_master = SubjectMaster::find($paper_id);
+				$from_time = $subject_master->from_time;
+				$to_time = $subject_master->to_time;
+
+				$from_date = $subject_master->from_date.' '.$from_time;
+				$to_date = $subject_master->to_date.' '.$to_time;
+
+				$today = date('Y-m-d H:i:s');
+				$fromDate=date('Y-m-d H:i:s', strtotime($from_date));
+				$toDate=date('Y-m-d H:i:s', strtotime($to_date));
+				$toDay =date('Y-m-d H:i:s', strtotime($today));
+				if (($toDay >= $fromDate) && ($toDay <= $toDate))
+				{
+						//----------------------------Insert Answers in CandQuestion-------
+						$insertcount=0;
+						$cnt = CandTest::where('paper_id',$paper_id)->where('stdid',$this->uid)->count();
+						if(!$cnt)
+						{
+							return json_encode([
+									'status'						=>  'failure'
+							],400);
+						}
+						$current_time 		= 	Carbon::now();
+						//---------------------Get Questions from Question Set----------------------
+						$questions = DB::table('question_set')->where('paper_id',$paper_id)->get();
+						$tot_questions = $questions->count();
+						//--------------------------------------------------------------------------
+						//----------------------Insert Question in Cand Question Table--------------
+						$insertcount=DB::table('cand_questions')->where('stdid',$this->uid)->where('paper_id',$paper_id)->where('inst',$this->inst)->count();
+
+
+						DB::beginTransaction();
+
+								if(!$insertcount)
+								{
+										$i=1;
+										foreach($questions as $question)
+										{
+												$values = array(
+													'exam_id' 					=> $exam_id,
+													'stdid' 						=> $this->uid,
+													'inst' 							=> $this->inst,
+													'paper_id' 					=> $paper_id,
+													'program_id' 				=> $this->getProgramId($paper_id),
+													'qnid' 							=> $question->qnid,
+													'qtopic' 						=> $question->topic,
+													'qtype' 						=> $question->difficulty_level,
+													'answered' 					=> 'unanswered',
+													'cans' 							=> $question->coption,
+													'marks' 						=> $question->marks,
+													'ip' 								=> request()->ip(),
+													'entry_on' 					=> $current_time,
+													'qnid_sr' 					=> $i++
+												);
+
+												try
+												{
+													$inserted = DB::table('cand_questions')->insert($values);
+												}
+												catch(\Exception $e)
+									      {
+													DB::rollBack();
+													return response()->json([
+								                'status' 		=> 'failure',
+								              ],400);
+												}
+										}
+									//-----------------------Update Exam status in CandTest-----------
+										$minutes = $this->getDuration($paper_id);
+										try
+										{
+												$result = CandTest::where('id',$exam_id)->update([
+													'starttime' 		=> 	Carbon::now(),
+													'endtime'				=>	Carbon::now()->addMinutes((integer)$minutes),
+													'entry_on' 			=> 	Carbon::now(),
+													'examip'				=>	request()->ip(),
+													'pa'						=>	'P',
+													'elapsed'				=>	'0',
+													'status'				=>	'inprogress',
+													'updated_at'		=> 	Carbon::now()
+												]);
+										}
+										catch(\Exception $e)
+										{
+											DB::rollBack();
+											return response()->json([
+														'status' 		=> 'failure',
+													],400);
+										}
+									//----------------------------------------------------------------
+									$elapsed = 0;
+								}
+								else
+								{
+										$candQuestionsExisting=1;
+										$result = CandTest::select(['elapsed','continueexam'])->where('id',$exam_id)->first();
+
+										$elapsed = $result->elapsed;
+										$continueexam = $result->continueexam;
+										$continueexam = $continueexam + 1;
+										try
+										{
+												$result = CandTest::where('id',$exam_id)->update([
+													'continueexam'	=> 	$continueexam,
+													'updated_at'		=> 	Carbon::now()
+												]);
+										}
+										catch(\Exception $e)
+										{
+												DB::rollBack();
+												return response()->json([
+																'status' 		=> 'failure',
+															],400);
+										}
+								}
+
+
+						DB::commit();
+
+						return json_encode([
+							'status' 				=> 'success',
+							'elapsed'				=>	$elapsed,
+						],200);
+						//-----------------------------------------------------------------
+				}
+				else
+				{
+					return json_encode([
+						'status' => 'failure'
+					],401);
+				}
+		//-------------------------------------------------------------------------
+			}
+			else
 			{
 				return json_encode([
-						'status'						=>  'failure',
-						'message' 					=> 	$validator->errors()->first(),
+					'status' => 'failure'
 				],400);
 			}
+		//-------------------------------------------------------------------------
+	}
 
-			$current_time 		= 	Carbon::now();
-			$elapsedtime 			= 	0;
-			//---------------------Get Questions from Question Set----------------------
-			if($flag==1)
-			{
-				$questions = DB::table('question_set')->where('paper_code',$paper_code)->get();
-			}
-			else
-			{
-				$questions = DB::table('question_set')->where('paper_code',$paper_code)->get();
-			}
-	    $tot_questions = $questions->count();
-			//--------------------------------------------------------------------------
+	public function endExam($elapsed,$id)
+	{
+			$cqnid='';$wqnid='';$uqnid='';$marksobt=0;
+			//----------get value of cqnid,wqnid,uqnid--------------------------------
+				$result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','reviewandanswered') and trim(stdanswer)=trim(cans)");
+				if($result)
+				{
+					$cqnid 		= $result[0]->cqnid;
+					$marksobt = $result[0]->marksobt;
+				}
 
-			//----------------------Insert Question in Cand Question Table--------------
-			$insertcount=DB::table('cand_questions')->where('stdid',$this->stdid)->where('paper_code',$paper_code)->where('inst',$this->inst)->count();
+				$result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','reviewandanswered') and trim(stdanswer)!=trim(cans)");
+				if($result1)
+				{
+					$wqnid = $result1[0]->wqnid;
+				}
 
-			if(!$insertcount)
-	    {
-	    		$i=1;
-		    	foreach($questions as $question)
-		    	{
-							$values = array(
-								'stdid' 						=> $this->stdid,
-								'inst' 							=> $this->inst,
-								'paper_code' 				=> $paper_code,
-								'course' 						=> $this->course,
-								'qnid' 							=> $question->qnid,
-								'qtopic' 						=> $question->topic,
-								'qtype' 						=> $question->difficulty_level,
-								'answered' 					=> 'unanswered',
-								'cans' 							=> $question->coption,
-								'marks' 						=> $question->marks,
-								'ip' 								=> request()->ip(),
-								'entry_on' 					=> $current_time,
-								'qnid_sr' 					=> $i++
-							);
-
-		    			$inserted = DB::table('cand_questions')->insert($values);
-					}
-
-					//------------Enter In Cand Test--------------------------------------
-							$minutes = $this->getDuration($paper_code);
-				    	$values = array(
-								'stdid' 					=> $this->stdid,
-								'inst' 						=> $this->inst,
-								'paper_code' 			=> $paper_code,
-								'course' 					=> $this->course,
-								'starttime' 			=> Carbon::now(),
-								'endtime' 				=> Carbon::now()->addMinutes((integer)$minutes),
-								'status' 					=> 'inprogress',
-								'entry_on' 				=> $current_time,
-								'examip' 					=> request()->ip(),
-								'pa' 							=> 'P'
-							);
-
-				    	$inserted = DB::table('cand_test')->insert($values);
-				  //--------------------------------------------------------------------
-
-					//-----------------Enter in Elapsed Table-----------------------------
-							$values = array(
-								'stdid' 					=> $this->stdid,
-								'inst' 						=> $this->inst,
-								'paper_code' 			=> $paper_code,
-								'elapsedTime' 		=> '0',
-								'created_at' 			=> $current_time
-							);
-							$inserted = DB::table('elapsed')->insert($values);
-					//--------------------------------------------------------------------
-			}
-			else
-	    {
-	    		//---------Continue Test by Getting Current Elapsed Time--------------
-	    		$elapsed=DB::table('elapsed')
-					->where('paper_code',$paper_code)
-					->where('stdid', $this->stdid)
-					->where('inst' , $this->inst)
-					->first();
-	    		if($elapsed)
-	    		{
-	    				$elapsedtime		=		$elapsed->elapsedTime;
-	    		}
-					//--------------------------------------------------------------------
-
-					//-------------Update continue test in cand_test----------------------
-					$results = DB::table('cand_test')->where('paper_code',$paper_code)
-					->where('stdid',$this->stdid)->where('inst',$this->inst)->update(['continueexam' => 'Y']);
-					//--------------------------------------------------------------------
-	    }
-			//----------------------------Elapsed Time Calculation--------------------
-				$duration 				= $this->getDuration($paper_code);
-				$total_time				=	$duration*60;
-				$remaining_time		=	$total_time-$elapsedtime;
+				$result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','reviewandunanswered')");
+				if($result2)
+				{
+					$uqnid = $result2[0]->uqnid;
+				}
 			//------------------------------------------------------------------------
 
-			//-------------------------------Get First Question Data------------------
-					$question=DB::select("select * from question_set where qnid in(select qnid from cand_questions where qnid_sr='1' and stdid='$this->stdid' and inst='$this->inst' and paper_code='$paper_code')");
+			//-------------------Update Exam Resource with End Exam Records-----------
+			$results = DB::table('cand_test')->where('id',$id)->update([
+				'cqnid' 			=> 	$cqnid,
+				'wqnid' 			=> 	$wqnid,
+				'uqnid' 			=> 	$uqnid,
+				'end_on' 			=>	Carbon::now(),
+				'end_by'			=>	$this->uid,
+				'status'			=>	'over',
+				'marksobt'		=>	$marksobt,
+				'updated_at'	=>	Carbon::now(),
+			]);
 			//------------------------------------------------------------------------
 			return json_encode([
-				'stdid' 						=> $this->stdid,
-				'paper_code'				=> $paper_code,
-				'inst_id'						=> $this->inst,
-				'total_questions'		=> $tot_questions,
-				'exam_duration'			=> $duration,
-				'total_time'				=> $total_time,
-				'remaining_time'		=> $remaining_time,
-				'qnid_sr'						=> '1',
-				'flag'							=> $flag,
-				'questionData'			=> $question[0]
+				'status' => 'success'
 			],200);
 	}
 
-	public function getQuestion($paper_code,$old_qnid_sr,$next_qnid_sr,$timer,$flag)
+	public function getAnswers($id)
 	{
-		$validator = Validator::make(['paper_code' => $paper_code,'old_qnid_sr' => $old_qnid_sr,'next_qnid_sr' => $next_qnid_sr,'timer' => $timer,'flag' => $flag],
-		[
-			'paper_code' => 'required',
-			'old_qnid_sr' => 'required|numeric',
-			'next_qnid_sr' => 'required|numeric',
-			'timer' => 'required|numeric',
-			'flag' => 'required|numeric|min:0|max:1'
-		]);
-		if ($validator->fails())
+		$answers = CandQuestion::where('exam_id',$id)->get();
+		if($answers)
 		{
-			return json_encode([
-					'status'						=>  'failure',
-					'message' 					=> 	$validator->errors()->first(),
-			],400);
-		}
-		//----------------Get Status of Previous Question---------------------------
-		$old_question_status 	= $this->getQuestionStatus($paper_code,$old_qnid_sr);
-		//--------------------------------------------------------------------------
-
-		//----------------Fetch new Question Data-----------------------------------
-		$question=DB::select("select * from question_set where qnid in(select qnid from cand_questions where qnid_sr='$next_qnid_sr' and stdid='$this->stdid' and inst='$this->inst' and paper_code='$paper_code')");
-		//--------------------------------------------------------------------------
-
-		//---------------Update Timer in Elapsed Table------------------------------
-		$duration 					= $this->getDuration($paper_code);
-		$elapsedtime				=	$duration - $timer;
-
-
-		$elapsed=DB::table('elapsed')
-		->where('paper_code',$paper_code)
-		->where('stdid', $this->stdid)
-		->where('inst' , $this->inst)
-		->update(['elapsedTime' => $elapsedtime]);
-
-		//--------------------------------------------------------------------------
-
-		return json_encode([
-			'old_qnid_status'		=> $old_question_status,
-			'stdid' 						=> $this->stdid,
-			'paper_code'				=> $paper_code,
-			'inst_id'						=> $this->inst,
-			'remaining_time'		=> $timer*60,
-			'qnid_sr'						=> $next_qnid_sr,
-			'flag'							=> $flag,
-			'questionData'			=> $question[0]
-		],200);
-	}
-
-	public function getQuestionStatus($paper_code,$qnid_sr)
-	{
-		$question = DB::table('cand_questions')->select('answered')->where('paper_code',$paper_code)
-		->where('stdid',$this->stdid)->where('qnid_sr',$qnid_sr)->first();
-		if($question)
-		{
-			return $question->answered;
-		}
-	}
-
-	public function markUnmarkReview($paper_code,$qnid_sr,$quest_review,$flag)
-	{
-		$validator = Validator::make(['paper_code' => $paper_code,'qnid_sr' => $qnid_sr,'question_review' => $quest_review,'flag' => $flag],
-		[
-			'paper_code' => 'required',
-			'qnid_sr' => 'required|numeric',
-			'question_review' => 'required|numeric|min:0|max:1',
-			'flag' => 'required|numeric|min:0|max:1'
-		]);
-		if ($validator->fails())
-		{
-			return json_encode([
-					'status'						=>  'failure',
-					'message' 					=> 	$validator->errors()->first(),
-			],400);
-		}
-
-		//---------------------------Get Status of Question-------------------------
-		$status = '';
-		$result = DB::table('cand_questions')->select('answered')->where('paper_code',$paper_code)
-		->where('stdid',$this->stdid)->where('qnid_sr',$qnid_sr)->first();
-		if($result)
-		{
-			$status = $result->answered;
-		}
-		//--------------------------------------------------------------------------
-
-		//--As per value of $quest_review update new value to $status---------------
-		if($quest_review)
-		{
-			if($status == 'unanswered')
-			{
-				$status = 'unansweredandreview';
-			}
-			else if($status == 'answered')
-			{
-				$status = 'answeredandreview';
-			}
+			return new AnswerCollection($answers);
 		}
 		else
 		{
-			if($status == 'unansweredandreview')
-			{
-				$status = 'unanswered';
-			}
-			else if($status == 'answeredandreview')
-			{
-				$status = 'answered';
-			}
+			return json_encode([
+				'status' => 'failure'
+			],400);
 		}
-		//--------------------------------------------------------------------------
+	}
 
-		//-----------------Update new status ---------------------------------------
-		$result = DB::table('cand_questions')->where('paper_code',$paper_code)
-		->where('stdid',$this->stdid)->where('qnid_sr',$qnid_sr)->update(['answered' => $status]);
-		//--------------------------------------------------------------------------
+	public function updateAnswer(Request $request,$id)
+	{
+		$results = CandQuestion::where('id',$id)->first();
+		$results->answered = $request->answered;
+		$results->stdanswer = $request->stdanswer;
+		$results->answer_by = $request->answer_by;
+		$results->answer_on = Carbon::now();
+
+		$results->save();
 
 		return json_encode([
-				'status'   	=> 'success',
-				'paper_code'=> $paper_code,
-				'stdid'			=> $this->stdid,
-				'qnid_sr'		=> $qnid_sr,
-				'newstatus' => $status
+			'status'						=> 'success',
 		],200);
 	}
 
-	public function saveAnswer($paper_code,$qnid_sr,$answer,$timer,$flag)
+	public function updateReview(Request $request,$id)
 	{
-		$validator = Validator::make(['paper_code' => $paper_code,'qnid_sr' => $qnid_sr,'answer' => $answer,'timer' => $timer,'flag' => $flag],
-		[
-			'paper_code' => 'required',
-			'qnid_sr' => 'required',
-			'answer' => 'required',
-			'timer' => 'required|numeric',
-			'flag' => 'required|numeric|min:0|max:1'
-		]);
-		if ($validator->fails())
-		{
-			return json_encode([
-					'status'						=>  'failure',
-					'message' 					=> 	$validator->errors()->first(),
-			],400);
-		}
+		$results = CandQuestion::where('id',$id)->first();
+		$results->answered = $request->answered;
+		$results->save();
 
-		$current_time 		= 	Carbon::now();
-		//---------------------------Get Status of Question-------------------------
-		$status = '';
-		$marks 	= 0;
-		$result = DB::table('cand_questions')->select(['answered','cans','marks'])->where('paper_code',$paper_code)
-		->where('stdid',$this->stdid)->where('qnid_sr',$qnid_sr)->first();
-		if($result)
-		{
-			$status = $result->answered;
-		}
-		//--------------------------------------------------------------------------
-
-		//------------------------Fetch optioncode from answer----------------------
-			$option = trim(explode(':$:',$answer)[1]);
-
-			if(trim($result->cans) == trim($option))
-			{
-				$marks = $result->marks;
-			}
-		//--------------------------------------------------------------------------
-
-		//------------------Calculate new status------------------------------------
-		if($status	==	'unanswered')
-		{
-			$status = 'answered';
-		}
-		else if($status == 'unansweredandreview')
-		{
-			$status = 'answeredandreview';
-		}
-		else if($status == 'answeredandreview')
-		{
-			$status = 'answeredandreview';
-		}
-		else if($status == 'answered')
-		{
-			$status = 'answered';
-		}
-		//--------------------------------------------------------------------------
-
-		//-----------------Save Answer and status in Candidate Questions Table------
-		$result = DB::table('cand_questions')->where('paper_code',$paper_code)
-		->where('stdid',$this->stdid)->where('qnid_sr',$qnid_sr)->update(['answered' => $status, 'stdanswer' => $option, 'answer_on' => $current_time, 'answer_by' => $this->stdid, 'obtmarks' => $marks]);
-		//--------------------------------------------------------------------------
-
-		//-------------------Update Elapsed Table-----------------------------------
-		$duration 				= $this->getDuration($paper_code);
-		$total_time				=	$duration*60;
-		$remaining_time		=	$timer*60;
-		$elapsedtime			= $total_time - $remaining_time;
-
-		$elapsed=DB::table('elapsed')
-		->where('paper_code',$paper_code)
-		->where('stdid', $this->stdid)
-		->where('inst' , $this->inst)
-		->update(['elapsedTime' => $elapsedtime, 'updated_at' => $current_time]);
-
-		//--------------------------------------------------------------------------
 		return json_encode([
-				'status'   					=> 'success',
-				'paper_code'				=> $paper_code,
-				'stdid'							=> $this->stdid,
-				'qnid_sr'						=> $qnid_sr,
-				'qnid_sr_status'		=> $status,
-				'timer' 						=> $timer
+			'status'						=> 'success',
 		],200);
 	}
 
-	public function endExam($paper_code,$timer,$flag)
+
+
+	public function getProgramId($paper_id)
 	{
-		$validator = Validator::make(['paper_code' => $paper_code,'timer' => $timer,'flag' => $flag],
-		[
-			'paper_code' => 'required',
-			'timer' => 'required|numeric',
-			'flag' => 'required|numeric|min:0|max:1'
-		]);
-		if ($validator->fails())
+		$programData = SubjectMaster::select("program_id")->where('id',$paper_id)->first();
+		if($programData)
 		{
-			return json_encode([
-					'status'						=>  'failure',
-					'message' 					=> 	$validator->errors()->first(),
-			],400);
-		}
-
-		$current_time 		= 	Carbon::now();
-		$marks = 0;
-		//--------Parse through Cand Questions and change status of Questions-------
-		$results = DB::table('cand_questions')->where('paper_code',$paper_code)
-		->where('stdid',$this->stdid)->where('answered','answeredandreview')->update(['answered' => 'answered']);
-
-		$results = DB::table('cand_questions')->where('paper_code',$paper_code)
-		->where('stdid',$this->stdid)->where('answered','unansweredandreview')->update(['answered' => 'unanswered']);
-		//--------------------------------------------------------------------------
-
-		//----------------------------get sum of marks for correct questions--------
-		$results = DB::select("select sum(marks) as marks from cand_questions where paper_code='$paper_code' and stdid='$this->stdid' and stdanswer=cans");
-
-		if($results)
-		{
-			$marks = $results[0]->marks;
+			return $programData->program_id;
 		}
 		else
 		{
-			$marks = 0;
+			return 0;
 		}
-		//--------------------------------------------------------------------------
-		//----get correct answer qnid, wrong answer qnid and unanswered qnid--------
-		$results = DB::select("SELECT group_concat(qnid) as cqnid FROM `cand_questions` where paper_code='$paper_code' and stdid='$this->stdid' and inst='$this->inst' and stdanswer=cans");
-		$cqnid= $results[0]->cqnid;
-
-		$results = DB::select("SELECT group_concat(qnid) as wqnid FROM `cand_questions` where paper_code='$paper_code' and stdid='$this->stdid' and inst='$this->inst' and answered='answered' and stdanswer!=cans");
-		$wqnid= $results[0]->wqnid;
-
-		$results = DB::select("SELECT group_concat(qnid) as uqnid FROM `cand_questions` where paper_code='$paper_code' and stdid='$this->stdid' and inst='$this->inst' and answered='unanswered'");
-		$uqnid= $results[0]->uqnid;
-
-		//--------------------------------------------------------------------------
-		//dd($cqnid.':'.$wqnid.':'.$uqnid.':'.'over'.':'.$current_time.':'.$this->stdid.':'.$marks);
-		//--------------Update to Cand Test table-----------------------------------
-		$results = DB::table('cand_test')->where('paper_code',$paper_code)
-		->where('stdid',$this->stdid)->where('inst',$this->inst)->update(['cqnid' => $cqnid, 'wqnid' => $wqnid, 'uqnid' => $uqnid, 'status' => 'over', 'end_on' => $current_time, 'end_by' => $this->stdid, 'marksobt' => $marks]);
-		//--------------------------------------------------------------------------
-
-		//------------------------------update elapsed------------------------------
-		$duration 				= $this->getDuration($paper_code);
-		$total_time				=	$duration*60;
-		$remaining_time		=	$timer*60;
-		$elapsedtime			= $total_time - $remaining_time;
-
-		$elapsed=DB::table('elapsed')
-		->where('paper_code',$paper_code)
-		->where('stdid', $this->stdid)
-		->where('inst' , $this->inst)
-		->update(['elapsedTime' => $elapsedtime, 'updated_at' => $current_time]);
-		//--------------------------------------------------------------------------
-
-		//--------------------------------Get Statistics of Questions---------------
-		$answered 					= $this->answeredQuestCount($paper_code,$this->stdid,$this->inst);
-		$unanswered					= $this->unansweredQuestCount($paper_code,$this->stdid,$this->inst);
-		$reviewunanswered 	= $this->reviewunansweredQuestCount($paper_code,$this->stdid,$this->inst);
-		$reviewanswered 		= $this->reviewansweredQuestCount($paper_code,$this->stdid,$this->inst);
-		//--------------------------------------------------------------------------
-
-		return json_encode([
-				'status'   					=> 'success',
-				'paper_code'				=> $paper_code,
-				'stdid'							=> $this->stdid,
-				'answered'				 		=> $answered,
-				'unanswered'					=> $unanswered,
-				'reviewunanswered'		=> $reviewunanswered,
-				'reviewanswered'			=> $reviewanswered,
-		],200);
 	}
 
-	public function preEndExam($paper_code)
+	public function updateExamSession($exam_id)
 	{
-		$validator = Validator::make(['paper_code' => $paper_code],
-		[
-			'paper_code' => 'required',
-		]);
-		if ($validator->fails())
+		//-----------------Get Heart Beat Time from config--------------------------
+		$heartbeattime = Config::get('constants.HEARTBEATTIME');
+		$actualElapsedTime = 0;
+		//--------------------------------------------------------------------------
+
+		//--------Search for entry in ExamSession with given exam_id----------------
+		$result = ExamSession::where('exam_id',$exam_id)->where('session_state','active')->first();
+		DB::beginTransaction();
+		if($result)
 		{
-			return json_encode([
-					'status'						=>  'failure',
-					'message' 					=> 	$validator->errors()->first(),
-			],400);
+			//-----check Time difference between now and last_update_time-------------
+			$heartbeatdiff = Carbon::now()->diffInSeconds($result->last_update_time);
+			if($heartbeatdiff > $heartbeattime)
+			{
+				//-----------convert first active record to over state------------------
+					$result->session_state = 'over';
+					$result->updated_at = Carbon::now();
+					$result->save();
+				//----------------------------------------------------------------------
+
+				//---------------Calculate New Elapsed Time-----------------------------
+					$actualElapsedTime = $result->elapsed_time + 2;
+				//----------------------------------------------------------------------
+
+				//-----------------Create new Exam Session Entry------------------------
+				$values = array(
+					'exam_id' 							=> $exam_id,
+					'session_start_time'		=> Carbon::now()->subSeconds(2),
+					'last_update_time'			=> Carbon::now(),
+					'session_state' 				=> 'active',
+					'elapsed_time' 					=> $actualElapsedTime,
+					'created_at'						=> Carbon::now()
+				);
+				try
+				{
+					$inserted = DB::table('exam_session')->insert($values);
+				}
+				catch(\Exception $e)
+				{
+					DB::rollBack();
+					return response()->json([
+								'status' 		=> 'failure',
+							],400);
+				}
+				//----------------------------------------------------------------------
+			}
+			else
+			{
+				//---------------Calculate New Elapsed Time-----------------------------
+					$cumulativeResult = DB::select("select elapsed_time from exam_session where exam_id='$exam_id' and session_state='over' order by session_start_time DESC");
+					if($cumulativeResult)
+					{
+						$cumulativeTime = $cumulativeResult[0]->elapsed_time;
+					}
+				//----------------------------------------------------------------------
+
+				//------------------Update Exam Session --------------------------------
+				$result->last_update_time = Carbon::now();
+				$diff = Carbon::now()->diffInSeconds($result->session_start_time);
+				$result->elapsed_time = $diff + $cumulativeTime;
+				$result->updated_at = Carbon::now();
+				$result->save();
+				$actualElapsedTime = $diff + $cumulativeTime;
+				//----------------------------------------------------------------------
+			}
+			//------------------------------------------------------------------------
 		}
-
-		$answered 					= $this->answeredQuestCount($paper_code,$this->stdid,$this->inst);
-		$unanswered					= $this->unansweredQuestCount($paper_code,$this->stdid,$this->inst);
-		$reviewunanswered 	= $this->reviewunansweredQuestCount($paper_code,$this->stdid,$this->inst);
-		$reviewanswered 		= $this->reviewansweredQuestCount($paper_code,$this->stdid,$this->inst);
-
-		return json_encode([
-				'status'   						=> 'success',
-				'paper_code'					=> $paper_code,
-				'stdid'								=> $this->stdid,
-				'answered'				 		=> $answered,
-				'unanswered'					=> $unanswered,
-				'reviewunanswered'		=> $reviewunanswered,
-				'reviewanswered'			=> $reviewanswered,
-		],200);
-	}
-
-	public function answeredQuestCount($paper_code,$stdid,$inst)
-	{
-		$cnt = DB::table('cand_questions')->where('stdid',$stdid)->where('paper_code',$paper_code)->where('inst',$inst)->where('answered','answered')->count();
-		return $cnt;
-	}
-
-	public function unansweredQuestCount($paper_code,$stdid,$inst)
-	{
-		$cnt = DB::table('cand_questions')->where('stdid',$stdid)->where('paper_code',$paper_code)->where('inst',$inst)->where('answered','unanswered')->count();
-		return $cnt;
-	}
-
-	public function reviewunansweredQuestCount($paper_code,$stdid,$inst)
-	{
-		$cnt = DB::table('cand_questions')->where('stdid',$stdid)->where('paper_code',$paper_code)->where('inst',$inst)->where('answered','reviewandunanswered')->count();
-		return $cnt;
-	}
-
-	public function reviewansweredQuestCount($paper_code,$stdid,$inst)
-	{
-		$cnt = DB::table('cand_questions')->where('stdid',$stdid)->where('paper_code',$paper_code)->where('inst',$inst)->where('answered','reviewandanswered')->count();
-		return $cnt;
-	}
-
-
-	public function searchSubjects($paper_name)
-	{
-		$validator = Validator::make(['paper_name' => $paper_name],
-		[
-			'paper_name' => 'required',
-		]);
-		if ($validator->fails())
+		else
 		{
-			return json_encode([
-					'status'						=>  'failure',
-					'message' 					=> 	$validator->errors()->first(),
-			],400);
+			//---------------create ExamSession Entry---------------------------------
+			$values = array(
+				'exam_id' 							=> $exam_id,
+				'session_start_time'		=> Carbon::now()->subSeconds(2),
+				'last_update_time'			=> Carbon::now(),
+				'session_state' 				=> 'active',
+				'elapsed_time' 					=> 2,
+				'created_at'						=> Carbon::now()
+			);
+			try
+			{
+				$inserted = DB::table('exam_session')->insert($values);
+				$actualElapsedTime = 2;
+			}
+			catch(\Exception $e)
+			{
+				DB::rollBack();
+				return response()->json([
+							'status' 		=> 'failure',
+						],400);
+			}
+			//------------------------------------------------------------------------
 		}
-
-		//-------Search Subject Name in Students allocation List--------------------
-
+		DB::commit();
 		//--------------------------------------------------------------------------
+		return response()->json([
+					'status' 				=> 'success',
+					'elapsedTime'		=> $actualElapsedTime
+				],200);
+	}
 
-		$data=array();
+	public function getExamSession($exam_id)
+	{
+		$result = ExamSession::select("elapsed_time")->where('exam_id',$exam_id)->where('session_state','active')->orderBy('session_start_time', 'desc')->first();
 
-    $exam_name='';
-    $exam_marks='';
-    $exam_tot_questions=0;
-    $exam_duration=0;
-    $conduction_date='';
-    $conduction_time='';
-    $stud_exam_start_time='';
-    $stud_exam_end_time='';
-    $current_exam_status='';
-    $stud_actual_start='';
-    $stud_actual_end='';
-
-
-    $results = DB::select("select * from student_exams where paper_code in(SELECT paper_code FROM subject_master where lower(paper_name) like lower('%$paper_name%')) and username='$this->stdid' and inst='$this->inst'");
-    if($results)
-    {
-      foreach($results as $result)
-      {
-        $results0 = DB::select("SELECT paper_code,exam_name,marks,questions,durations,from_date,from_time FROM `test` where paper_code='$result->paper_code' limit 1");
-        if($results0)
-        {
-          foreach($results0 as $result0)
-          {
-            $exam_name           = $result0->exam_name;
-            $exam_marks          = $result0->marks;
-            $exam_tot_questions  = $result0->questions;
-            $exam_duration       = $result0->durations;
-            $conduction_date     = $result0->from_date;
-            $conduction_time     = $result0->from_time;
-          }
-        }
-
-        $results1 = DB::select("SELECT stdid,inst,paper_code,course,starttime,endtime,status,entry_on,end_on FROM `cand_test` where stdid='$this->stdid' and inst='$this->inst' and paper_code='$result->paper_code' limit 1");
-        if($results1)
-        {
-          foreach($results1 as $result1)
-          {
-            $stud_exam_start_time = $result1->starttime;
-            $stud_exam_end_time   = $result1->endtime;
-            $current_exam_status  = $result1->status;
-            $stud_actual_start    = $result1->entry_on;
-            $stud_actual_end      = $result1->end_on;
-          }
-        }
-
-        array_push($data,[
-          'paper_code'          => $result->paper_code,
-          'stdid'               => $this->stdid,
-          'exam_name'           => $exam_name,
-          'exam_marks'          => $exam_marks,
-          'exam_tot_questions'  => $exam_tot_questions,
-          'exam_duration'       => $exam_duration,
-          'conduction_date'     => $conduction_date,
-          'conduction_time'     => $conduction_time,
-          'stud_exam_start_time'=> $stud_exam_start_time,
-          'stud_exam_end_time'  => $stud_exam_end_time,
-          'stud_actual_start'   => $stud_actual_start,
-          'stud_actual_end'     => $stud_actual_end,
-          'current_exam_status' => $current_exam_status
-        ]);
-        //----------------clear data of variables for next iteration------------
-        $exam_name='';
-        $exam_marks='';
-        $exam_tot_questions=0;
-        $exam_duration=0;
-        $conduction_date='';
-        $conduction_time='';
-        $stud_exam_start_time='';
-        $stud_exam_end_time='';
-        $current_exam_status='';
-        $stud_actual_start='';
-        $stud_actual_end='';
-        //----------------------------------------------------------------------
-      }
-    }
-    return $data;
+		if($result)
+		{
+			return response()->json([
+						'status' 				=> 'success',
+						'elapsedTime'		=> $result->elapsed_time
+					],200);
+		}
+		else
+		{
+			return response()->json([
+						'status' 				=> 'success',
+						'elapsedTime'		=> 0
+					],200);
+		}
 	}
 }
+?>

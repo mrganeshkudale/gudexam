@@ -15,15 +15,15 @@ class TopicMaster extends Migration
     {
         Schema::create('topic_master', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('paper_code',20);
+            $table->integer('paper_id');
             $table->integer('topic');
             $table->integer('subtopic')->default(0);
             $table->integer('questions');
-            $table->index('paper_code');
+            $table->index('paper_id');
             $table->index('topic');
             $table->index('subtopic');
             $table->index('id');
-            $table->unique(['paper_code','topic','subtopic']);
+            $table->unique(['paper_id','topic','subtopic']);
             $table->timestamps();
         });
     }

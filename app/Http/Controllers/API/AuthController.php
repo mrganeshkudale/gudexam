@@ -10,13 +10,37 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
+use GuzzleHttp\Client;
 
 
 class AuthController extends Controller
 {
   public function login(Request $request, CustomLogin $clogin)
   {
-    return $clogin->customLoginAuthentication();
+    $myRecaptcha = $request->myRecaptcha;
+    $client = new Client;
+    $response = $client->post('https://www.google.com/recaptcha/api/siteverify',
+      [
+          'form_params' =>
+              [
+                  'secret' => env('CAPTCHA_SECRET_KEY'),
+                  'response' => $myRecaptcha
+              ]
+      ]
+    );
+
+    $body = json_decode((string)$response->getBody());
+    if($body->success == true)
+    {
+      return $clogin->customLoginAuthentication();
+    }
+    else
+    {
+      return json_encode([
+        'status' => 'failure',
+        'message'  => 'Please use Recaptcha for logging in...',
+      ],200);
+    }
   }
 
   public function getlogin(Request $request)
@@ -25,7 +49,7 @@ class AuthController extends Controller
     {
       return response()->json([
         "status"  =>  "failure",
-        "message" =>  "Unauthorized User. Logging you out"
+        "message" =>  "Unauthorized User."
       ], 401);
     }
   }
@@ -45,12 +69,12 @@ class AuthController extends Controller
     {
       return response()->json([
         "status","failure",
-        "message"=>"Unauthorized User. Logging you out"
+        "message"=>"Unauthorized User."
       ], 401);
     }
   }
 
-  public function getOTP(Request $request,Registration $regi)
+  public function sendOTP(Request $request,Registration $regi)
   {
     return $regi->sendOTP();
   }
@@ -62,12 +86,30 @@ class AuthController extends Controller
 
   public function verifyOTP(Request $request,Registration $regi)
   {
-    return $regi->verifyOTP();
+    return $regi->verifyOTP($request->OTP_id);
   }
 
-  public function registerUser(Request $request,Registration $regi)
+  public function register(Request $request,Registration $regi)
   {
     return $regi->registerUser();
+  }
+
+  public function isLoggedIn()
+  {
+    if(Auth::user())
+    {
+      return response()->json([
+        "status" => "success",
+        "message"=>"Authenticated User"
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status" => "failure",
+        "message"=>"Unauthorized User"
+      ], 200);
+    }
   }
 }
 ?>

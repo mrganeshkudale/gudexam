@@ -15,7 +15,7 @@ class Sessions extends Migration
     {
       Schema::create('sessions', function (Blueprint $table) {
           $table->increments('session_id');
-          $table->string('username',200);
+          $table->bigInteger('uid');
           $table->string('role',20);
           $table->string('ip',50);
           $table->string('starttime',50);

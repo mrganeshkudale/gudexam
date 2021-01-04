@@ -9,5 +9,10 @@ class TopicMaster extends Model
 {
     use HasFactory;
     protected $table = 'topic_master';
-    protected $fillable = ['id','paper_code','topic','subtopic','questions','created_at','updated_at'];
+    protected $fillable = ['id','paper_id','topic','subtopic','questions','created_at','updated_at'];
+
+    public function getSubject()
+    {
+        return $this->belongsTo('App\Models\SubjectMaster','paper_id');
+    }
 }

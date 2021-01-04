@@ -9,5 +9,5 @@ class ClusterToInstMap extends Model
 {
     use HasFactory;
     protected $table = 'cluster_to_inst_maps';
-    protected $fillable = ['id','cluster_username','cname','inst_username','inst_name','created_at','updated_at'];
+    protected $fillable = ['id','cluster_uid','cname','inst_uid','inst_name','created_at','updated_at'];
 }

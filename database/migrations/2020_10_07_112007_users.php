@@ -42,6 +42,15 @@ class Users extends Migration
             $table->string('status',5);
             $table->index('status');
             $table->string('name',500);
+            $table->string('regi_type',20);
+            $table->index('regi_type');
+            $table->string('college_name',500)->nullable();
+            $table->string('docpath',500)->nullable();
+            $table->string('verified',10);
+            $table->string('verify_on',50)->nullable();
+            $table->index('verified');
+            $table->bigInteger('wallet_balance')->default('0');
+            $table->index('wallet_balance');
             $table->timestamps();
             $table->unique(['username','inst_id']);
             $table->unique(['mobile']);

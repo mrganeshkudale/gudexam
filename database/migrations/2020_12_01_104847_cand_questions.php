@@ -14,14 +14,17 @@ class CandQuestions extends Migration
     public function up()
     {
       Schema::create('cand_questions', function (Blueprint $table) {
-          $table->string('stdid',20);
+          $table->bigIncrements('id');
+          $table->bigInteger('exam_id');
+          $table->index('exam_id');
+          $table->bigInteger('stdid');
           $table->index('stdid');
           $table->string('inst',20);
           $table->index('inst');
-          $table->string('paper_code',20);
-          $table->index('paper_code');
-          $table->string('course',20);
-          $table->index('course');
+          $table->integer('paper_id');
+          $table->index('paper_id');
+          $table->integer('program_id');
+          $table->index('program_id');
           $table->integer('qnid');
           $table->index('qnid');
           $table->integer('qtopic');
@@ -38,7 +41,7 @@ class CandQuestions extends Migration
           $table->integer('marks');
           $table->string('ip',50);
           $table->integer('obtmarks')->nullable();
-          $table->primary(['stdid','inst','paper_code','qnid']);
+          $table->unique(['stdid','inst','paper_id','qnid']);
         });
     }
 

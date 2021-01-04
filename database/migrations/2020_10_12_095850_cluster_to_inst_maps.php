@@ -16,17 +16,15 @@ class ClusterToInstMaps extends Migration
         Schema::create('cluster_to_inst_maps', function (Blueprint $table) {
             $table->increments('id');
 
-            $table->string('cluster_username',200);
-            $table->foreign('cluster_username')->references('username')->on('users')->onDelete('cascade');
+            $table->bigInteger('cluster_uid');
             $table->string('cname',200)->nullable();
 
-            $table->string('inst_username',200);
-            $table->foreign('inst_username')->references('username')->on('users')->onDelete('cascade');
+            $table->bigInteger('inst_uid');
             $table->string('inst_name',200)->nullable();
-            
-            $table->index('inst_username');
-            $table->index('cluster_username');
-            $table->unique(['inst_username', 'cluster_username']);
+
+            $table->index('inst_uid');
+            $table->index('cluster_uid');
+            $table->unique(['inst_uid', 'cluster_uid']);
             $table->timestamps();
         });
     }

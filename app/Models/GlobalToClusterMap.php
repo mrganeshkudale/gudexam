@@ -9,5 +9,5 @@ class GlobalToClusterMap extends Model
 {
     use HasFactory;
     protected $table = 'global_to_cluster_maps';
-    protected $fillable = ['id','global_username','gname','cluster_username','cname','created_at','updated_at'];
+    protected $fillable = ['id','global_uid','gname','cluster_uid','cname','created_at','updated_at'];
 }

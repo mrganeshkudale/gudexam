@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Student\Student;
 use Illuminate\Http\Request;
 
-class StudentController extends Controller
+class QuestionSetController extends Controller
 {
-    
+  
 }

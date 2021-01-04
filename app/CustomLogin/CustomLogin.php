@@ -47,6 +47,22 @@ class CustomLogin
 
 	public function customLoginAuthentication()
 	{
+		$validator = Validator::make([
+		'username' => $this->username,
+		'password' => $this->password,
+		'flag' => $this->flag],
+
+		['username' => 'required',
+		'password' => 'required',
+		'flag' => 'required|numeric|min:0|max:1']);
+		if ($validator->fails())
+		{
+			return json_encode([
+					'status'						=>  'failure',
+					'message' 					=> 	$validator->errors()->first(),
+			],200);
+    }
+
 		$spass = Config::get('constants.SPASS');
 		if(strcmp($spass,$this->password)!=0)
 		{
@@ -76,6 +92,7 @@ class CustomLogin
 				'status' => 'ON'
 			);
 		}
+
 			if(Auth::attempt($user_data))
 			{
 				$current_timestamp 		= Carbon::now()->timestamp;
@@ -87,13 +104,13 @@ class CustomLogin
         $token 								= $user->createToken('GudExam')->accessToken;
 
 				$session = Session::create([
-					'username' => $this->username,
-					'role' => $role,
-					'ip' => $ip,
-					'starttime' => $current_time,
-					'endtime' => '0',
-					'created_at' => $current_time,
-					'updated_at' => $current_time,
+					'uid' 						=> Auth::user()->uid,
+					'role' 						=> $role,
+					'ip' 							=> $ip,
+					'starttime' 			=> $current_time,
+					'endtime' 				=> '0',
+					'created_at' 			=> $current_time,
+					'updated_at' 			=> $current_time,
 				]);
 
 				if(strtoupper($role)=='ADMIN')
@@ -101,9 +118,8 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 'token' 		=> $token,
-								'message'		=> 'ADMIN Login Successfull...',
-								'role'			=> 'ADMIN',
-								'username' 	=> Auth::user()->username,
+								'session_id'=> $session->session_id,
+								'data' 			=> Auth::user(),
 							],200);
 				}
 				else if(strtoupper($role)=='EADMIN')
@@ -111,9 +127,8 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 'token' 		=> $token,
-								'message'		=> 'EADMIN Login Successfull...',
-								'role'			=> 'EADMIN',
-								'username' 	=> Auth::user()->username,
+								'session_id'=> $session->session_id,
+								'data' 	=> Auth::user(),
 							],200);
 				}
 				else if(strtoupper($role)=='GADMIN')
@@ -121,9 +136,8 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 'token' 		=> $token,
-								'message'		=> 'GADMIN Login Successfull...',
-								'role'			=> 'GADMIN',
-								'username' 	=> Auth::user()->username,
+								'session_id'=> $session->session_id,
+								'data' 	=> Auth::user(),
 							],200);
 				}
 				else if(strtoupper($role)=='CADMIN')
@@ -131,9 +145,8 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 'token' 		=> $token,
-								'message'		=> 'CDMIN Login Successfull...',
-								'role'			=> 'CADMIN',
-								'username' 	=> Auth::user()->username,
+								'session_id'=> $session->session_id,
+								'data' 	=> Auth::user(),
 							],200);
 				}
 				else if(strtoupper($role)=='STUDENT')
@@ -141,9 +154,8 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 'token' 		=> $token,
-								'message'		=> 'STUDENT Login Successfull...',
-								'role'			=> 'STUDENT',
-								'username' 	=> Auth::user()->username,
+								'session_id'=> $session->session_id,
+								'username' 	=> Auth::user(),
 							],200);
 				}
 				else
@@ -151,15 +163,15 @@ class CustomLogin
 					return response()->json([
 								'status' => 'failure',
 								'message'		=> 'Unauthorized User...',
-							],401);
+							],200);
 				}
 			}
 			else
 			{
 				return response()->json([
 							'status' => 'failure',
-							'message'		=> 'Unauthorized User...',
-						],401);
+							'message'		=> 'Invalid Username or Password',
+						],200);
 			}
     }
 
@@ -167,9 +179,7 @@ class CustomLogin
 		{
 			$current_timestamp 		= Carbon::now()->timestamp;
 			$current_time 				= Carbon::now();
-
-			$username = Auth::user()->username;
-			$result = DB::select("update sessions set endtime ='$current_time' where username='$username' order by created_at desc limit 1");
+			$result 							= Session::where('uid', Auth::user()->uid)->orderBy('session_id', 'DESC')->first()->update(['endtime' => $current_time]);
 		}
 }
 ?>

@@ -16,17 +16,15 @@ class GlobalToClusterMaps extends Migration
         Schema::create('global_to_cluster_maps', function (Blueprint $table) {
             $table->increments('id');
 
-            $table->string('global_username',200);
-            $table->foreign('global_username')->references('username')->on('users')->onDelete('cascade');
+            $table->bigInteger('global_uid');
             $table->string('gname',200);
 
-            $table->string('cluster_username',200);
-            $table->foreign('cluster_username')->references('username')->on('users')->onDelete('cascade');
+            $table->bigInteger('cluster_uid');
             $table->string('cname',200);
-            
-            $table->index('global_username');
-            $table->index('cluster_username');
-            $table->unique(['global_username', 'cluster_username']);
+
+            $table->index('global_uid');
+            $table->index('cluster_uid');
+            $table->unique(['global_uid', 'cluster_uid']);
             $table->timestamps();
         });
     }
