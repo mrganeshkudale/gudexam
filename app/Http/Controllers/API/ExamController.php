@@ -34,7 +34,11 @@ class ExamController extends Controller
       }
       else if($request->status === 'end')
       {
-        return $s->endExam($request->elapsed,$id);
+        return $s->endExam($id);
+      }
+      else if($request->status === 'windowswitch')
+      {
+        return $s->windowSwitchExam($id);
       }
       else
       {

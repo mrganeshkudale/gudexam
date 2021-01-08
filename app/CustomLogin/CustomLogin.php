@@ -95,6 +95,22 @@ class CustomLogin
 
 			if(Auth::attempt($user_data))
 			{
+
+				$sessionResult = User::find(Auth::user()->uid)->sessions()->orderBy('session_id','DESC')->first();
+
+				//---------Condition to Check Already Logged in or proper Log Out-------
+				if($sessionResult)
+				{
+					if($sessionResult->endtime == '0')
+					{
+						return response()->json([
+									'status' 		=> 'failure',
+									'message'   => 'You have already logged in using other device. Clear Your Session to Login.'
+								],200);
+					}
+				}
+				//----------------------------------------------------------------------
+				
 				$current_timestamp 		= Carbon::now()->timestamp;
 				$current_time 				= Carbon::now();
 

@@ -184,7 +184,6 @@ class Student
 													'entry_on' 			=> 	Carbon::now(),
 													'examip'				=>	request()->ip(),
 													'pa'						=>	'P',
-													'elapsed'				=>	'0',
 													'status'				=>	'inprogress',
 													'updated_at'		=> 	Carbon::now()
 												]);
@@ -202,9 +201,8 @@ class Student
 								else
 								{
 										$candQuestionsExisting=1;
-										$result = CandTest::select(['elapsed','continueexam'])->where('id',$exam_id)->first();
+										$result = CandTest::select(['continueexam'])->where('id',$exam_id)->first();
 
-										$elapsed = $result->elapsed;
 										$continueexam = $result->continueexam;
 										$continueexam = $continueexam + 1;
 										try
@@ -228,7 +226,6 @@ class Student
 
 						return json_encode([
 							'status' 				=> 'success',
-							'elapsed'				=>	$elapsed,
 						],200);
 						//-----------------------------------------------------------------
 				}
@@ -249,7 +246,7 @@ class Student
 		//-------------------------------------------------------------------------
 	}
 
-	public function endExam($elapsed,$id)
+	public function endExam($id)
 	{
 			$cqnid='';$wqnid='';$uqnid='';$marksobt=0;
 			//----------get value of cqnid,wqnid,uqnid--------------------------------
@@ -466,6 +463,19 @@ class Student
 						'elapsedTime'		=> 0
 					],200);
 		}
+	}
+
+	public function windowSwitchExam($id)
+	{
+		$result = CandTest::where('id',$id)->first();
+		$count = $result->switched + 1;
+		$result->switched = $count;
+		$result->save();
+
+		return response()->json([
+					'status' 				=> 'success',
+					'switchedcount' => $count
+				],200);
 	}
 }
 ?>

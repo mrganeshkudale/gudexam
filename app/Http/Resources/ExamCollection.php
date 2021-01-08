@@ -29,7 +29,7 @@ class ExamCollection extends ResourceCollection
             'endtime'     =>  $single->endtime,
             'startedon'   =>  $single->entry_on,
             'endon'       =>  $single->end_on,
-            'elapsed'     =>  $single->elapsed,
+            'switched'    =>  $single->switched,
             'now'         =>  date('Y-m-d H:i:s'),
             'paper'       =>  new PaperResource(SubjectMaster::find($single->paper_id)),
           ];

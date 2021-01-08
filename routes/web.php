@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -12,6 +14,14 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/encryptpass', function () {
+    $results = User::where('password','')->get();
+    foreach($results as $result)
+    {
+      $uid = $result->uid;
+      $origpassword = $result->origpass;
+      $password = Hash::make($origpassword);
+
+      $result1 = User::find($uid)->update(['password' => $password]);
+    }
+  });
