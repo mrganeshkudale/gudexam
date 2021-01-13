@@ -27,10 +27,9 @@ class SubjectMaster extends Migration
             $table->integer('marks3')->default('0');
             $table->integer('marks4')->default('0');
             $table->integer('durations')->default('0');
-            $table->string('from_date',50)->nullable();
-            $table->string('to_date',50)->nullable();
-            $table->string('from_time',50)->nullable();
-            $table->string('to_time',50)->nullable();
+            $table->timestamp('from_date', $precision = 3)->nullable();
+            $table->timestamp('to_date', $precision = 3)->nullable();
+
 
             $table->integer('active')->default('0');
             $table->integer('score_view')->default('0');
@@ -55,8 +54,6 @@ class SubjectMaster extends Migration
             $table->index('marks4');
             $table->index('from_date');
             $table->index('to_date');
-            $table->index('from_time');
-            $table->index('to_time');
 
             $table->index('paper_code');
             $table->index('program_id');

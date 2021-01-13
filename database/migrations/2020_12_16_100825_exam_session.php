@@ -17,9 +17,9 @@ class ExamSession extends Migration
           $table->bigIncrements('id');
           $table->integer('exam_id');
           $table->index('exam_id');
-          $table->string('session_start_time',50);
+          $table->timestamp('session_start_time', $precision = 0)->nullable();
           $table->index('session_start_time');
-          $table->string('last_update_time',50);
+          $table->timestamp('last_update_time', $precision = 0)->nullable();
           $table->index('last_update_time');
           $table->string('session_state',20);
           $table->index('session_state');

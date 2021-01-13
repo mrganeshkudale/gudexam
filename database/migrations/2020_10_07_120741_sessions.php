@@ -18,8 +18,8 @@ class Sessions extends Migration
           $table->bigInteger('uid');
           $table->string('role',20);
           $table->string('ip',50);
-          $table->string('starttime',50);
-          $table->string('endtime',50);
+          $table->timestamp('starttime', $precision = 3)->nullable();
+          $table->timestamp('endtime', $precision = 3)->nullable();
           $table->timestamps();
       });
     }

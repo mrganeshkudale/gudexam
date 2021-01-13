@@ -4,6 +4,8 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Models\ProgramMaster;
+use Carbon\Carbon;
+
 class PaperResource extends JsonResource
 {
     /**
@@ -28,10 +30,10 @@ class PaperResource extends JsonResource
           'mark3'         =>  $this->mark3,
           'mark4'         =>  $this->mark4,
           'duration'      =>  $this->durations,
-          'from_date'     =>  $this->from_date,
-          'to_date'       =>  $this->to_date,
-          'from_time'     =>  $this->from_time,
-          'to_time'       =>  $this->to_time,
+          'from_date'     =>  Carbon::createFromFormat('Y-m-d H:i:s.u', $this->from_date)->getPreciseTimestamp(3),
+          'to_date'       =>  Carbon::createFromFormat('Y-m-d H:i:s.u', $this->to_date)->getPreciseTimestamp(3),
+          /*'from_date' => $this->from_date,
+          'to_date'=>$this->to_date,*/
           'score_view'    =>  $this->score_view,
           'review_question'=>  $this->review_question,
           'proctoring'    =>  $this->proctoring,

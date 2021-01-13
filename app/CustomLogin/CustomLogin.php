@@ -101,7 +101,7 @@ class CustomLogin
 				//---------Condition to Check Already Logged in or proper Log Out-------
 				if($sessionResult)
 				{
-					if($sessionResult->endtime == '0')
+					if($sessionResult->endtime == '')
 					{
 						return response()->json([
 									'status' 		=> 'failure',
@@ -110,7 +110,7 @@ class CustomLogin
 					}
 				}
 				//----------------------------------------------------------------------
-				
+
 				$current_timestamp 		= Carbon::now()->timestamp;
 				$current_time 				= Carbon::now();
 
@@ -124,7 +124,6 @@ class CustomLogin
 					'role' 						=> $role,
 					'ip' 							=> $ip,
 					'starttime' 			=> $current_time,
-					'endtime' 				=> '0',
 					'created_at' 			=> $current_time,
 					'updated_at' 			=> $current_time,
 				]);

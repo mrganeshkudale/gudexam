@@ -33,9 +33,9 @@ class CandQuestions extends Migration
           $table->string('stdanswer',20)->nullable();
           $table->integer('qnid_sr');
           $table->index('qnid_sr');
-          $table->string('entry_on',100)->nullable();
+          $table->timestamp('entry_on', $precision = 3)->nullable();
           $table->string('answer_by',50)->nullable();
-          $table->string('answer_on',100)->nullable();
+          $table->timestamp('answer_on', $precision = 3)->nullable();
           $table->string('cans',20);
           $table->index('cans');
           $table->integer('marks');

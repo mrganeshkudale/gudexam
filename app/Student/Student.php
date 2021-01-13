@@ -393,6 +393,7 @@ class Student
 			}
 			else
 			{
+				$cumulativeTime=0;
 				//---------------Calculate New Elapsed Time-----------------------------
 					$cumulativeResult = DB::select("select elapsed_time from exam_session where exam_id='$exam_id' and session_state='over' order by session_start_time DESC");
 					if($cumulativeResult)

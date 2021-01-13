@@ -47,7 +47,7 @@ class Users extends Migration
             $table->string('college_name',500)->nullable();
             $table->string('docpath',500)->nullable();
             $table->string('verified',10);
-            $table->string('verify_on',50)->nullable();
+            $table->timestamp('verify_on', $precision = 3)->nullable();
             $table->index('verified');
             $table->bigInteger('wallet_balance')->default('0');
             $table->index('wallet_balance');
