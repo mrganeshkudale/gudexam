@@ -16,6 +16,7 @@ use App\Http\Controllers\API\QuestionSetController;
 use App\Http\Controllers\API\GAdminController;
 use App\Http\Controllers\API\CAdminController;
 use App\Http\Controllers\API\EAdminController;
+use App\Http\Controllers\API\ProctorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -51,6 +52,8 @@ Route::middleware(['auth:api'])->group(function()
 
     Route::get('answer', [AnswerController::class, 'index'])->name('getAnswer');
     Route::put('answer/{id}', [AnswerController::class, 'update'])->name('updateAnswer');
+
+    Route::post('proctor', [ProctorController::class, 'store'])->name('PostProctor');
 
 });
 //---------------------------------Student API End------------------------------

@@ -30,7 +30,7 @@ class ExamCollection extends ResourceCollection
             'startedon'   =>  $single->entry_on,
             'endon'       =>  $single->end_on,
             'switched'    =>  $single->switched,
-            'now'         =>  date('Y-m-d H:i:s'),
+            'now'         =>  round(microtime(true) * 1000),
             'paper'       =>  new PaperResource(SubjectMaster::find($single->paper_id)),
           ];
         }

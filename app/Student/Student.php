@@ -9,6 +9,7 @@ use App\Models\CandTest;
 use App\Models\SubjectMaster;
 use App\Models\Session;
 use App\Models\ExamSession;
+use App\Models\ProctorSnaps;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
@@ -477,6 +478,37 @@ class Student
 					'status' 				=> 'success',
 					'switchedcount' => $count
 				],200);
+	}
+
+	public function storeSnapshot($examid,$image)
+	{
+		$path  = storage_path().'/snapshots/'.$examid.'_'.Carbon::now()->timestamp.'.jpg';
+		$image = str_replace('data:image/jpeg;base64,', '', $image);
+    	$image = str_replace(' ', '+', $image);
+		$image = base64_decode($image);
+
+		\File::put($path, $image);
+
+		$values = array(
+			'examid' 							=> $examid,
+			'path'								=> $path,
+			'created_at'						=> Carbon::now()
+		);
+
+		$inserted = DB::table('proctor_snaps')->insert($values);
+
+		if($inserted)
+		{
+			return response()->json([
+				'status' 				=> 'success'
+			],200);
+		}
+		else
+		{
+			return response()->json([
+				'status' 				=> 'failure'
+			],400);
+		}
 	}
 }
 ?>
