@@ -17,6 +17,8 @@ use App\Http\Controllers\API\GAdminController;
 use App\Http\Controllers\API\CAdminController;
 use App\Http\Controllers\API\EAdminController;
 use App\Http\Controllers\API\ProctorController;
+use App\Http\Controllers\API\SessionsController;
+use App\Http\Controllers\API\UsersController;
 
 /*
 |--------------------------------------------------------------------------
@@ -59,9 +61,10 @@ Route::middleware(['auth:api'])->group(function()
 //---------------------------------Student API End------------------------------
 
 //--------------------------Specific ADMIN Roles API----------------------------
-Route::middleware(['auth:api','admin','cors'])->group(function()
+Route::middleware(['auth:api','admin'])->group(function()
 {
-
+    Route::get('user', [UsersController::class, 'show'])->name('getSessions');
+    Route::put('sessions', [SessionsController::class, 'update'])->name('putSessions');
 });
 //------------------------------------------------------------------------------
 ?>

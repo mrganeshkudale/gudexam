@@ -12,7 +12,7 @@ use Auth;
 class CustomLogin
 {
 	private $username;
-  private $password;
+  	private $password;
 	private $inst_id;
 	private $flag;
 
@@ -32,14 +32,14 @@ class CustomLogin
 	public function getUserPassword()
 	{
 		return $this->password;
-  }
+  	}
 
-  public function getUserInst()
+  	public function getUserInst()
 	{
 		return $this->inst_id;
-  }
+  	}
 
-  public function getFlag()
+  	public function getFlag()
 	{
 		return $this->flag;
 	}
@@ -58,10 +58,10 @@ class CustomLogin
 		if ($validator->fails())
 		{
 			return json_encode([
-					'status'						=>  'failure',
+					'status'					=>  'failure',
 					'message' 					=> 	$validator->errors()->first(),
 			],200);
-    }
+    	}
 
 		$spass = Config::get('constants.SPASS');
 		if(strcmp($spass,$this->password)!=0)
@@ -69,27 +69,27 @@ class CustomLogin
 				if($this->flag==0)
 				{
 					$user_data = array(
-						'username'  => $this->username,
-						'password' => $this->password,
-						'inst_id' => $this->inst_id,
-						'status' => 'ON'
+						'username'  		=> $this->username,
+						'password' 			=> $this->password,
+						'inst_id' 			=> $this->inst_id,
+						'status' 			=> 'ON'
 					);
 				}
 				else
 				{
 					$user_data = array(
-						'username'  => $this->username,
-						'password' => $this->password,
-						'status' => 'ON'
+						'username'  		=> $this->username,
+						'password' 			=> $this->password,
+						'status' 			=> 'ON'
 					);
 				}
 		}
 		else
 		{
 			$user_data = array(
-				'username'  => $this->username,
-				'password' => $this->password,
-				'status' => 'ON'
+				'username'  				=> $this->username,
+				'password' 					=> $this->password,
+				'status' 					=> 'ON'
 			);
 		}
 
@@ -112,28 +112,28 @@ class CustomLogin
 				//----------------------------------------------------------------------
 
 				$current_timestamp 		= Carbon::now()->timestamp;
-				$current_time 				= Carbon::now();
+				$current_time 			= Carbon::now();
 
-				$role									=	Auth::user()->role;
-        $ip 									= request()->ip();
-        $user 								= Auth::user();
-        $token 								= $user->createToken('GudExam')->accessToken;
+				$role					=	Auth::user()->role;
+				$ip 					= request()->ip();
+				$user 					= Auth::user();
+				$token 					= $user->createToken('GudExam')->accessToken;
 
 				$session = Session::create([
 					'uid' 						=> Auth::user()->uid,
 					'role' 						=> $role,
-					'ip' 							=> $ip,
-					'starttime' 			=> $current_time,
-					'created_at' 			=> $current_time,
-					'updated_at' 			=> $current_time,
+					'ip' 						=> $ip,
+					'starttime' 				=> $current_time,
+					'created_at' 				=> $current_time,
+					'updated_at' 				=> $current_time,
 				]);
 
 				if(strtoupper($role)=='ADMIN')
 				{
 					return response()->json([
 								'status' 		=> 'success',
-                'token' 		=> $token,
-								'session_id'=> $session->session_id,
+                				'token' 		=> $token,
+								'session_id'	=> $session->session_id,
 								'data' 			=> Auth::user(),
 							],200);
 				}
@@ -141,42 +141,42 @@ class CustomLogin
 				{
 					return response()->json([
 								'status' 		=> 'success',
-                'token' 		=> $token,
-								'session_id'=> $session->session_id,
-								'data' 	=> Auth::user(),
+                				'token' 		=> $token,
+								'session_id'	=> $session->session_id,
+								'data' 			=> Auth::user(),
 							],200);
 				}
 				else if(strtoupper($role)=='GADMIN')
 				{
 					return response()->json([
 								'status' 		=> 'success',
-                'token' 		=> $token,
-								'session_id'=> $session->session_id,
-								'data' 	=> Auth::user(),
+                				'token' 		=> $token,
+								'session_id'	=> $session->session_id,
+								'data' 			=> Auth::user(),
 							],200);
 				}
 				else if(strtoupper($role)=='CADMIN')
 				{
 					return response()->json([
 								'status' 		=> 'success',
-                'token' 		=> $token,
-								'session_id'=> $session->session_id,
-								'data' 	=> Auth::user(),
+               					'token' 		=> $token,
+								'session_id'	=> $session->session_id,
+								'data' 			=> Auth::user(),
 							],200);
 				}
 				else if(strtoupper($role)=='STUDENT')
 				{
 					return response()->json([
 								'status' 		=> 'success',
-                'token' 		=> $token,
-								'session_id'=> $session->session_id,
-								'username' 	=> Auth::user(),
+                				'token' 		=> $token,
+								'session_id'	=> $session->session_id,
+								'data' 			=> Auth::user(),
 							],200);
 				}
 				else
 				{
 					return response()->json([
-								'status' => 'failure',
+								'status' 		=> 'failure',
 								'message'		=> 'Unauthorized User...',
 							],200);
 				}
@@ -184,7 +184,7 @@ class CustomLogin
 			else
 			{
 				return response()->json([
-							'status' => 'failure',
+							'status' 		=> 'failure',
 							'message'		=> 'Invalid Username or Password',
 						],200);
 			}
@@ -192,9 +192,9 @@ class CustomLogin
 
 		public function customLogout()
 		{
-			$current_timestamp 		= Carbon::now()->timestamp;
-			$current_time 				= Carbon::now();
-			$result 							= Session::where('uid', Auth::user()->uid)->orderBy('session_id', 'DESC')->first()->update(['endtime' => $current_time]);
+			$current_timestamp 				= Carbon::now()->timestamp;
+			$current_time 					= Carbon::now();
+			$result 						= Session::where('uid', Auth::user()->uid)->orderBy('session_id', 'DESC')->first()->update(['endtime' 	=> $current_time]);
 		}
 }
 ?>

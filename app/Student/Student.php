@@ -29,15 +29,15 @@ class Student
   private $mobile;
 
   public function __construct($arr)
-	{
-		$this->uid 					= $arr->uid;
+  {
+	$this->uid 			= $arr->uid;
     $this->stdid        = $arr->username;
     $this->region       = $arr->region;
     $this->inst         = $arr->inst_id;
     $this->course       = $arr->course_code;
     $this->semester     = $arr->semester;
     $this->mobile       = $arr->mobile;
-	}
+  }
 
 	public function getDuration($paper_id)
   {

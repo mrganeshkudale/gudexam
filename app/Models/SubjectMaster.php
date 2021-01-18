@@ -9,6 +9,7 @@ class SubjectMaster extends Model
 {
     use HasFactory;
     protected $table = 'subject_master';
+    
     protected $fillable = ['id','paper_code','paper_name','program_id','semester','created_at','updated_at','paper_id','marks','exam_name','questions','marks1','marks2','marks3',
     'marks4','from_date','from_time','to_date','to_time','created_at','updated_at','durations',
     'instructions','active','score_view','review_question','proctoring','photo_capture','capture_interval',

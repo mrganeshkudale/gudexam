@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Validator;
 use Auth;
+use Illuminate\Http\Resources\Json\ResourceCollection;
+use App\Http\Resources\InstituteResource;
 
 class Admin
 {
@@ -34,35 +36,78 @@ class Admin
     $this->name         = $arr->name;
 	}
 
-  public function deleteCandQuestions($stdid,$paper_id)
-	{
-		$questions = CandQuestion::where('stdid',$stdid)->where('paper_id',$paper_id);
-    $questions->delete();
+  public function clearSession($enrollNo)
+  {
+    $result   = User::where('username',$enrollNo)->first();
+    if($result)
+    {
+      $uid      = $result->uid;
+      $date     = new Carbon('2001-01-01 01:01:01');
 
-    return response()->json([
-      "status"          =>  "success",
-    ], 204);
-	}
+      $result1  = Session::where('uid',$uid)->orderBy('starttime','DESC')->first()->update(['endtime' => $date]);
 
-  public function deleteCandidateTest($stdid,$paper_id,$inst)
-	{
-		$candtest = CandTest::where('stdid',$stdid)->where('paper_id',$paper_id)->where('inst',$inst);
-    $candtest->delete();
+      if($result1)
+      {
+        return response()->json([
+          "status" => "success",
+        ], 200);
+      }
+      else
+      {
+        return response()->json([
+          "status" => "failure",
+        ], 400);
+      }
+    }
+    else
+    {
+      return response()->json([
+        "status" => "failure",
+      ], 400);
+    }
+  }
 
-    return response()->json([
-      "status"          =>  "success",
-    ], 204);
-	}
-
-  public function deleteElapsed($stdid,$paper_id,$inst)
-	{
-		$elapsed = Elapsed::where('stdid',$stdid)->where('paper_id',$paper_id)->where('inst',$inst);
-    $elapsed->delete();
-
-    return response()->json([
-      "status"          =>  "success",
-    ], 204);
-	}
+  public function getUserDetails($username)
+  {
+    $result   = User::where('username',$username)->first();
+    if($result)
+    {
+      if($result->role != 'STUDENT')
+      {
+        return response()->json([
+          "status"        => "success",
+          "uid"           => $result->uid,
+          "username"      => $result->username,
+          "instid"        => $result->instid,
+          "region"        => $result->region,
+          "mobile"        => $result->mobile,
+          "email"         => $result->email,
+          "role"          => $result->role,
+          "name"          => $result->name,
+        ], 200);
+      }
+      else
+      {
+        return response()->json([
+          "status"        => "success",
+          "uid"           => $result->uid,
+          "username"      => $result->username,
+          "instid"        => new InstituteResource(User::where('username',$result->inst_id)->first()),
+          "region"        => $result->region,
+          "mobile"        => $result->mobile,
+          "email"         => $result->email,
+          "role"          => $result->role,
+          "name"          => $result->name,
+        ], 200);
+      }
+    }
+    else
+    {
+      return response()->json([
+        "status"        => "failure",
+      ], 400);
+    }
+  }
 
 }
 ?>
