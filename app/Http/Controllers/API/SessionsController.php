@@ -15,7 +15,7 @@ class SessionsController extends Controller
         {
             if($request->type === 'clearsession')
             {
-                return $a->clearSession($request->enrollNo);
+                return $a->clearSession($request->uid);
             }
         }
         else

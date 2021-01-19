@@ -36,12 +36,8 @@ class Admin
     $this->name         = $arr->name;
 	}
 
-  public function clearSession($enrollNo)
+  public function clearSession($uid)
   {
-    $result   = User::where('username',$enrollNo)->first();
-    if($result)
-    {
-      $uid      = $result->uid;
       $date     = new Carbon('2001-01-01 01:01:01');
 
       $result1  = Session::where('uid',$uid)->orderBy('starttime','DESC')->first()->update(['endtime' => $date]);
@@ -58,13 +54,6 @@ class Admin
           "status" => "failure",
         ], 400);
       }
-    }
-    else
-    {
-      return response()->json([
-        "status" => "failure",
-      ], 400);
-    }
   }
 
   public function getUserDetails($username)
