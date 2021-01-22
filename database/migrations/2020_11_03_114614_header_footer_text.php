@@ -15,8 +15,9 @@ class HeaderFooterText extends Migration
     {
       Schema::create('header_footer_text', function (Blueprint $table) {
           $table->increments('id');
-          $table->string('header',200);
+          $table->string('header',500);
           $table->string('footer',500);
+          $table->string('logo',500);
           $table->index('id');
           $table->timestamps();
       });

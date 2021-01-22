@@ -19,6 +19,7 @@ use App\Http\Controllers\API\EAdminController;
 use App\Http\Controllers\API\ProctorController;
 use App\Http\Controllers\API\SessionsController;
 use App\Http\Controllers\API\UsersController;
+use App\Http\Controllers\API\ConfigurationsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,6 +37,7 @@ Route::post('OTP/resend',[AuthController::class, 'resendOTP'])->name('resendOTP'
 Route::post('OTP/verify',[AuthController::class, 'verifyOTP'])->name('verifyOTP');
 Route::post('register',[AuthController::class, 'register'])->name('register');
 Route::get('settings',[SettingsController::class, 'index'])->name('settings');
+Route::get('configurations', [ConfigurationsController::class, 'show'])->name('getConfig');
 
 //--------------------------General Student Exam API----------------------------
 Route::middleware(['auth:api'])->group(function()
@@ -65,6 +67,8 @@ Route::middleware(['auth:api','admin'])->group(function()
 {
     Route::get('user', [UsersController::class, 'show'])->name('getSessions');
     Route::put('sessions', [SessionsController::class, 'update'])->name('putSessions');
+    Route::put('configurations', [ConfigurationsController::class, 'update'])->name('putConfig');
+    Route::post('configurations', [ConfigurationsController::class, 'store'])->name('postConfig');
 });
 //------------------------------------------------------------------------------
 ?>

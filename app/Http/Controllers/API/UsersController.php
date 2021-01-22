@@ -13,7 +13,7 @@ class UsersController extends Controller
     {
         if(Auth::user())
         {
-            return $a->getUserDetails($request->username);
+            return $a->getUserDetails($request->username,$request->instId,$request->flag);
         }
         else
         {
