@@ -30,6 +30,7 @@ use App\Http\Controllers\API\ConfigurationsController;
 | is assigned the "api" middleware group. Enjoy building your API!
 */
 
+
 Route::post('login',[AuthController::class, 'login'])->name('postlogin');
 Route::get('login',[AuthController::class, 'getlogin'])->name('login');
 Route::post('OTP/send',[AuthController::class, 'sendOTP'])->name('sendOTP');
@@ -42,6 +43,7 @@ Route::get('configurations', [ConfigurationsController::class, 'show'])->name('g
 //--------------------------General Student Exam API----------------------------
 Route::middleware(['auth:api'])->group(function()
 {
+    Route::get('whoAmI',[AuthController::class, 'index'])->name('whoAmI');
     Route::get('isLoggedIn',[AuthController::class, 'isLoggedIn'])->name('isLoggedIn');
 
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
@@ -62,10 +64,10 @@ Route::middleware(['auth:api'])->group(function()
 });
 //---------------------------------Student API End------------------------------
 
-//--------------------------Specific ADMIN Roles API----------------------------
+//--------------------------Specific ADMIN Roles API----------------------------s
 Route::middleware(['auth:api','admin'])->group(function()
 {
-    Route::get('user', [UsersController::class, 'show'])->name('getSessions');
+    Route::get('user', [UsersController::class, 'show'])->name('getUser');
     Route::put('sessions', [SessionsController::class, 'update'])->name('putSessions');
     Route::put('configurations', [ConfigurationsController::class, 'update'])->name('putConfig');
     Route::post('configurations', [ConfigurationsController::class, 'store'])->name('postConfig');

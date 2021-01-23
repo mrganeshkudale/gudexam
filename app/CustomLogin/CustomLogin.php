@@ -101,11 +101,11 @@ class CustomLogin
 				//---------Condition to Check Already Logged in or proper Log Out-------
 				if($sessionResult)
 				{
-					if($sessionResult->endtime == '')
+					if($sessionResult->endtime == '' && $sessionResult->role == 'STUDENT')
 					{
 						return response()->json([
 									'status' 		=> 'failure',
-									'message'   => 'You have already logged in using other device. Clear Your Session to Login.'
+									'message'   	=> 'You have already logged in using other device. Clear Your Session to Login.'
 								],200);
 					}
 				}

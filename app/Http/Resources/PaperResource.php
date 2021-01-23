@@ -45,6 +45,7 @@ class PaperResource extends JsonResource
           'option_shuffle'  => $this->option_shuffle,
           'question_marks'  =>  $this->question_marks,
           'instructions'    =>  $this->instructions,
+          'ph_time'         =>  $this->ph_time,
           'created_at'      =>  $this->created_at,
           'updated_at'      =>  $this->updated_at
         ];

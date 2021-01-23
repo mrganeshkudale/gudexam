@@ -15,16 +15,34 @@ use GuzzleHttp\Client;
 
 class AuthController extends Controller
 {
+  public function index()
+  {
+    if(Auth::user())
+    {
+      return response()->json([
+        "status"    =>  "Success",
+        "data"      =>  Auth::user() 
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"    =>  "failure",
+        "message"   =>  "Unauthorized User."
+      ], 401);
+    }
+  }
+
   public function login(Request $request, CustomLogin $clogin)
   {
-    $myRecaptcha = $request->myRecaptcha;
-    $client = new Client;
-    $response = $client->post('https://www.google.com/recaptcha/api/siteverify',
+    $myRecaptcha    = $request->myRecaptcha;
+    $client         = new Client;
+    $response       = $client->post('https://www.google.com/recaptcha/api/siteverify',
       [
           'form_params' =>
               [
-                  'secret' => env('CAPTCHA_SECRET_KEY'),
-                  'response' => $myRecaptcha
+                  'secret'    => env('CAPTCHA_SECRET_KEY'),
+                  'response'  => $myRecaptcha
               ]
       ]
     );

@@ -54,6 +54,7 @@ class Users extends Migration
             $table->timestamps();
             $table->unique(['username','inst_id']);
             $table->unique(['mobile']);
+            $table->string('ph',5)->nullable();
         });
     }
 

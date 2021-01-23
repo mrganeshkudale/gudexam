@@ -44,6 +44,7 @@ class SubjectMaster extends Migration
             $table->integer('option_shuffle')->default('0');
             $table->integer('question_marks')->default('0');
             $table->text('instructions')->nullable();
+            $table->integer('ph_time')->default('0');
 
             $table->index('id');
             $table->index('questions');
