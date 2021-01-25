@@ -20,6 +20,8 @@ class ProgramMaster extends Migration
             $table->index('program_code');
             $table->index('id');
             $table->unique(['program_code']);
+            $table->integer('inst_uid')->nullable();
+            $table->index('inst_uid');
             $table->timestamps();
         });
     }

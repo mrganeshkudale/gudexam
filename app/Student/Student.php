@@ -168,11 +168,11 @@ class Student
 													$inserted = DB::table('cand_questions')->insert($values);
 												}
 												catch(\Exception $e)
-									      {
+									     		 {
 													DB::rollBack();
 													return response()->json([
-								                'status' 		=> 'failure',
-								              ],400);
+								                	'status' 		=> 'failure',
+								              		],400);
 												}
 										}
 									//-----------------------Update Exam status in CandTest-----------

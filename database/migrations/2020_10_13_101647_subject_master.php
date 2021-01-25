@@ -18,6 +18,7 @@ class SubjectMaster extends Migration
             $table->string('paper_code',20);
             $table->string('paper_name',100);
             $table->integer('program_id');
+            $table->integer('inst_uid')->nullable();
             $table->integer('semester');
             $table->string('exam_name',200)->nullable();
             $table->integer('marks')->default('0');
@@ -47,6 +48,7 @@ class SubjectMaster extends Migration
             $table->integer('ph_time')->default('0');
 
             $table->index('id');
+            $table->index('inst_uid');
             $table->index('questions');
             $table->index('marks');
             $table->index('marks1');
