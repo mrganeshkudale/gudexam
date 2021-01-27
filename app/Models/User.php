@@ -67,4 +67,9 @@ class User extends Authenticatable
     {
         return $this->hasMany('App\Models\CandTest','stdid');
     }
+
+    public function programs()
+    {
+        return $this->hasMany('App\Models\ProgramMaster','inst_uid');
+    }
 }

@@ -20,6 +20,7 @@ use App\Http\Controllers\API\ProctorController;
 use App\Http\Controllers\API\SessionsController;
 use App\Http\Controllers\API\UsersController;
 use App\Http\Controllers\API\ConfigurationsController;
+use App\Http\Controllers\API\ProgramController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,6 +50,7 @@ Route::middleware(['auth:api'])->group(function()
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('exam', [ExamController::class, 'index'])->name('getExam');
+    Route::get('exam', [ExamController::class, 'show'])->name('getExam1');
     Route::put('exam/{id}', [ExamController::class, 'update'])->name('putExam');
 
     Route::put('examSession', [ExamSessionController::class, 'update'])->name('putExam');
@@ -71,6 +73,9 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::put('sessions', [SessionsController::class, 'update'])->name('putSessions');
     Route::put('configurations', [ConfigurationsController::class, 'update'])->name('putConfig');
     Route::post('configurations', [ConfigurationsController::class, 'store'])->name('postConfig');
+
+    Route::get('program', [ProgramController::class, 'show'])->name('getProgram');
+    Route::get('paper', [SubjectsController::class, 'show'])->name('getSubjects');
 });
 //------------------------------------------------------------------------------
 ?>

@@ -4,8 +4,11 @@ namespace App\Http\Resources;
 use Auth;
 use App\Models\SubjectMaster;
 use App\Models\ProgramMaster;
+use App\Models\User;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use App\Http\Resources\PaperResource;
+use App\Http\Resources\ProgramResource;
+use App\Http\Resources\UserResource;
 use Carbon\Carbon;
 
 class ExamCollection extends ResourceCollection
@@ -24,6 +27,7 @@ class ExamCollection extends ResourceCollection
         {
           $arr[$i++] = [
             'id'          =>  $single->id,
+            'stdid'       =>  new UserResource(User::find($single->stdid)),
             'examstatus'  =>  $single->status,
             'starttime'   =>  $single->starttime,
             'endtime'     =>  $single->endtime,

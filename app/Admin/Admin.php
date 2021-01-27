@@ -2,10 +2,12 @@
 namespace App\Admin;
 use App\Models\User;
 use App\Models\StudentExam;
+use App\Http\Resources\ExamCollection;
 use App\Models\CandTest;
 use App\Models\Elapsed;
 use App\Models\QuestionSet;
 use App\Models\CandQuestion;
+use App\Models\ProgramMaster;
 use App\Models\SubjectMaster;
 use App\Models\HeaderFooterText;
 use App\Models\Session;
@@ -17,6 +19,7 @@ use Validator;
 use Auth;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use App\Http\Resources\InstituteResource;
+use App\Http\Resources\PaperCollection;
 
 class Admin
 {
@@ -161,6 +164,65 @@ class Admin
       "status"        => "success",
       "message"        => "Data uploaded Successfully",
     ], 200);
+  }
+
+  public function getPrograms()
+  {
+    if($this->role==='EADMIN')
+    {
+      $inst_uid = $this->uid;
+      $inst_id  = $this->username;
+      $result = User::find($inst_uid)->programs;
+      if($result)
+      {
+        return response()->json([
+          "status"        => "success",
+          "data"          => $result,
+        ], 200);
+      }
+      else
+      {
+        return response()->json([
+          "status"        => "failure",
+        ], 400);
+      }
+    }
+  }
+
+  public function getSubjects($program_id)
+  {
+    $result = ProgramMaster::find($program_id)->subjects;
+    if($result)
+      {
+        return response()->json([
+          "status"        => "success",
+          "data"          => new PaperCollection($result),
+        ], 200);
+      }
+      else
+      {
+        return response()->json([
+          "status"        => "failure",
+        ], 400);
+      }
+  }
+
+  public function getExams($program_id)
+  {
+    $result = ProgramMaster::find($program_id)->exams;
+    if($result)
+      {
+        return response()->json([
+          "status"        => "success",
+          "data"          => new ExamCollection($result),
+        ], 200);
+      }
+      else
+      {
+        return response()->json([
+          "status"        => "failure",
+        ], 400);
+      }
   }
 }
 ?>

@@ -30,4 +30,9 @@ class CandTest extends Model
     {
       return $this->hasMany('App\Models\ExamSession','exam_id');
     }
+
+    public function program()
+    {
+      return $this->belongsTo('App\Models\ProgramMaster','program_id');
+    }
 }

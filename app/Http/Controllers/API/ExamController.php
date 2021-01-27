@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Config;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Student\Student;
+use App\Admin\Admin;
 use Illuminate\Http\Request;
 
 class ExamController extends Controller
@@ -14,6 +15,27 @@ class ExamController extends Controller
     if(Auth::user())
     {
       return $s->getExams();
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 200);
+    }
+  }
+
+  public function show(Request $request,Admin $a)
+  {
+    if(Auth::user())
+    {
+      if(Auth::user()->role === 'EADMIN')
+      {
+        if($request->type === 'byprogramid')
+        {
+          return $a->getExams($request->program_id);
+        }
+      }
     }
     else
     {
