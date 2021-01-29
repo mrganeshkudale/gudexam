@@ -33,7 +33,7 @@ class ExamController extends Controller
       {
         if($request->type === 'byprogramid')
         {
-          return $a->getExams($request->program_id);
+          return $a->getExams($request->id);
         }
       }
     }

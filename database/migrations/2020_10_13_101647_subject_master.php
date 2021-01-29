@@ -32,18 +32,18 @@ class SubjectMaster extends Migration
             $table->timestamp('to_date', $precision = 3)->nullable();
 
 
-            $table->integer('active')->default('0');
-            $table->integer('score_view')->default('0');
-            $table->integer('review_question')->default('0');
-            $table->integer('proctoring')->default('0');
-            $table->integer('photo_capture')->default('0');
+            $table->tinyInteger('active')->default('0');
+            $table->tinyInteger('score_view')->default('0');
+            $table->tinyInteger('review_question')->default('0');
+            $table->tinyInteger('proctoring')->default('0');
+            $table->tinyInteger('photo_capture')->default('0');
             $table->integer('capture_interval')->default('0');
-            $table->integer('negative_marking')->default('0');
+            $table->tinyInteger('negative_marking')->default('0');
             $table->integer('negative_marks')->default('0');
             $table->integer('time_remaining_reminder')->default('0');
             $table->integer('exam_switch_alerts')->default('99999');
-            $table->integer('option_shuffle')->default('0');
-            $table->integer('question_marks')->default('0');
+            $table->tinyInteger('option_shuffle')->default('0');
+            $table->tinyInteger('question_marks')->default('0');
             $table->text('instructions')->nullable();
             $table->integer('ph_time')->default('0');
 

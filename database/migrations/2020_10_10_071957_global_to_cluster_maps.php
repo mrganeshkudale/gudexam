@@ -15,15 +15,13 @@ class GlobalToClusterMaps extends Migration
     {
         Schema::create('global_to_cluster_maps', function (Blueprint $table) {
             $table->increments('id');
-
+            $table->index('id');
             $table->bigInteger('global_uid');
-            $table->string('gname',200);
-
-            $table->bigInteger('cluster_uid');
-            $table->string('cname',200);
-
             $table->index('global_uid');
+            $table->string('gname',200);
+            $table->bigInteger('cluster_uid');
             $table->index('cluster_uid');
+            $table->string('cname',200);
             $table->unique(['global_uid', 'cluster_uid']);
             $table->timestamps();
         });

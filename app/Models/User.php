@@ -22,7 +22,7 @@ class User extends Authenticatable
     protected $fillable = [
         'uid',
         'username',
-        'pcode',
+        'ph',
         'seatno',
         'inst_id',
         'region',
@@ -48,7 +48,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $hidden = [
-        'password','origpass','pcode','seatno','verify_on','region','wallet_balance','mobile','email','docpath'
+        'password','origpass','seatno','verify_on','wallet_balance','docpath'
     ];
 
     protected $primaryKey = 'uid';

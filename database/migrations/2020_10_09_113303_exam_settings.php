@@ -15,6 +15,7 @@ class ExamSettings extends Migration
     {
         Schema::create('exam_settings', function (Blueprint $table) {
             $table->increments('id');
+            $table->index('id');
             $table->string('description');
             $table->tinyInteger('action')->default('0');
             $table->index('action');

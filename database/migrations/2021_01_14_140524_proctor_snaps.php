@@ -15,6 +15,7 @@ class ProctorSnaps extends Migration
     {
         Schema::create('proctor_snaps', function (Blueprint $table) {
             $table->bigIncrements('id');
+            $table->index('id');
             $table->bigInteger('examid');
             $table->index('examid');
             $table->string('path',2000);

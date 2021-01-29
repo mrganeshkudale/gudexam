@@ -40,9 +40,9 @@ class CandTest extends Migration
           $table->index('continueexam');
           $table->string('pa',5);
           $table->index('pa');
-          $table->integer('switched')->default('0');
+          $table->bigInteger('switched')->default('0');
           $table->index('switched');
-          $table->string('marksobt',50)->nullable();
+          $table->integer('marksobt')->nullable();
           $table->unique(['stdid','inst','paper_id']);
           $table->timestamps();
         });

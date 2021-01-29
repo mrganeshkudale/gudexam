@@ -29,7 +29,7 @@ class QuestionSet extends Migration
             $table->text('a3')->nullable();
             $table->text('optiond')->nullable();
             $table->text('a4')->nullable();
-            $table->string('correctanswer',2000);
+            $table->text('correctanswer')->nullable();
             $table->string('coption',20);
             $table->string('ambiguity',2)->nullable();
             $table->integer('marks');

@@ -15,6 +15,7 @@ class CandQuestions extends Migration
     {
       Schema::create('cand_questions', function (Blueprint $table) {
           $table->bigIncrements('id');
+          $table->index('id');
           $table->bigInteger('exam_id');
           $table->index('exam_id');
           $table->bigInteger('stdid');

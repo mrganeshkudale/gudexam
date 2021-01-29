@@ -17,5 +17,6 @@ class DatabaseSeeder extends Seeder
         $this->call(UsersTablesSeeder::class);
         $this->call(LoginConfigSeeder::class);
         $this->call(ExamConfigSeeder::class);
+        $this->call(HeaderFooterSeeder::class);
     }
 }

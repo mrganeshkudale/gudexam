@@ -50,7 +50,7 @@ Route::middleware(['auth:api'])->group(function()
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('exam', [ExamController::class, 'index'])->name('getExam');
-    Route::get('exam', [ExamController::class, 'show'])->name('getExam1');
+    Route::get('exam/{id}', [ExamController::class, 'show'])->name('getExam1');
     Route::put('exam/{id}', [ExamController::class, 'update'])->name('putExam');
 
     Route::put('examSession', [ExamSessionController::class, 'update'])->name('putExam');

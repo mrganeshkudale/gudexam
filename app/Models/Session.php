@@ -10,7 +10,7 @@ class Session extends Model
     use HasFactory;
 
     protected $table = 'sessions';
-    protected $fillable = ['uid','role','ip','starttime','endtime','created_at','updated_at'];
+    protected $fillable = ['session_id','uid','role','ip','starttime','endtime','created_at','updated_at'];
 
     protected $primaryKey = 'session_id';
 
