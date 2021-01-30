@@ -168,7 +168,7 @@ class Admin
 
   public function getPrograms()
   {
-    if($this->role==='EADMIN')
+    if($this->role == 'EADMIN')
     {
       $inst_uid = $this->uid;
       $inst_id  = $this->username;
@@ -186,6 +186,52 @@ class Admin
           "status"        => "failure",
         ], 400);
       }
+    }
+    else
+    {
+      return response()->json([
+        "status"        => "failure",
+        "message"        => "Invalid Institute Id",
+      ], 400);
+    }
+  }
+
+  public function getUserPrograms($username)
+  {
+    $result = User::where('username',$username)->first();
+    if($result)
+    {
+      if($result->role==='EADMIN')
+      {
+        $result1 = User::find($result->uid)->programs;
+        if($result1)
+        {
+          return response()->json([
+            "status"        => "success",
+            "data"          => $result1,
+          ], 200);
+        }
+        else
+        {
+          return response()->json([
+            "status"        => "failure",
+          ], 400);
+        }
+      }
+      else
+      {
+        return response()->json([
+          "status"        => "failure",
+          "message"        => "Invalid Institute Id",
+        ], 400);
+      }
+    }
+    else
+    {
+      return response()->json([
+        "status"        => "failure",
+        "message"        => "Data not found",
+      ], 400);
     }
   }
 
@@ -223,6 +269,24 @@ class Admin
           "status"        => "failure",
         ], 400);
       }
+  }
+
+  function getAllUsers($role)
+  {
+    $result = User::where('role',$role)->get();
+    if($result)
+    {
+      return response()->json([
+        "status"        => "success",
+        "data"          =>  $result
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"        => "failure",
+      ], 400);
+    }
   }
 }
 ?>

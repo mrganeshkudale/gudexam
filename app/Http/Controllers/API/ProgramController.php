@@ -9,11 +9,26 @@ use Illuminate\Http\Request;
 
 class ProgramController extends Controller
 {
-    public function show(Admin $a)
+    public function index(Admin $a)
     {
         if(Auth::user())
         {
             return $a->getPrograms();
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 200);
+        }
+    }
+
+    public function show(Request $request,Admin $a)
+    {
+        if(Auth::user())
+        {
+            return $a->getUserPrograms($request->username);
         }
         else
         {

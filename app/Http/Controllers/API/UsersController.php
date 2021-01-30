@@ -9,11 +9,32 @@ use Illuminate\Http\Request;
 
 class UsersController extends Controller
 {
+    public function index(Request $request,Admin $a)
+    {
+        if(Auth::user())
+        {
+            if($request->role!='')
+            {
+                return $a->getAllUsers($request->role);
+            }
+        }
+        else
+        {
+            return response()->json([
+                "status","failure",
+                "message"=>"Unauthorized User."
+              ], 401);
+        }
+    }
+
     public function show(Request $request,Admin $a)
     {
         if(Auth::user())
         {
-            return $a->getUserDetails($request->username,$request->instId,$request->flag);
+            if($request->id!=='' && $request->instId!=='' && $request->flag!=='')
+            {
+                return $a->getUserDetails($request->id,$request->instId,$request->flag);
+            }
         }
         else
         {

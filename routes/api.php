@@ -69,12 +69,14 @@ Route::middleware(['auth:api'])->group(function()
 //--------------------------Specific ADMIN Roles API----------------------------s
 Route::middleware(['auth:api','admin'])->group(function()
 {
-    Route::get('user', [UsersController::class, 'show'])->name('getUser');
+    Route::get('user', [UsersController::class, 'index'])->name('getUser');
+    Route::get('user/{id}', [UsersController::class, 'show'])->name('getUser1');
     Route::put('sessions', [SessionsController::class, 'update'])->name('putSessions');
     Route::put('configurations', [ConfigurationsController::class, 'update'])->name('putConfig');
     Route::post('configurations', [ConfigurationsController::class, 'store'])->name('postConfig');
 
-    Route::get('program', [ProgramController::class, 'show'])->name('getProgram');
+    Route::get('program', [ProgramController::class, 'index'])->name('getProgram');
+    Route::get('program/{username}', [ProgramController::class, 'show'])->name('showProgram');
     Route::get('paper', [SubjectsController::class, 'show'])->name('getSubjects');
 });
 //------------------------------------------------------------------------------

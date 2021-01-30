@@ -29,13 +29,10 @@ class ExamController extends Controller
   {
     if(Auth::user())
     {
-      if(Auth::user()->role === 'EADMIN')
-      {
         if($request->type === 'byprogramid')
         {
           return $a->getExams($request->id);
         }
-      }
     }
     else
     {
