@@ -271,7 +271,7 @@ class Admin
       }
   }
 
-  function getAllUsers($role)
+  public function getAllUsers($role)
   {
     $result = User::where('role',$role)->get();
     if($result)
@@ -279,6 +279,38 @@ class Admin
       return response()->json([
         "status"        => "success",
         "data"          =>  $result
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"        => "failure",
+      ], 400);
+    }
+  }
+
+  public function getPreviewQuestions($paper_id)
+  {
+    $result1= [];
+    $result = QuestionSet::where('paper_id',$paper_id)->orderBy('qnid', 'ASC')->get();
+    if($result)
+    {
+      for($i=0;$i<sizeof($result);$i++)
+      {
+        $result1[$i]['id']        = $i+1;
+        $result1[$i]['answered']  = 'unanswered';
+        $result1[$i]['exam_id']   = 0;
+        $result1[$i]['marks']     = $result[$i]['marks'];
+        $result1[$i]['paper_id']  = $paper_id;
+        $result1[$i]['program_id']= 0;
+        $result1[$i]['qnid']      = $result[$i]['qnid'];
+        $result1[$i]['qnid_sr']   = $i+1;
+        $result1[$i]['stdanswer'] = null;
+        $result1[$i]['question']  = $result[$i];
+      }
+      return response()->json([
+        "status"        =>  "success",
+        "data"          =>  $result1
       ], 200);
     }
     else

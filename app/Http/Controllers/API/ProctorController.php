@@ -15,7 +15,7 @@ class ProctorController extends Controller
     { 
         if($request->type == 'snapshot')
         {
-            $s->storeSnapshot($request->exam,$request->image);
+            return $s->storeSnapshot($request->exam,$request->image);
         }
     }
     else

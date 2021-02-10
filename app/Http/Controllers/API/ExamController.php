@@ -43,7 +43,7 @@ class ExamController extends Controller
     }
   }
 
-  public function update(Student $s,Request $request,$id)
+  public function update(Student $s,Admin $a,Request $request,$id)
   {
     if(Auth::user())
     {
@@ -58,6 +58,10 @@ class ExamController extends Controller
       else if($request->status === 'windowswitch')
       {
         return $s->windowSwitchExam($id);
+      }
+      else if($request->status==='preview')
+      {
+        return $a->previewExam(true);
       }
       else
       {

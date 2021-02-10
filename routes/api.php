@@ -78,6 +78,8 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('program', [ProgramController::class, 'index'])->name('getProgram');
     Route::get('program/{username}', [ProgramController::class, 'show'])->name('showProgram');
     Route::get('paper', [SubjectsController::class, 'show'])->name('getSubjects');
+
+    Route::get('questions/{paper_id}', [QuestionSetController::class, 'show'])->name('getUser');
 });
 //------------------------------------------------------------------------------
 ?>

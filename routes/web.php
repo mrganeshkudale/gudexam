@@ -25,3 +25,8 @@ Route::get('/encryptpass', function () {
       $result1 = User::find($uid)->update(['password' => $password]);
     }
   });
+
+  Route::fallback(function ()
+  {
+    return File::get(public_path() . '/index.html');
+  });

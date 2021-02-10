@@ -99,6 +99,7 @@ class Student
 			$exam = CandTest::find($exam_id);
 			if($exam)
 			{
+				DB::beginTransaction();
 				$paper_id = $exam->paper_id;
 				$stdid 		= $exam->stdid;
 				if($stdid != Auth::user()->uid)
@@ -139,7 +140,7 @@ class Student
 						$insertcount=DB::table('cand_questions')->where('stdid',$this->uid)->where('paper_id',$paper_id)->where('inst',$this->inst)->count();
 
 
-						DB::beginTransaction();
+						
 
 								if(!$insertcount)
 								{
@@ -223,7 +224,7 @@ class Student
 								}
 
 
-						DB::commit();
+							DB::commit();
 
 						return json_encode([
 							'status' 				=> 'success',
@@ -245,6 +246,7 @@ class Student
 				],400);
 			}
 		//-------------------------------------------------------------------------
+		
 	}
 
 	public function endExam($id)
@@ -495,12 +497,12 @@ class Student
 			'created_at'						=> Carbon::now()
 		);
 
-		$inserted = DB::table('proctor_snaps')->insert($values);
-
+		$inserted = ProctorSnaps::create($values);
 		if($inserted)
 		{
 			return response()->json([
-				'status' 				=> 'success'
+				'status' 				=> 'success',
+				'snapid'				=>  $inserted->id
 			],200);
 		}
 		else
