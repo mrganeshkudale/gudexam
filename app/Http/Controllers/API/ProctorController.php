@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class ProctorController extends Controller
 {
-    public function store(Student $s,Request $request)
+  public function store(Student $s,Request $request)
   {
     if(Auth::user())
     { 

@@ -17,6 +17,7 @@ use App\Http\Controllers\API\GAdminController;
 use App\Http\Controllers\API\CAdminController;
 use App\Http\Controllers\API\EAdminController;
 use App\Http\Controllers\API\ProctorController;
+use App\Http\Controllers\API\ProctorDetailsController;
 use App\Http\Controllers\API\SessionsController;
 use App\Http\Controllers\API\UsersController;
 use App\Http\Controllers\API\ConfigurationsController;
@@ -62,6 +63,7 @@ Route::middleware(['auth:api'])->group(function()
     Route::put('answer/{id}', [AnswerController::class, 'update'])->name('updateAnswer');
 
     Route::post('proctor', [ProctorController::class, 'store'])->name('PostProctor');
+    Route::post('proctorDetails', [ProctorDetailsController::class, 'store'])->name('PostroctorDetails');
 
 });
 //---------------------------------Student API End------------------------------

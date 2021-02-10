@@ -10,6 +10,7 @@ use App\Models\SubjectMaster;
 use App\Models\Session;
 use App\Models\ExamSession;
 use App\Models\ProctorSnaps;
+use App\Models\ProctorSnapDetails;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
@@ -503,6 +504,37 @@ class Student
 			return response()->json([
 				'status' 				=> 'success',
 				'snapid'				=>  $inserted->id
+			],200);
+		}
+		else
+		{
+			return response()->json([
+				'status' 				=> 'failure'
+			],400);
+		}
+	}
+
+	public function storeSnapshotDetails($examid,$snapid,$agerange,$beard,$eyeglasses,$eyesopen,$gender,$mustache,$smile,$sunglasses)
+	{
+		$values = array(
+			'examid' 							=> $examid,
+			'snapid'							=> $snapid,
+			'agerange'							=> $agerange,
+			'beared'							=> $beard,
+			'eyeglasses'						=> $eyeglasses,
+			'eyesopen'							=> $eyesopen,
+			'gender'							=> $gender,
+			'mustache'							=> $mustache,
+			'smile'								=> $smile,
+			'sunglasses'						=> $sunglasses,
+			'created_at'						=> Carbon::now()
+		);
+
+		$inserted = ProctorSnapDetails::create($values);
+		if($inserted)
+		{
+			return response()->json([
+				'status' 				=> 'success'
 			],200);
 		}
 		else
