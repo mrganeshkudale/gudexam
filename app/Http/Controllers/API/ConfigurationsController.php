@@ -36,10 +36,12 @@ class ConfigurationsController extends Controller
                 $result = HeaderFooterText::find(1)->first();
                 if($result)
                 {
-                return response()->json([
-                    "status"        => "success",
-                    "header"        => $result->header,
-                ], 200);
+                    $url = Config::get('constants.PROJURL');
+                    return response()->json([
+                        "status"        => "success",
+                        "header"        => $result->header,
+                        "imgpath"       => stripslashes($url.'/'.$result->logo)
+                    ], 200);
                 }
                 else
                 {
