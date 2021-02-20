@@ -44,4 +44,49 @@ class UsersController extends Controller
               ], 401);
         }
     }
+
+    public function store(Request $request,Admin $a)
+    {
+        if(Auth::user())
+        {
+            return $a->storeUsers($request);
+        }
+        else
+        {
+            return response()->json([
+                "status","failure",
+                "message"=>"Unauthorized User."
+              ], 401);
+        }
+    }
+
+    public function upload(Request $request,Admin $a)
+    {
+        if(Auth::user())
+        {
+            return $a->uploadUsers($request);
+        }
+        else
+        {
+            return response()->json([
+                "status","failure",
+                "message"=>"Unauthorized User."
+              ], 401);
+        }
+    }
+
+    public function del(Request $request,Admin $a)
+    {
+        if(Auth::user())
+        {
+            return $a->deleteUser($request->id);
+        }
+        else
+        {
+            return response()->json([
+                "status","failure",
+                "message"=>"Unauthorized User."
+              ], 401);
+        }
+    }
 }

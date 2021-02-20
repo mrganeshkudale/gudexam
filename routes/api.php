@@ -72,6 +72,9 @@ Route::middleware(['auth:api'])->group(function()
 Route::middleware(['auth:api','admin'])->group(function()
 {
     Route::get('user', [UsersController::class, 'index'])->name('getUser');
+    Route::post('user', [UsersController::class, 'store'])->name('postUser');
+    Route::delete('user/{id}', [UsersController::class, 'del'])->name('delUser');
+    Route::post('user/upload', [UsersController::class, 'upload'])->name('uploadUser');
     Route::get('user/{id}', [UsersController::class, 'show'])->name('getUser1');
     Route::put('sessions', [SessionsController::class, 'update'])->name('putSessions');
     Route::put('configurations', [ConfigurationsController::class, 'update'])->name('putConfig');

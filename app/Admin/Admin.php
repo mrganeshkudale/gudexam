@@ -17,9 +17,13 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Validator;
 use Auth;
+use File;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use App\Http\Resources\InstituteResource;
 use App\Http\Resources\PaperCollection;
+use Illuminate\Support\Facades\Hash;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class Admin
 {
@@ -320,5 +324,195 @@ class Admin
       ], 400);
     }
   }
+
+  public function storeUsers($request)
+  {
+    $role     = $request->regType;
+    $name     = $request->controllerName;
+    $org      = $request->orgName;
+    $email    = $request->email;
+    $mobile   = $request->mobile;
+    $password = $request->password;
+
+    $current_time 			= Carbon::now();
+
+    try
+		{
+      if($role == 'EADMIN')
+      {
+        $user = User::create([
+          'username' 						=> $name,
+          'inst_id'             => $name,
+          'role' 						    => $role,
+          'mobile'              => $mobile,
+          'email'               => $email,
+          'origpass'            => $password,
+          'password'            => Hash::make($password),
+          'status'              => 'ON',
+          'college_name'        => $org,
+          'name'                => $name,
+          'regi_type'           => $role,
+          'verified'            => 'verified',
+          'created_at' 				  => $current_time,
+        ]);
+      }
+      else
+      {
+        $user = User::create([
+          'username' 						=> $name,
+          'role' 						    => $role,
+          'mobile'              => $mobile,
+          'email'               => $email,
+          'origpass'            => $password,
+          'password'            => Hash::make($password),
+          'status'              => 'ON',
+          'college_name'        => $org,
+          'name'                => $name,
+          'regi_type'           => $role,
+          'verified'            => 'verified',
+          'created_at' 				  => $current_time,
+        ]);
+      }
+		}
+		catch(\Exception $e)
+		{
+      return response()->json([
+        'status' 		=> 'failure',
+        'message'   => 'Problem Inserting User in Database. Probably Duplicate Entry.'
+      ],400);
+		}
+
+    if($user)
+    {
+      return response()->json([
+        'status' 		=> 'success',
+        'message'   => 'User Inserted Successfully.'
+      ],200);
+    }
+    else
+    {
+      return response()->json([
+        'status' 		=> 'failure',
+        'message'   => 'Problem Inserting User in Database.'
+      ],400);
+    }
+  }
+
+  public function uploadUsers($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'role'      => 'required',
+      'file'      => 'required|max:1024',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails())
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "Role of User and File for uploading is required with max file size 1 MB",
+      ], 400);
+    }
+
+
+    if ($extension == "xlsx") 
+    {
+      $fileName           = 'users.xlsx';  
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/').$fileName);
+      $current_time 			= Carbon::now();
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+
+      for($i=2;$i<=$highestRow;$i++)
+      {
+        $username       =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+        $role           =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $orgName        =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $email          =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+        $mobile         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $origpassword   =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
+        $password       =   Hash::make($origpassword);
+        $region         =   '';
+
+        if($role == 'EADMIN')
+        {
+          $region = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue();
+        }
+
+        try
+        {
+          if($role == 'EADMIN')
+          {
+            $user = User::create([
+              'username' 						=> $username,
+              'inst_id'             => $username,
+              'region'              => $region,
+              'role' 						    => $role,
+              'mobile'              => $mobile,
+              'email'               => $email,
+              'origpass'            => $origpassword,
+              'password'            => $password,
+              'status'              => 'ON',
+              'college_name'        => $orgName,
+              'name'                => $username,
+              'regi_type'           => $role,
+              'verified'            => 'verified',
+              'created_at' 				  => $current_time,
+            ]);
+          }
+          else
+          {
+            $user = User::create([
+              'username' 						=> $username,
+              'role' 						    => $role,
+              'mobile'              => $mobile,
+              'email'               => $email,
+              'origpass'            => $origpassword,
+              'password'            => $password,
+              'status'              => 'ON',
+              'college_name'        => $orgName,
+              'name'                => $username,
+              'regi_type'           => $role,
+              'verified'            => 'verified',
+              'created_at' 				  => $current_time,
+            ]);
+          }
+        }
+        catch(\Exception $e)
+        {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Problem Inserting User in Database.Probably Duplicate Username or Mobile Number. All Users till row number '.$i.' in Excel file are Inserted Successfully',
+            'row'       =>  $i
+          ],400);
+        }
+      }
+      return response()->json([
+        'status' 		=> 'success',
+        'message'   => 'Users Uploaded Successfully...',
+        'row'       =>  $i
+      ],200);
+    }
+    else 
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File must be .xlsx only with maximum 1 MB  of Size.",
+      ], 400);
+    }
+  }
+
+  public function deleteUser($id)
+  {
+    $result = User::find($id)->delete();
+
+    return response()->json([
+      "status"          => "success",
+      "message"         => "User Deleted Successfully.",
+    ], 200);
+  }
+
 }
 ?>
