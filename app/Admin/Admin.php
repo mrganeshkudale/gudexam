@@ -200,6 +200,37 @@ class Admin
     }
   }
 
+
+  public function getAllPrograms()
+  {
+      $result = ProgramMaster::all();
+      if($result)
+      {
+        return response()->json([
+          "status"        => "success",
+          "data"          => $result,
+        ], 200);
+      }
+      else
+      {
+        return response()->json([
+          "status"        => "failure",
+        ], 400);
+      }
+  }
+
+  public function deleteProgram($request)
+  {
+    $id = $request->id;
+    $result  =  ProgramMaster::find($id)->delete();
+
+    return response()->json([
+      "status"        => "success",
+      "message"       => "Record Deleted Successfully..."
+    ], 200);    
+  }
+
+
   public function getUserPrograms($username)
   {
     $result = User::where('username',$username)->first();
@@ -514,5 +545,514 @@ class Admin
     ], 200);
   }
 
+  public function updateUser($id,$request)
+  {
+    $result = User::find($id)->update($request->all());
+    
+    return response()->json([
+      "status"          => "success",
+      "message"         => "User Updated Successfully.",
+    ], 200);
+  }
+
+  public function storeProgram($request)
+  {
+    $progCode           = $request->progCode;
+    $progName           = $request->progName;
+    $instId             = $request->instId;
+    $current_time 			= Carbon::now();
+    
+    try
+    {
+      $user = ProgramMaster::create([
+        'program_code' 	=> $progCode,
+        'program_name'  => $progName,
+        'inst_uid'      => $instId,
+        'created_at' 	  => $current_time,
+      ]);
+
+      return response()->json([
+        'status' 		    => 'success',
+        'message'       => 'Program Added Successfully...',
+      ],200);
+    }
+    catch(\Exception $e)
+    {
+      return response()->json([
+        'status' 		    => 'failure',
+        'message'       => 'Problem Inserting Program in Database.Probably Duplicate',
+      ],400);
+    }
+  }
+
+  public function uploadProgram($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'file'      => 'required|max:1024',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails())
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File for uploading is required with max file size 1 MB",
+      ], 400);
+    }
+
+
+    if ($extension == "xlsx") 
+    {
+      $fileName           = 'programs.xlsx';  
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/').$fileName);
+      $current_time 			= Carbon::now();
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+
+      for($i=2;$i<=$highestRow;$i++)
+      {
+        $progCode         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+        $progName         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $instUid          =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+  
+        try
+        {
+            $user = ProgramMaster::create([
+              'program_code'    => $progCode,
+              'program_name'    => $progName,
+              'inst_uid'        => $instUid,
+              'created_at' 			=> $current_time,
+            ]);
+        }
+        catch(\Exception $e)
+        {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Problem Inserting Programs in Database.Probably Duplicate Entry. All Programs till row number '.$i.' in Excel file are Inserted Successfully',
+            'row'       =>  $i
+          ],400);
+        }
+      }
+      return response()->json([
+        'status' 		=> 'success',
+        'message'   => 'Programs Uploaded Successfully...',
+        'row'       =>  $i
+      ],200);
+    }
+    else 
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File must be .xlsx only with maximum 1 MB  of Size.",
+      ], 400);
+    }
+  }
+
+  public function getByInstPrograms($instUid)
+  {
+      $inst_uid = $instUid;
+      $inst_id  = $this->username;
+      $result = User::find($inst_uid)->programs;
+      if($result)
+      {
+        return response()->json([
+          "status"        => "success",
+          "data"          => $result,
+        ], 200);
+      }
+      else
+      {
+        return response()->json([
+          "status"        => "failure",
+        ], 400);
+      }
+  }
+
+  public function getByInstIdPrograms($instId)
+  {
+      $result = User::where('username',$instId)->first();
+      if($result)
+      {
+        $instUid = $result->uid;
+        $result = User::find($instUid)->programs;
+        if($result)
+        {
+          return response()->json([
+            "status"        => "success",
+            "data"          => $result,
+          ], 200);
+        }
+        else
+        {
+          return response()->json([
+            "status"        => "failure",
+          ], 400);
+        }
+      }
+      else
+      {
+        return response()->json([
+          "status"        => "failure",
+        ], 400);
+      }
+  }
+
+  public function storeSubjects($request)
+  {
+    $paperCode  = $request->paperCode;
+    $paperName  = $request->paperName;
+    $programId  = $request->programId;
+    $instId     = $request->instId;
+    $semester   = $request->semester;
+    $current_time 			= Carbon::now();
+
+    try
+    {
+      $result = SubjectMaster::create([
+        'paper_code'    =>  $paperCode,
+        'paper_name'    =>  $paperName,
+        'program_id'    =>  $programId,
+        'inst_uid' 			=>  $instId,
+        'semester'      =>  $semester,
+        'created_at'    =>  $current_time
+      ]);
+
+      return response()->json([
+        'status' 		=> 'success',
+        'message'   => 'Subject Added Successfully...',
+      ],200);
+    }
+    catch(\Exception $e)
+    {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Problem Inserting Subjects in Database.Probably Duplicate Entry',
+          ],400);
+    }
+  }
+
+
+  public function uploadSubjects($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'file'      => 'required|max:1024',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails())
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File for uploading is required with max file size 1 MB",
+      ], 400);
+    }
+
+
+    if ($extension == "xlsx") 
+    {
+      $fileName           = 'subjects.xlsx';  
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/').$fileName);
+      $current_time 			= Carbon::now();
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+
+      for($i=2;$i<=$highestRow;$i++)
+      {
+        $paperCode        =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+        $paperName        =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $programId        =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $instId           =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+        $semester         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+  
+        try
+        {
+          $result = SubjectMaster::create([
+            'paper_code'    =>  $paperCode,
+            'paper_name'    =>  $paperName,
+            'program_id'    =>  $programId,
+            'inst_uid' 			=>  $instId,
+            'semester'      =>  $semester,
+            'created_at'    =>  $current_time
+          ]);
+    
+        }
+        catch(\Exception $e)
+        {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Problem Inserting Subjects in Database.Probably Duplicate Entry. All Subjects till row number '.$i.' in Excel file are Inserted Successfully',
+            'row'       =>  $i
+          ],400);
+        }
+      }
+      return response()->json([
+        'status' 		=> 'success',
+        'message'   => 'Subjects Uploaded Successfully...',
+        'row'       =>  $i
+      ],200);
+    }
+    else 
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File must be .xlsx only with maximum 1 MB  of Size.",
+      ], 400);
+    }
+  }
+
+  public function getAllSubjects()
+  {
+    $result = SubjectMaster::all();
+
+    return response()->json([
+      'status' 		=> 'success',
+      'data'      =>  $result
+    ],200);
+  }
+
+  public function delSubject($id)
+  {
+    $result = SubjectMaster::find($id)->delete();
+
+    return response()->json([
+      'status' 		=> 'success',
+      'message'   => 'Record Deleted Successfully...'
+    ],200);
+  }
+
+  public function storeStudentUsers($request)
+  {
+    $enrollno        = $request->username;
+    $name            = $request->name;
+    $instId          = $request->instId;
+    $programId       = $request->programId;
+    $semester        = $request->semester;
+    $mobile          = $request->mobile;
+    $email           = $request->email;
+    $password        = $request->password;
+    $current_time 	 = Carbon::now();
+
+    $res = User::where('username',$instId)->first();
+    $region = $res->region;
+    
+    try
+    {
+      $result = User::create([
+        'username'    =>  $enrollno,
+        'inst_id'     =>  $instId,
+        'region'      =>  $region,
+        'course_code' =>  $programId,
+        'semester'    =>  $semester,
+        'mobile'      =>  $mobile,
+        'email'       =>  $email,
+        'password'    =>  Hash::make($password),
+        'origpass'    =>  $password,
+        'role'        =>  'STUDENT',
+        'status'      =>  'ON',
+        'verified'    =>  'verified',
+        'name'        =>  $name,
+        'regi_type'   =>  'STUDENT',
+        'created_at'  =>  $current_time
+      ]);
+    }
+    catch(\Exception $e)
+    {
+        return response()->json([
+          'status' 		=> 'failure',
+          'message'   => 'Problem Inserting Student in Database.Probably Duplicate Entry.'
+        ],400);
+    }
+      return response()->json([
+        'status' 		=> 'success',
+        'message'   => 'Student Added Successfully...',
+      ],200);
+  }
+
+  public function uploadStudents($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'file'      => 'required|max:1024',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails())
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File for uploading is required with max file size 1 MB",
+      ], 400);
+    }
+
+
+    if ($extension == "xlsx") 
+    {
+      $fileName           = 'students.xlsx';  
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/').$fileName);
+      $current_time 			= Carbon::now();
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+
+      for($i=2;$i<=$highestRow;$i++)
+      {
+        $enrollno        = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+        $name            = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $instId          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $programId       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+        $semester        = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $mobile          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
+        $email           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue();
+        $password        = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(8, $i)->getValue();
+        $current_time 	 = Carbon::now();
+
+        $res = User::where('username',$instId)->first();
+        $region = $res->region;
+        
+        try
+        {
+          $result = User::create([
+            'username'    =>  $enrollno,
+            'inst_id'     =>  $instId,
+            'region'      =>  $region,
+            'course_code' =>  $programId,
+            'semester'    =>  $semester,
+            'mobile'      =>  $mobile,
+            'email'       =>  $email,
+            'password'    =>  Hash::make($password),
+            'origpass'    =>  $password,
+            'role'        =>  'STUDENT',
+            'status'      =>  'ON',
+            'verified'    =>  'verified',
+            'name'        =>  $name,
+            'regi_type'   =>  'STUDENT',
+            'created_at'  =>  $current_time
+          ]);
+        }
+        catch(\Exception $e)
+        {
+            return response()->json([
+              'status' 		=> 'failure',
+              'message'   => 'Problem Inserting Student in Database.Probably Duplicate Entry.All Students till row number '.$i.' in Excel file are Inserted Successfully',
+              'row'       =>  $i
+            ],400);
+        }
+      }
+      return response()->json([
+        'status' 		=> 'success',
+        'message'   => 'Subjects Uploaded Successfully...',
+        'row'       =>  $i
+      ],200);
+    }
+    else 
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File must be .xlsx only with maximum 1 MB  of Size.",
+      ], 400);
+    }
+  }
+
+  public function uploadStudSubjectMapping($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'file'      => 'required|max:1024',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails())
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File for uploading is required with max file size 1 MB",
+      ], 400);
+    }
+
+
+    if ($extension == "xlsx") 
+    {
+      $fileName           = 'studSubjectAlloc.xlsx';  
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/').$fileName);
+      $current_time 			= Carbon::now();
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+
+      for($i=2;$i<=$highestRow;$i++)
+      {
+        $enrollno        = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+        $instId          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $paper_code      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $current_time 	 = Carbon::now();
+
+        $res = User::where('username',$enrollno)->first();
+        $uid = $res->uid;
+        
+        $res = SubjectMaster::where('paper_code',$paper_code)->first();
+        $paperId = $res->id;
+        $programId = $res->program_id;
+
+        try
+        {
+          $result = CandTest::create([
+            'stdid'       =>  $uid,
+            'inst'        =>  $instId,
+            'paper_id'    =>  $paperId,
+            'program_id'  =>  $programId,
+            'created_at'  =>  $current_time 
+          ]);
+        }
+        catch(\Exception $e)
+        {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Problem Inserting Student Subject Allocation in Database.Probably Duplicate Entry.All Allocations till row number '.$i.' in Excel file are Inserted Successfully',
+            'row'       =>  $i
+          ],400);
+        }
+      }
+      return response()->json([
+        'status' 		=> 'success',
+        'message'   => 'Student Subject Allocation Uploaded Successfully...',
+      ],200);
+    }
+    else 
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File must be .xlsx only with maximum 1 MB  of Size.",
+      ], 400);
+    }
+  }
+
+  public function getAllExams()
+  {
+    $exams 	= CandTest::all();
+		if($exams)
+		{
+			return new ExamCollection($exams);
+		}
+		else
+		{
+			return json_encode([
+				'status' => 'failure'
+			],200);
+		}
+  }
+
+  public function delExam($id)
+  {
+    $result = CandTest::find($id)->delete();
+
+    return response()->json([
+      'status' 		=> 'success',
+      'message'   => 'Student Subject Allocation Deleted Successfully...',
+    ],200);
+  }
 }
 ?>

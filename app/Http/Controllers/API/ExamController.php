@@ -10,11 +10,18 @@ use Illuminate\Http\Request;
 
 class ExamController extends Controller
 {
-  public function index(Student $s)
+  public function index(Student $s,Admin $a)
   {
     if(Auth::user())
     {
-      return $s->getExams();
+      if(Auth::user()->role == 'STUDENT')
+      {
+        return $s->getExams();
+      }
+      else
+      {
+        return $a->getAllExams();
+      }
     }
     else
     {
@@ -94,4 +101,35 @@ class ExamController extends Controller
       ], 401);
     }
   }
+
+  public function upload(Request $request, Admin $a)
+  {
+    if(Auth::user())
+    {
+      return $a->uploadStudSubjectMapping($request);
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 400);
+    }
+  }
+
+  public function del($id, Admin $a)
+  {
+    if(Auth::user())
+    {
+      return $a->delExam($id);
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 400);
+    }
+  }
+
 }

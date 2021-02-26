@@ -74,6 +74,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('user', [UsersController::class, 'index'])->name('getUser');
     Route::post('user', [UsersController::class, 'store'])->name('postUser');
     Route::delete('user/{id}', [UsersController::class, 'del'])->name('delUser');
+    Route::put('user/{id}', [UsersController::class, 'update'])->name('updateUser');
     Route::post('user/upload', [UsersController::class, 'upload'])->name('uploadUser');
     Route::get('user/{id}', [UsersController::class, 'show'])->name('getUser1');
     Route::put('sessions', [SessionsController::class, 'update'])->name('putSessions');
@@ -81,10 +82,21 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('configurations', [ConfigurationsController::class, 'store'])->name('postConfig');
 
     Route::get('program', [ProgramController::class, 'index'])->name('getProgram');
+    Route::post('program', [ProgramController::class, 'store'])->name('storeProgram');
+    Route::post('program/upload', [ProgramController::class, 'upload'])->name('uploadProgram');
     Route::get('program/{username}', [ProgramController::class, 'show'])->name('showProgram');
+    Route::delete('program/{id}', [ProgramController::class, 'del'])->name('delProgram');
     Route::get('paper', [SubjectsController::class, 'show'])->name('getSubjects');
 
     Route::get('questions/{paper_id}', [QuestionSetController::class, 'show'])->name('getUser');
+
+    Route::post('subject', [SubjectsController::class, 'store'])->name('postSubject');
+    Route::post('subject/upload', [SubjectsController::class, 'upload'])->name('uploadSubject');
+    Route::get('subject', [SubjectsController::class, 'index'])->name('getSubject');
+    Route::delete('subject/{id}', [SubjectsController::class, 'del'])->name('delSubject');
+
+    Route::post('exam/upload', [ExamController::class, 'upload'])->name('uploadExam');
+    Route::delete('exam/{id}', [ExamController::class, 'del'])->name('delExam');
 });
 //------------------------------------------------------------------------------
 ?>

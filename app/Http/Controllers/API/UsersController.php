@@ -49,7 +49,14 @@ class UsersController extends Controller
     {
         if(Auth::user())
         {
-            return $a->storeUsers($request);
+            if($request->type=='student')
+            {
+                return $a->storeStudentUsers($request);
+            }
+            else
+            {
+                return $a->storeUsers($request);
+            }
         }
         else
         {
@@ -64,7 +71,14 @@ class UsersController extends Controller
     {
         if(Auth::user())
         {
-            return $a->uploadUsers($request);
+            if($request->type == 'student')
+            {
+                return $a->uploadStudents($request);
+            }
+            else
+            {
+                return $a->uploadUsers($request);
+            }
         }
         else
         {
@@ -80,6 +94,21 @@ class UsersController extends Controller
         if(Auth::user())
         {
             return $a->deleteUser($request->id);
+        }
+        else
+        {
+            return response()->json([
+                "status","failure",
+                "message"=>"Unauthorized User."
+              ], 401);
+        }
+    }
+
+    public function update($id,Request $request, Admin $a)
+    {
+        if(Auth::user())
+        {
+            return $a->updateUser($id,$request);
         }
         else
         {

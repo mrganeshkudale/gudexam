@@ -30,7 +30,7 @@ class CandTest extends Migration
           $table->string('cqnid',5000)->nullable();
           $table->string('wqnid',5000)->nullable();
           $table->string('uqnid',5000)->nullable();
-          $table->string('status',20);
+          $table->string('status',20)->nullable();
           $table->index('status');
           $table->timestamp('entry_on', $precision = 3)->nullable();
           $table->timestamp('end_on', $precision = 3)->nullable();
@@ -38,7 +38,7 @@ class CandTest extends Migration
           $table->string('examip',20)->nullable();
           $table->integer('continueexam')->default('0');
           $table->index('continueexam');
-          $table->string('pa',5);
+          $table->string('pa',5)->nullable();
           $table->index('pa');
           $table->bigInteger('switched')->default('0');
           $table->index('switched');

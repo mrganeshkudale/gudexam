@@ -9,11 +9,26 @@ use Illuminate\Http\Request;
 
 class ProgramController extends Controller
 {
-    public function index(Admin $a)
+    public function index(Request $request,Admin $a)
     {
         if(Auth::user())
         {
-            return $a->getPrograms();
+            if($request->type=='')
+            {
+                return $a->getPrograms();
+            }
+            else if($request->type=='all')
+            {
+                return $a->getAllPrograms();
+            }
+            else if($request->type=='instUid')
+            {
+                return $a->getByInstPrograms($request->instUid);
+            }
+            else if($request->type=='instId')
+            {
+                return $a->getByInstIdPrograms($request->instId);
+            }
         }
         else
         {
@@ -29,6 +44,51 @@ class ProgramController extends Controller
         if(Auth::user())
         {
             return $a->getUserPrograms($request->username);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 200);
+        }
+    }
+
+    public function store(Request $request,Admin $a)
+    {
+        if(Auth::user())
+        {
+            return $a->storeProgram($request);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 200);
+        }
+    }
+
+    public function upload(Request $request,Admin $a)
+    {
+        if(Auth::user())
+        {
+            return $a->uploadProgram($request);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 200);
+        }
+    }
+
+    public function del(Request $request,Admin $a)
+    {
+        if(Auth::user())
+        {
+            return $a->deleteProgram($request);
         }
         else
         {
