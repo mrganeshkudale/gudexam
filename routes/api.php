@@ -77,7 +77,9 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::put('user/{id}', [UsersController::class, 'update'])->name('updateUser');
     Route::post('user/upload', [UsersController::class, 'upload'])->name('uploadUser');
     Route::get('user/{id}', [UsersController::class, 'show'])->name('getUser1');
+
     Route::put('sessions', [SessionsController::class, 'update'])->name('putSessions');
+
     Route::put('configurations', [ConfigurationsController::class, 'update'])->name('putConfig');
     Route::post('configurations', [ConfigurationsController::class, 'store'])->name('postConfig');
 
@@ -86,14 +88,24 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('program/upload', [ProgramController::class, 'upload'])->name('uploadProgram');
     Route::get('program/{username}', [ProgramController::class, 'show'])->name('showProgram');
     Route::delete('program/{id}', [ProgramController::class, 'del'])->name('delProgram');
+
     Route::get('paper', [SubjectsController::class, 'show'])->name('getSubjects');
 
     Route::get('questions/{paper_id}', [QuestionSetController::class, 'show'])->name('getUser');
 
     Route::post('subject', [SubjectsController::class, 'store'])->name('postSubject');
+    Route::put('subject/{id}', [SubjectsController::class, 'update'])->name('updateSubject');
     Route::post('subject/upload', [SubjectsController::class, 'upload'])->name('uploadSubject');
+    Route::post('subject/test/upload', [SubjectsController::class, 'uploadTest'])->name('uploadTestSubject');
+    Route::put('subject/test/{id}', [SubjectsController::class, 'updateTest'])->name('updateTestSubject');
+    Route::put('subject/config/{id}', [SubjectsController::class, 'updateConfig'])->name('updateConfigSubject');
     Route::get('subject', [SubjectsController::class, 'index'])->name('getSubject');
     Route::delete('subject/{id}', [SubjectsController::class, 'del'])->name('delSubject');
+
+    Route::get('subject/topic', [SubjectsController::class, 'getTopic'])->name('getTopic');
+    Route::post('subject/topic', [SubjectsController::class, 'storeTopic'])->name('storeTopic');
+    Route::post('subject/topic/upload', [SubjectsController::class, 'storeTopicUpload'])->name('storeTopicUpload');
+    Route::delete('subject/topic/{id}', [SubjectsController::class, 'delTopic'])->name('delTopic');
 
     Route::post('exam/upload', [ExamController::class, 'upload'])->name('uploadExam');
     Route::delete('exam/{id}', [ExamController::class, 'del'])->name('delExam');

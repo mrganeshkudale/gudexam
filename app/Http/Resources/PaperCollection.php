@@ -34,9 +34,24 @@ class PaperCollection extends ResourceCollection
             'marks'             =>  $single->marks,
             'questions'         =>  $single->questions,
             'durations'         =>  $single->durations,
-            'from_date'         =>  Carbon::createFromFormat('Y-m-d H:i:s.u',$single->from_date)->getPreciseTimestamp(3),
-            'to_date'           =>  Carbon::createFromFormat('Y-m-d H:i:s.u',$single->to_date)->getPreciseTimestamp(3),
-
+            'from_date'         =>  $single->from_date != '' ? Carbon::createFromFormat('Y-m-d H:i:s.u',$single->from_date, 'UTC')->getPreciseTimestamp(3) : '',
+            'to_date'           =>  $single->to_date != '' ? Carbon::createFromFormat('Y-m-d H:i:s.u',$single->to_date, 'UTC')->getPreciseTimestamp(3) : '',
+            'active'            =>  $single->active,
+            'score_view'        =>  $single->score_view,
+            'review_question'   =>  $single->review_question,
+            'proctoring'        =>  $single->proctoring,
+            'photo_capture'     =>  $single->photo_capture,
+            'capture_interval'  =>  $single->capture_interval,
+            'negative_marking'  =>  $single->negative_marking,
+            'negative_marks'    =>  $single->negative_marks,
+            'time_remaining_reminder' => $single->time_remaining_reminder,
+            'exam_switch_alerts'=> $single->exam_switch_alerts,
+            'option_shuffle'    =>  $single->option_shuffle,
+            'question_marks'    =>  $single->question_marks,
+            'instructions'      => $single->instructions,
+            'ph_time'           => $single->ph_time,
+            'created_at'        => $single->created_at,
+            'updated_at'        => $single->updated_at
           ];
         }
         return $arr;

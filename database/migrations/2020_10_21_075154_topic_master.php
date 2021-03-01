@@ -19,11 +19,14 @@ class TopicMaster extends Migration
             $table->integer('topic');
             $table->integer('subtopic')->default(0);
             $table->integer('questions');
+            $table->integer('marks');
+
             $table->index('paper_id');
+            $table->index('marks');
             $table->index('topic');
             $table->index('subtopic');
             $table->index('id');
-            $table->unique(['paper_id','topic','subtopic']);
+            $table->unique(['paper_id','topic','subtopic','marks']);
             $table->timestamps();
         });
     }

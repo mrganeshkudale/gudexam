@@ -23,10 +23,7 @@ class SubjectMaster extends Migration
             $table->string('exam_name',200)->nullable();
             $table->integer('marks')->default('0');
             $table->integer('questions')->default('0');
-            $table->integer('marks1')->default('0');
-            $table->integer('marks2')->default('0');
-            $table->integer('marks3')->default('0');
-            $table->integer('marks4')->default('0');
+            
             $table->integer('durations')->default('0');
             $table->timestamp('from_date', $precision = 3)->nullable();
             $table->timestamp('to_date', $precision = 3)->nullable();
@@ -51,10 +48,7 @@ class SubjectMaster extends Migration
             $table->index('inst_uid');
             $table->index('questions');
             $table->index('marks');
-            $table->index('marks1');
-            $table->index('marks2');
-            $table->index('marks3');
-            $table->index('marks4');
+            
             $table->index('from_date');
             $table->index('to_date');
 
