@@ -618,7 +618,9 @@ class Admin
       {
         $progCode         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
         $progName         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
-        $instUid          =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $instID           =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+
+        $instUid          = User::where('username',$instID)->first()->uid;
   
         try
         {
@@ -767,8 +769,11 @@ class Admin
       {
         $paperCode        =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
         $paperName        =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
-        $programId        =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
-        $instId           =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+        $instCode         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $instId           =   User::where('username',$instCode)->first()->uid;
+        $programCode      =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+        $rrr              =   ProgramMaster::where('program_code',$programCode)->first();
+        $programId        =   $rrr->id;
         $semester         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
   
         try
