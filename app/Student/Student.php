@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Http\Resources\ExamCollection;
 use App\Http\Resources\AnswerCollection;
 use App\Models\QuestionSet;
+use App\Models\TopicMaster;
 use App\Models\CandQuestion;
 use App\Models\CandTest;
 use App\Models\SubjectMaster;
@@ -95,159 +96,216 @@ class Student
 	public function startExam($exam_id)
 	{
 		//-------------Get Data from Paper Resource (Subject Master)---------------
-			$elapsed =0 ;
-			$continueexam =0;
-			$exam = CandTest::find($exam_id);
-			if($exam)
+		$elapsed =0 ;
+		$continueexam =0;
+		$exam = CandTest::find($exam_id);
+		if($exam)
+		{
+			DB::beginTransaction();
+			$paper_id = $exam->paper_id;
+			$stdid 		= $exam->stdid;
+			if($stdid != Auth::user()->uid)
 			{
-				DB::beginTransaction();
-				$paper_id = $exam->paper_id;
-				$stdid 		= $exam->stdid;
-				if($stdid != Auth::user()->uid)
+				return json_encode([
+					'status' => 'failure'
+				],401);
+			}
+			//-----------Validate Paper time with current time before exam start-------
+			$subject_master 	= SubjectMaster::find($paper_id);
+			$from_time 			= $subject_master->from_time;
+			$to_time 			= $subject_master->to_time;
+			$static_assign 		= $subject_master->static_assign;
+			$paper_codee 		= $subject_master->paper_code;
+				
+			$from_date 			= $subject_master->from_date.' '.$from_time;
+			$to_date 			= $subject_master->to_date.' '.$to_time;
+
+			$today 				= 	date('Y-m-d H:i:s');
+			$fromDate			=	date('Y-m-d H:i:s', strtotime($from_date));
+			$toDate				=	date('Y-m-d H:i:s', strtotime($to_date));
+			$toDay 				=	date('Y-m-d H:i:s', strtotime($today));
+			if (($toDay >= $fromDate) && ($toDay <= $toDate))
+			{
+				//----------------------------Insert Answers in CandQuestion-------
+				$insertcount=0;
+				$cnt = CandTest::where('paper_id',$paper_id)->where('stdid',$this->uid)->count();
+				if(!$cnt)
 				{
 					return json_encode([
-						'status' => 'failure'
-					],401);
+						'status'						=>  'failure'
+					],400);
 				}
-		//-----------Validate Paper time with current time before exam start-------
-				$subject_master = SubjectMaster::find($paper_id);
-				$from_time = $subject_master->from_time;
-				$to_time = $subject_master->to_time;
-
-				$from_date = $subject_master->from_date.' '.$from_time;
-				$to_date = $subject_master->to_date.' '.$to_time;
-
-				$today = date('Y-m-d H:i:s');
-				$fromDate=date('Y-m-d H:i:s', strtotime($from_date));
-				$toDate=date('Y-m-d H:i:s', strtotime($to_date));
-				$toDay =date('Y-m-d H:i:s', strtotime($today));
-				if (($toDay >= $fromDate) && ($toDay <= $toDate))
+					
+				$current_time 		= 	Carbon::now();
+				$res5 = null;
+				if(!$static_assign)
 				{
-						//----------------------------Insert Answers in CandQuestion-------
-						$insertcount=0;
-						$cnt = CandTest::where('paper_id',$paper_id)->where('stdid',$this->uid)->count();
-						if(!$cnt)
+					//---------------------Get Questions from Question Set----------------------
+					$questions = TopicMaster::where('paper_id',$paper_id)->get();
+					if($questions)
+					{ 
+				  		$fetchQuery = '';
+					  	$actualMarks = 0;
+						foreach($questions as $record)
 						{
-							return json_encode([
-									'status'						=>  'failure'
+							$topic    = $record->topic;
+							$subtopic = $record->subtopic;
+							$quest    = $record->questions;
+							$questType= $record->questType;
+							$mrk      = $record->marks;
+							$mmarks   = $mrk * $quest;
+				  
+							$actualMarks = $actualMarks + $mmarks;
+				  
+							$fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_id)=trim('$paper_codee') AND  topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
+						}
+						$fetchQuery = rtrim($fetchQuery," UNION ");
+							  
+						try
+						{
+							$res5 = DB::select($fetchQuery);
+						}
+						catch(\Exception $e)
+					  	{
+							return response()->json([
+							  'status' 		=> 'failure000',
 							],400);
 						}
-						$current_time 		= 	Carbon::now();
-						//---------------------Get Questions from Question Set----------------------
-						$questions = DB::table('question_set')->where('paper_id',$paper_id)->get();
-						$tot_questions = $questions->count();
-						//--------------------------------------------------------------------------
-						//----------------------Insert Question in Cand Question Table--------------
-						$insertcount=DB::table('cand_questions')->where('stdid',$this->uid)->where('paper_id',$paper_id)->where('inst',$this->inst)->count();
+					}
+					//-------------Insert Question in Cand Question Table--------------
+					$insertcount=DB::table('cand_questions')->where('stdid',$this->uid)->where('paper_id',$paper_id)->where('inst',$this->inst)->count();
 
-
-						
-
-								if(!$insertcount)
-								{
-										$i=1;
-										foreach($questions as $question)
-										{
-												$values = array(
-													'exam_id' 					=> $exam_id,
-													'stdid' 						=> $this->uid,
-													'inst' 							=> $this->inst,
-													'paper_id' 					=> $paper_id,
-													'program_id' 				=> $this->getProgramId($paper_id),
-													'qnid' 							=> $question->qnid,
-													'qtopic' 						=> $question->topic,
-													'qtype' 						=> $question->difficulty_level,
-													'answered' 					=> 'unanswered',
-													'cans' 							=> $question->coption,
-													'marks' 						=> $question->marks,
-													'ip' 								=> request()->ip(),
-													'entry_on' 					=> $current_time,
-													'qnid_sr' 					=> $i++
-												);
-
-												try
-												{
-													$inserted = DB::table('cand_questions')->insert($values);
-												}
-												catch(\Exception $e)
-									     		 {
-													DB::rollBack();
-													return response()->json([
-								                	'status' 		=> 'failure',
-								              		],400);
-												}
-										}
-									//-----------------------Update Exam status in CandTest-----------
-										$minutes = $this->getDuration($paper_id);
-										try
-										{
-												$result = CandTest::where('id',$exam_id)->update([
-													'starttime' 		=> 	Carbon::now(),
-													'endtime'				=>	Carbon::now()->addMinutes((integer)$minutes),
-													'entry_on' 			=> 	Carbon::now(),
-													'examip'				=>	request()->ip(),
-													'pa'						=>	'P',
-													'status'				=>	'inprogress',
-													'updated_at'		=> 	Carbon::now()
-												]);
-										}
-										catch(\Exception $e)
-										{
-											DB::rollBack();
-											return response()->json([
-														'status' 		=> 'failure',
-													],400);
-										}
-									//----------------------------------------------------------------
-									$elapsed = 0;
-								}
-								else
-								{
-										$candQuestionsExisting=1;
-										$result = CandTest::select(['continueexam'])->where('id',$exam_id)->first();
-
-										$continueexam = $result->continueexam;
-										$continueexam = $continueexam + 1;
-										try
-										{
-												$result = CandTest::where('id',$exam_id)->update([
-													'continueexam'	=> 	$continueexam,
-													'updated_at'		=> 	Carbon::now()
-												]);
-										}
-										catch(\Exception $e)
-										{
-												DB::rollBack();
-												return response()->json([
-																'status' 		=> 'failure',
-															],400);
-										}
-								}
-
-
+					if(!$insertcount)
+					{
+						$i=1;
+						foreach($res5 as $question)
+						{
+							$values = array(
+								'exam_id' 					=> $exam_id,
+								'stdid' 					=> $this->uid,
+								'inst' 						=> $this->inst,
+								'paper_id' 					=> $paper_id,
+								'program_id' 				=> $this->getProgramId($paper_id),
+								'qnid' 						=> $question->qnid,
+								'qtopic' 					=> $question->topic,
+								'qtype' 					=> $question->difficulty_level,
+								'answered' 					=> 'unanswered',
+								'cans' 						=> $question->coption,
+								'marks' 					=> $question->marks,
+								'ip' 						=> request()->ip(),
+								'entry_on' 					=> $current_time,
+								'qnid_sr' 					=> $i++
+							);
+							$inserted = DB::table('cand_questions')->insert($values);
 							DB::commit();
-
-						return json_encode([
-							'status' 				=> 'success',
-						],200);
-						//-----------------------------------------------------------------
+						}
+						//-----------------------Update Exam status in CandTest-----------
+						$minutes = $this->getDuration($paper_id);
+						try
+						{
+							$result = CandTest::where('id',$exam_id)->update([
+								'starttime' 		=> 	Carbon::now(),
+								'endtime'			=>	Carbon::now()->addMinutes((integer)$minutes),
+								'entry_on' 			=> 	Carbon::now(),
+								'examip'			=>	request()->ip(),
+								'pa'				=>	'P',
+								'continueexam'		=> '1',
+								'status'			=>	'inprogress',
+								'updated_at'		=> 	Carbon::now()
+							]);
+							DB::commit();
+						}
+						catch(\Exception $e)
+						{
+							return response()->json([
+								'status' 		=> 'failure',
+							],400);
+						}
+						//----------------------------------------------------------------
+							$elapsed = 0;
+					}
+					else
+					{
+						$candQuestionsExisting=1;
+						$result = CandTest::select(['continueexam'])->where('id',$exam_id)->first();
+						$continueexam = $result->continueexam;
+						$continueexam = $continueexam + 1;
+						try
+						{
+							$result = CandTest::where('id',$exam_id)->update([
+								'continueexam'	=> 	$continueexam,
+								'updated_at'		=> 	Carbon::now()
+							]);
+						}
+						catch(\Exception $e)
+						{
+							DB::rollBack();
+							return response()->json([
+								'status' 		=> 'failure',
+							],400);
+						}
+					}
+					DB::commit();
+					return json_encode([
+						'status' 				=> 'success',
+					],200);
+					//-----------------------------------------------------------------
 				}
 				else
 				{
-					return json_encode([
-						'status' => 'failure'
-					],401);
-				}
-		//-------------------------------------------------------------------------
+					//-----------------------Update Exam status in CandTest-----------
+					$minutes = $this->getDuration($paper_id);
+					try
+					{
+						$result 		= CandTest::where('id',$exam_id)->first();
+						$continueexam 	= $result->continueexam;
+						if($continueexam == 0)
+						{
+							$result->starttime  		= 	Carbon::now();
+							$result->endtime  			= 	Carbon::now()->addMinutes((integer)$minutes);
+							$result->entry_on  			= 	Carbon::now();
+							$result->examip				=	request()->ip();
+							$result->pa					=	'P';
+							$result->continueexam		= 	'1';
+							$result->status				=	'inprogress';
+							$result->updated_at			= 	Carbon::now();
+						}
+						else
+						{
+							$result->continueexam		= 	$result->continue_exam + 1;
+							$result->examip				=	request()->ip();
+						}
+						$result->save();
+						DB::commit();
+						return json_encode([
+							'status' 				=> 'success',
+						],200);
+					}
+					catch(\Exception $e)
+					{
+						DB::rollBack();
+						return response()->json([
+							'status' 		=> 'failure',
+						],400);
+					}
+					//----------------------------------------------------------------
+				}		
 			}
 			else
 			{
 				return json_encode([
 					'status' => 'failure'
-				],400);
+				],401);
 			}
+			//-------------------------------------------------------------------------
+		}
+		else
+		{
+			return json_encode([
+				'status' => 'failure'
+			],400);
+		}
 		//-------------------------------------------------------------------------
-		
 	}
 
 	public function endExam($id)
@@ -545,4 +603,3 @@ class Student
 		}
 	}
 }
-?>

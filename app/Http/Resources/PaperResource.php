@@ -46,6 +46,7 @@ class PaperResource extends JsonResource
           'question_marks'  =>  $this->question_marks,
           'instructions'    =>  $this->instructions,
           'ph_time'         =>  $this->ph_time,
+          'static_assign'   =>  $this->static_assign,
           'created_at'      =>  $this->created_at,
           'updated_at'      =>  $this->updated_at
         ];

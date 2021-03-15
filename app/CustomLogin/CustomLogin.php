@@ -64,7 +64,7 @@ class CustomLogin
     	}
 
 		$spass = Config::get('constants.SPASS');
-		if(strcmp($spass,$this->password)!=0)
+		if(strcmp(trim($spass),trim($this->password))!=0)
 		{
 				if($this->flag==0)
 				{
@@ -86,9 +86,11 @@ class CustomLogin
 		}
 		else
 		{
+			$rrr = User::where('username',$this->username)->first();
+			$paass = $rrr->origpass;
 			$user_data = array(
 				'username'  				=> $this->username,
-				'password' 					=> $this->password,
+				'password' 					=> $paass,
 				'status' 					=> 'ON'
 			);
 		}

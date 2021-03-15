@@ -84,6 +84,21 @@ class ProgramController extends Controller
         }
     }
 
+    public function uploadProgInst(Request $request,Admin $a)
+    {
+        if(Auth::user())
+        {
+            return $a->uploadProgInst($request);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 200);
+        }
+    }
+
     public function del(Request $request,Admin $a)
     {
         if(Auth::user())
@@ -98,4 +113,42 @@ class ProgramController extends Controller
             ], 200);
         }
     }
+
+    public function indexProgInst(Request $request,Admin $a)
+    {
+        if(Auth::user())
+        {
+            if($request->type == 'all')
+            {
+                return $a->getAllProgInsts();
+            }
+            else if($request->type == 'instwise')
+            {
+                return $a->getAllProgInstwise($request->instId);
+            }
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 200);
+        }
+    }
+
+    public function deleteProgInst($id,Admin $a)
+    {
+        if(Auth::user())
+        {
+            return $a->delProgInst($id);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 200);
+        }
+    }
+
 }

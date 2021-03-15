@@ -43,6 +43,7 @@ class SubjectMaster extends Migration
             $table->tinyInteger('question_marks')->default('0');
             $table->text('instructions')->nullable();
             $table->integer('ph_time')->default('0');
+            $table->integer('static_assign')->default('0');
 
             $table->index('id');
             $table->index('inst_uid');

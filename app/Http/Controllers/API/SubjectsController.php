@@ -213,4 +213,19 @@ class SubjectsController extends Controller
         ], 200);
     }
   }
+
+ public function showById($id,Admin $a)
+ {
+    if(Auth::user())
+    {
+      return $a->getSubjectById($id);
+    }
+    else
+    {
+        return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Unauthorized User...",
+        ], 200);
+    }
+ }
 }

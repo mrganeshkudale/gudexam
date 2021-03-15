@@ -50,6 +50,7 @@ class PaperCollection extends ResourceCollection
             'question_marks'    =>  $single->question_marks,
             'instructions'      => $single->instructions,
             'ph_time'           => $single->ph_time,
+            'static_assign'     =>  $single->static_assign,
             'created_at'        => $single->created_at,
             'updated_at'        => $single->updated_at
           ];

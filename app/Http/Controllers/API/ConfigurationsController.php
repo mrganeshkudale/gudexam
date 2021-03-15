@@ -81,4 +81,26 @@ class ConfigurationsController extends Controller
             }
         }
     }
+
+    public function index($id,Admin $a)
+    {
+        $result = HeaderFooterText::find($id)->first();
+                if($result)
+                {
+                    $url = Config::get('constants.PROJURL');
+                    return response()->json([
+                        "status"        => "success",
+                        "header"        => $result->header,
+                        "footer"        => $result->footer,
+                        "imgpath"       => stripslashes($url.'/'.$result->logo)
+                    ], 200);
+                }
+                else
+                {
+                return response()->json([
+                    "status"        => "success",
+                    "header"        => "GudExams",
+                ], 200);
+                }
+    }
 }

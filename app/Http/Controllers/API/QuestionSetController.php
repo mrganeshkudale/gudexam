@@ -28,4 +28,26 @@ class QuestionSetController extends Controller
         ], 200);
     }
   } 
+
+  public function specificationCompare(Request $request,Admin $a)
+  {
+    if(Auth::user())
+    {
+      if($request->type=='match')
+      {
+        return $a->specificationMatch();
+      }
+      else
+      {
+        return $a->specificationCompare();
+      }
+    }
+    else
+    {
+        return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Unauthorized User...",
+        ], 200);
+    }
+  } 
 }

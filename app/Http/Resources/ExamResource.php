@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Resources;
 use Auth;
 use App\Models\SubjectMaster;
@@ -10,37 +9,30 @@ use App\Http\Resources\PaperResource;
 use App\Http\Resources\ProgramResource;
 use App\Http\Resources\UserResource;
 use Carbon\Carbon;
+use Illuminate\Http\Resources\Json\JsonResource;
 
-class ExamCollection extends ResourceCollection
+class ExamResource extends JsonResource
 {
     /**
-     * Transform the resource collection into an array.
+     * Transform the resource into an array.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return array
      */
     public function toArray($request)
     {
-        $arr = [];
-        $i=0;
-        $str='';
-        foreach($this->collection as $single)
-        {
-          $str=$str.$single->paper_id.',';
-          $arr[$i++] = [
-            'id'          =>  $single->id,
-            'stdid'       =>  new UserResource(User::find($single->stdid)),
-            'examstatus'  =>  $single->status,
-            'starttime'   =>  $single->starttime,
-            'endtime'     =>  $single->endtime,
-            'startedon'   =>  $single->entry_on,
-            'endon'       =>  $single->end_on,
-            'switched'    =>  $single->switched,
-            'now'         =>  round(microtime(true) * 1000),
-            'paper'       =>  new PaperResource(SubjectMaster::find($single->paper_id)),
-          ];
-        }
-        return $arr;
+        return [
+            'id'                    =>  $this->id,
+            'stdid'                 =>  new UserResource(User::find($this->stdid)),
+            'examstatus'            =>  $this->status,
+            'starttime'             =>  $this->starttime,
+            'endtime'               =>  $this->endtime,
+            'startedon'             =>  $this->entry_on,
+            'endon'                 =>  $this->end_on,
+            'switched'              =>  $this->switched,
+            'now'                   =>  round(microtime(true) * 1000),
+            'paper'                 =>  new PaperResource(SubjectMaster::find($this->paper_id))
+        ];
     }
 
     public function with($request)

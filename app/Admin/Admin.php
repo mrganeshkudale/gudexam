@@ -3,14 +3,17 @@ namespace App\Admin;
 use App\Models\User;
 use App\Models\StudentExam;
 use App\Http\Resources\ExamCollection;
+use App\Http\Resources\InstProgramCollection;
 use App\Http\Resources\PaperCollection;
 use App\Http\Resources\TopicCollection;
 use App\Http\Resources\PaperResource;
+use App\Http\Resources\ExamResource;
 use App\Models\CandTest;
 use App\Models\TopicMaster;
 use App\Models\Elapsed;
 use App\Models\QuestionSet;
 use App\Models\CandQuestion;
+use App\Models\InstPrograms;
 use App\Models\ProgramMaster;
 use App\Models\SubjectMaster;
 use App\Models\HeaderFooterText;
@@ -293,12 +296,23 @@ class Admin
 
   public function getExams($program_id)
   {
-    $result = ProgramMaster::find($program_id)->exams;
-    if($result)
+    //--------Get Distinct Paper id from Program Id-----------------------------------------
+    $result = DB::select("select id from subject_master where program_id in ($program_id)");
+    //--------------------------------------------------------------------------------------
+    $paper_id_array = array();
+    //----------------------push paper id in an array----------------------------------------
+    foreach($result as $res)
+    {
+      array_push($paper_id_array,$res->id);
+    }
+    //---------------------------------------------------------------------------------------
+
+    $result1 = CandTest::whereIn('paper_id',$paper_id_array)->groupBy('paper_id')->get();
+    if($result1)
       {
         return response()->json([
           "status"        => "success",
-          "data"          => new ExamCollection($result),
+          "data"          => new ExamCollection($result1),
         ], 200);
       }
       else
@@ -952,7 +966,7 @@ class Admin
       }
       return response()->json([
         'status' 		=> 'success',
-        'message'   => 'Subjects Uploaded Successfully...',
+        'message'   => 'Students Uploaded Successfully...',
         'row'       =>  $i
       ],200);
     }
@@ -967,6 +981,8 @@ class Admin
 
   public function uploadStudSubjectMapping($request)
   {
+    DB::beginTransaction();
+
     $validator = Validator::make($request->all(), [
       'file'      => 'required|max:1024',
     ]);
@@ -990,7 +1006,7 @@ class Admin
       $spreadsheet        = $reader->load(public_path('assets/tempfiles/').$fileName);
       $current_time 			= Carbon::now();
       $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
-
+      
       for($i=2;$i<=$highestRow;$i++)
       {
         $enrollno        = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
@@ -999,27 +1015,199 @@ class Admin
         $current_time 	 = Carbon::now();
 
         $res = User::where('username',$enrollno)->first();
-        $uid = $res->uid;
-        
-        $res = SubjectMaster::where('paper_code',$paper_code)->first();
-        $paperId = $res->id;
-        $programId = $res->program_id;
-
-        try
+        if($res)
         {
-          $result = CandTest::create([
-            'stdid'       =>  $uid,
-            'inst'        =>  $instId,
-            'paper_id'    =>  $paperId,
-            'program_id'  =>  $programId,
-            'created_at'  =>  $current_time 
-          ]);
+          $uid = $res->uid;
         }
-        catch(\Exception $e)
+        else
         {
           return response()->json([
             'status' 		=> 'failure',
-            'message'   => 'Problem Inserting Student Subject Allocation in Database.Probably Duplicate Entry.All Allocations till row number '.$i.' in Excel file are Inserted Successfully',
+            'message'   => 'Student Enrollment Number on Row '.$i.' in Excel file is not available in Users Table. All rows till this are uploaded successfully',
+            'row'       =>  $i
+          ],400);
+        }
+      /*
+        $res1= User::where('username',$instId)->first();
+        if(!$res1)
+        {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Institute with Institute Code on Row '.$i.' in Excel file is not available in Users Table. All rows till this are uploaded successfully',
+            'row'       =>  $i
+          ],400);
+        }
+        */
+        $res2 = SubjectMaster::where('paper_code',$paper_code)->first();
+        if($res2)
+        {
+          $paperId = $res2->id;
+          $programId = $res2->program_id;
+          $static_assign = $res2->static_assign;
+        
+
+          $totalMarks = $res2->marks;
+          $totalQuestions=$res2->questions;
+
+          /*$res3 = ProgramMaster::find($programId);
+          if(!$res3)
+          {
+            return response()->json([
+              'status' 		=> 'failure',
+              'message'   => 'Invalid Program Id for Subject on Row '.$i.'. All rows till this are uploaded successfully',
+              'row'       =>  $i
+            ],400);
+          }*/
+          
+          //---------------------Check whether Question set contains questions for this Paper ID-----------
+          $res4 = TopicMaster::where('paper_id',$paperId)->get();
+          if($res4)
+          { 
+            
+            $fetchQuery = '';
+            $actualMarks = 0;
+            foreach($res4 as $record)
+            {
+              $topic    = $record->topic;
+              $subtopic = $record->subtopic;
+              $questType= $record->questType;
+              
+              $quest    = $record->questions;
+              $mrk      = $record->marks;
+              $mmarks   = $mrk * $quest;
+
+              $actualMarks = $actualMarks + $mmarks;
+
+              $fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_id)=trim('$paper_code') AND topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
+            }
+            $fetchQuery = rtrim($fetchQuery," UNION ");
+            
+            try
+            {
+              $res5 = DB::select($fetchQuery);
+            }
+            catch(\Exception $e)
+            {
+              return response()->json([
+                    'status' 		=> 'failure',
+                    'message'   => 'Problem Selecting Questions from Database.All Allocations till row number '.$i.' in Excel file are Inserted Successfully',
+                    'row'       =>  $i
+                  ],400);
+            }
+
+          
+            $res5dummy = $res5;
+            if($res5)
+            {
+              
+                $actualQuestcount = sizeof($res5);
+                
+                if($actualQuestcount != $totalQuestions)
+                {
+                  return response()->json([
+                    'status' 		=> 'failure',
+                    'message'   => 'For row '.$i.' the Question set is not properly configured according to Test Master. Number of Questions Mismatch. Total Questions Should Be:'.$totalQuestions.' But '.$actualQuestcount.' found.All rows till this are uploaded successfully. Query:'.$fetchQuery ,
+                    'row'       =>  $i
+                  ],400);
+                }
+                if($totalMarks != $actualMarks)
+                {
+                  return response()->json([
+                    'status' 		=> 'failure',
+                    'message'   => 'For row '.$i.' the Question set is not properly configured according to Test Master. Topic Wise Marks Mismatch.All rows till this are uploaded successfully',
+                    'row'       =>  $i
+                  ],400);
+                }
+
+                try
+                {
+                  $result = CandTest::create([
+                    'stdid'       =>  $uid,
+                    'inst'        =>  $instId,
+                    'paper_id'    =>  $paperId,
+                    'program_id'  =>  $programId,
+                    'created_at'  =>  $current_time 
+                  ]);
+                  DB::commit();
+                }
+                catch(\Exception $e)
+                {
+                  return response()->json([
+                    'status' 		=> 'failure',
+                    'message'   => 'Problem Inserting Student Subject Allocation in Database.Probably Duplicate Entry.All Allocations till row number '.$i.' in Excel file are Inserted Successfully',
+                    'row'       =>  $i
+                  ],400);
+                }
+                
+                if($static_assign)
+                {
+                  //------------------Insert Questions into Candidate Questions----------------------
+                  $j = 1;
+                  $k = 0;
+                  $values = array();
+                  foreach ($res5dummy as $question)
+                  {
+                    $values[$k++] = array(
+                      'exam_id' 					=> $result->id,
+                      'stdid' 						=> $uid,
+                      'inst' 							=> $instId,
+                      'paper_id' 					=> $paperId,
+                      'program_id' 				=> $programId,
+                      'qnid' 							=> $question->qnid,
+                      'qtopic' 						=> $question->topic,
+                      'qtype' 						=> $question->difficulty_level,
+                      'answered' 					=> 'unanswered',
+                      'cans' 							=> $question->coption,
+                      'marks' 						=> $question->marks,
+                      'ip' 								=> request()->ip(),
+                      'entry_on' 					=> $current_time,
+                      'qnid_sr' 					=> $j++
+                    );
+                  }
+
+                  try
+                  {
+                    $inserted = DB::table('cand_questions')->insert($values);
+                    DB::commit();
+                    $values = null;
+                  }
+                  catch(\Exception $e)
+                  {
+                    return response()->json([
+                     'status' 		=> 'failure',
+                      'message'   => 'Problem Inserting Student Questions in Database.All Records till row number '.$i.' in Excel file are Inserted Successfully',
+                      'row'       =>  $i
+                    ],400);
+                  }
+                 
+                  
+                }
+                //--------------------------------------------------------------------------
+            }
+            else
+            {
+              return response()->json([
+                'status' 		=> 'failure',
+                'message'   => 'Problem Inserting Student Questions in Database.All Records till row number '.$i.' in Excel file are Inserted Successfully. Query:'.$fetchQuery,
+                'row'       =>  $i
+              ],400);
+            }
+          }
+          else
+          {
+            return response()->json([
+              'status' 		=> 'failure',
+              'message'   => 'Topic entry for Subject on Row '.$i.'. is not done.All rows till this are uploaded successfully',
+              'row'       =>  $i
+            ],400);
+          }
+          //-----------------------------------------------------------------------------------------------
+        }
+        else
+        {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Subject with Paper Code on Row '.$i.' in Excel file is not available in Subject Master Table. All rows till this are uploaded successfully',
             'row'       =>  $i
           ],400);
         }
@@ -1068,6 +1256,7 @@ class Admin
     $paperId        = $request->paperId;
     $topic          = $request->topic;
     $subTopic       = $request->subTopic;
+    $questType      = $request->questType;
     $questions      = $request->questions;
     $marks          = $request->marks;
 
@@ -1078,16 +1267,17 @@ class Admin
 
     $current_time   = Carbon::now();
 
-    
-      $result         = TopicMaster::create([
-        'paper_id'    => $paperId,
-        'topic'       => $topic,
-        'subtopic'    => $subTopic,
-        'questions'   => $questions,
-        'marks'       => $marks,
-        'created_at'  => $current_time,
-      ]); 
-   
+    $values = [
+      'paper_id'    => $paperId,
+      'topic'       => $topic,
+      'subtopic'    => $subTopic,
+      'questType'   => $questType,
+      'questions'   => $questions,
+      'marks'       => $marks,
+      'created_at'  => $current_time,
+    ];
+
+    $result         = TopicMaster::create($values);
 
     return response()->json([
       'status' 		=> 'success',
@@ -1126,8 +1316,9 @@ class Admin
         $paperCode      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
         $topic          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
         $subTopic       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
-        $questions      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
-        $marks          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $questType      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+        $questions      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $marks          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
 
         if($subTopic == '' || $subTopic == NULL)
         {
@@ -1137,25 +1328,35 @@ class Admin
         $current_time 	 = Carbon::now();
 
         $res = SubjectMaster::where('paper_code',$paperCode)->first();
-        $paperId = $res->id;
-        
-        try
+        if($res)
         {
-          $result         = TopicMaster::create([
-            'paper_id'    => $paperId,
-            'topic'       => $topic,
-            'subtopic'    => $subTopic,
-            'questions'   => $questions,
-            'marks'       => $marks,
-            'created_at'  => $current_time,
-          ]); 
+          $paperId = $res->id;
+          try
+          {
+            $result         = TopicMaster::create([
+              'paper_id'    => $paperId,
+              'topic'       => $topic,
+              'subtopic'    => $subTopic,
+              'questType'   => $questType,
+              'questions'   => $questions,
+              'marks'       => $marks,
+              'created_at'  => $current_time,
+            ]); 
+          }
+          catch(\Exception $e)
+          {
+            return response()->json([
+              'status' 		=> 'failure',
+              'message'   => 'Problem Inserting Topic Data in Database.Probably Duplicate Entry.All Topics Data till row number '.$i.' in Excel file are Inserted Successfully',
+              'row'       =>  $i
+            ],400);
+          }
         }
-        catch(\Exception $e)
+        else
         {
           return response()->json([
             'status' 		=> 'failure',
-            'message'   => 'Problem Inserting Topic Data in Database.Probably Duplicate Entry.All Topics Data till row number '.$i.' in Excel file are Inserted Successfully',
-            'row'       =>  $i
+            'message'   => 'Problem Inserting Topic Data in Database on row '.$i,
           ],400);
         }
       }
@@ -1264,7 +1465,6 @@ class Admin
       for($i=2;$i<=$highestRow;$i++)
       {
         $paperCode  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
-        $paperId    = SubjectMaster::where('paper_code',$paperCode)->first()->id;
         $exam_name  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
         $marks      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
         $questions  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
@@ -1280,7 +1480,7 @@ class Admin
         
         try
         {
-          $result = SubjectMaster::find($paperId)->update([
+          $result = SubjectMaster::where('paper_code',$paperCode)->update([
             'exam_name' => $exam_name,
             'marks'     => $marks,
             'questions' => $questions,
@@ -1293,10 +1493,11 @@ class Admin
         {
           return response()->json([
             'status' 		=> 'failure',
-            'message'   => 'Problem Inserting Test Data in Database.Probably Duplicate Entry.All Tests Data till row number '.$i.' in Excel file are Inserted Successfully',
+            'message'   => 'Problem Inserting Test Data in Database.All Tests Data till row number '.$i.' in Excel file are Inserted Successfully',
             'row'       =>  $i
           ],400);
         }
+        
       }
       return response()->json([
         'status' 		=> 'success',
@@ -1345,6 +1546,7 @@ class Admin
     $result->option_shuffle     =   $request->option_shuffle;
     $result->question_marks     =   $request->question_marks;
     $result->ph_time            =   $request->ph_time;
+    $result->static_assign      =   $request->static_assign;
 
     $result->save();
 
@@ -1353,5 +1555,304 @@ class Admin
       "message"         => "Exam Configuration Uploaded Successfully.",
     ], 200);
   }
+
+  public function uploadProgInst($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'file'      => 'required|max:1024',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails())
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File for uploading is required with max file size 1 MB",
+      ], 400);
+    }
+
+
+    if ($extension == "xlsx") 
+    {
+      $fileName           = 'InstProgramAllocation.xlsx';  
+
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/').$fileName);
+      $current_time 			= Carbon::now();
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+
+      for($i=2;$i<=$highestRow;$i++)
+      {
+        $progCode   = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+        $program_id = ProgramMaster::where('program_code',$progCode)->first()->id;
+        $instCode   = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $inst_uid   = User::where('username',$instCode)->first()->uid;
+        
+        $current_time 	  = Carbon::now();
+        
+        try
+        {
+          $result = InstPrograms::create([
+            'program_id' => $program_id,
+            'inst_uid'     => $inst_uid,
+            'created_at'  => $current_time,
+          ]);
+        }
+        catch(\Exception $e)
+        {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Problem Inserting Program Institute Mapping in Database.Probably Duplicate Entry.All Program Institute Mappings till row number '.$i.' in Excel file are Inserted Successfully',
+            'row'       =>  $i
+          ],400);
+        }
+      }
+      return response()->json([
+        'status' 		=> 'success',
+        'message'   => 'Program Institute Mapping Uploaded Successfully...',
+      ],200);
+    }
+    else 
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File must be .xlsx only with maximum 1 MB  of Size.",
+      ], 400);
+    }
+  }
+
+  function getAllProgInsts()
+  {
+    $result = InstPrograms::all();
+
+    if($result)
+    {
+      return response()->json([
+        "status"        => "success",
+        "data"          => new InstProgramCollection($result),
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"        => "failure",
+      ], 400);
+    }
+  }
+
+  public function delProgInst($id)
+  {
+    $result = InstPrograms::find($id)->delete();
+
+    return response()->json([
+      "status"            => "success",
+      "message"           => 'Record Deleted Successfully...',
+    ], 200);
+  }
+
+  
+  public function getSubjectById($id)
+  {
+    $result = SubjectMaster::find($id);
+    if($result)
+    {
+      return response()->json([
+        "status"        => "success",
+        "data"          => new PaperResource($result),
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"        => "failure",
+      ], 400);
+    }
+  }
+
+  public function specificationCompare()
+  {
+    $result = DB::select("SELECT * FROM
+    (SELECT topic_data.topic, topic_data.paper_code, topic_data.questType, topic_data.marks, CASE WHEN topic_data.expected IS NULL THEN 0 ELSE topic_data.expected END AS expected, CASE WHEN question_data.actual IS NULL THEN 0 ELSE question_data.actual END AS actual  FROM
+    
+    (SELECT topic_master.topic, topic_master.paper_code, topic_master.questType, topic_master.marks, SUM(topic_master.questions) as expected
+    FROM
+    (SELECT subject_master.paper_code, topic_master.* FROM subject_master INNER JOIN topic_master on subject_master.id = topic_master.paper_id) topic_master
+    GROUP BY
+    topic_master.topic, topic_master.paper_code, topic_master.questType, topic_master.marks) topic_data
+    
+    LEFT JOIN 
+    
+    (SELECT question_set.topic, question_set.paper_id, question_set.difficulty_level, question_set.marks, COUNT(*) as actual FROM question_set GROUP BY question_set.topic, question_set.paper_id, question_set.difficulty_level, question_set.marks) question_data
+    
+    ON topic_data.topic = question_data.topic AND topic_data.paper_code = question_data.paper_id AND topic_data.questType = question_data.difficulty_level AND topic_data.marks = question_data.marks) final
+    WHERE final.expected > final.actual
+    ORDER BY final.paper_code");
+
+
+    if($result)
+    {
+      return response()->json([
+        "status"        => "success",
+        "data"          => $result,
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"            => "success",
+        "message"           => 'No Data Found',
+        "data"              =>  [],
+      ], 200);
+    }
+
+  }
+
+  public function examReportCount($inst_id)
+  {
+      $result = User::where('username',$inst_id)->first();
+      $instUid = $result->uid;
+
+      $results = InstPrograms::where('inst_uid',$instUid)->get();
+      $programArray = array();
+      foreach($results as $result)
+      {
+        array_push($programArray,$result->program_id);
+      }
+
+      $data = array();
+      $ress = SubjectMaster::whereIn('program_id',$programArray)->get();
+      $i = 0;
+
+      foreach($ress as $res)
+      {
+        $data[$i++] = [
+          'id'                  =>  $res->id,
+          'from_date'           =>  $res->from_date,
+          'paper_code'          =>  $res->paper_code,
+          'paper_name'          =>  $res->paper_name,
+          'marks'               =>  $res->marks,
+          'questions'           =>  $res->questions,
+          'duration'            =>  $res->durations,
+          'allStudents'         =>  $this->getAllocatedStudentsCount($res->id,'all'),
+          'overStudents'        =>  $this->getAllocatedStudentsCount($res->id,'over'),
+          'inprogressStudents'  =>  $this->getAllocatedStudentsCount($res->id,'inprogress'),
+          'unattendStudents'    =>  $this->getAllocatedStudentsCount($res->id,'unattend'),
+          'exam'                =>  $this->getExam($res->paper_code),
+        ];
+      }
+      return response()->json([
+        "status"        => "success",
+        "data"          => $data,
+      ], 200);
+  }
+
+  public function getAllocatedStudentsCount($subjectId,$str)
+  {
+    if($str == 'all')
+    {
+      $count = CandTest::where('paper_id',$subjectId)->count();
+      return $count;
+    }
+    else if($str=='over')
+    {
+      $count = CandTest::where('paper_id',$subjectId)->where('status','over')->count();
+      return $count;
+    }
+    else if($str=='inprogress')
+    {
+      $count = CandTest::where('paper_id',$subjectId)->where('status','inprogress')->count();
+      return $count;
+    }
+    else if($str=='unattend')
+    {
+      $count = CandTest::where('paper_id',$subjectId)->whereNull('status')->count();
+      return $count;
+    }
+  }
+
+  public function getExam($paper_code)
+  {
+    $result = SubjectMaster::where('paper_code',$paper_code)->first();
+    if($result)
+    {
+      $paper_id = $result->id;
+      $result1 = CandTest::where('paper_id',$paper_id)->first();
+      if($result1)
+      {
+        return new ExamResource($result1);
+      }
+      else
+      {
+        return [];
+      }
+    }
+    else
+    {
+      return [];
+    }
+  }
+
+
+  public function examByPaperIdAndType(Request $request)
+  {
+    $paper_id     = $request->paper_id;
+    $type         = $request->type;
+  
+    if($type == 'notattend')
+    {
+      $result = CandTest::where('paper_id',$paper_id)->whereNull('status')->get();
+    }
+    else
+    {
+      $result = CandTest::where('paper_id',$paper_id)->where('status',$type)->get();
+    }
+
+    return response()->json([
+      "status"        => "success",
+      "data"          => new ExamCollection($result),
+    ], 200);
+
+  }
+
+  public function specificationMatch()
+  {
+    $result = DB::select("SELECT * FROM
+    (SELECT topic_data.topic, topic_data.paper_code, topic_data.questType, topic_data.marks, CASE WHEN topic_data.expected IS NULL THEN 0 ELSE topic_data.expected END AS expected, CASE WHEN question_data.actual IS NULL THEN 0 ELSE question_data.actual END AS actual  FROM
+    
+    (SELECT topic_master.topic, topic_master.paper_code, topic_master.questType, topic_master.marks, SUM(topic_master.questions) as expected
+    FROM
+    (SELECT subject_master.paper_code, topic_master.* FROM subject_master INNER JOIN topic_master on subject_master.id = topic_master.paper_id) topic_master
+    GROUP BY
+    topic_master.topic, topic_master.paper_code, topic_master.questType, topic_master.marks) topic_data
+    
+    LEFT JOIN 
+    
+    (SELECT question_set.topic, question_set.paper_id, question_set.difficulty_level, question_set.marks, COUNT(*) as actual FROM question_set GROUP BY question_set.topic, question_set.paper_id, question_set.difficulty_level, question_set.marks) question_data
+    
+    ON topic_data.topic = question_data.topic AND topic_data.paper_code = question_data.paper_id AND topic_data.questType = question_data.difficulty_level AND topic_data.marks = question_data.marks) final
+    WHERE final.expected <= final.actual
+    ORDER BY final.paper_code");
+
+
+    if($result)
+    {
+      return response()->json([
+        "status"        => "success",
+        "data"          => $result,
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"            => "success",
+        "message"           => 'No Data Found',
+        "data"              =>  [],
+      ], 200);
+    }
+
+  }
+
 }
 ?>

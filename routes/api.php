@@ -65,6 +65,9 @@ Route::middleware(['auth:api'])->group(function()
     Route::post('proctor', [ProctorController::class, 'store'])->name('PostProctor');
     Route::post('proctorDetails', [ProctorDetailsController::class, 'store'])->name('PostroctorDetails');
 
+    Route::get('paper/{id}', [SubjectsController::class, 'showById'])->name('getSubjectsById');
+    Route::get('subject/topic', [SubjectsController::class, 'getTopic'])->name('getTopic');
+
 });
 //---------------------------------Student API End------------------------------
 
@@ -81,17 +84,23 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::put('sessions', [SessionsController::class, 'update'])->name('putSessions');
 
     Route::put('configurations', [ConfigurationsController::class, 'update'])->name('putConfig');
+    Route::get('configurations/{id}', [ConfigurationsController::class, 'index'])->name('getMyConfig');
     Route::post('configurations', [ConfigurationsController::class, 'store'])->name('postConfig');
 
     Route::get('program', [ProgramController::class, 'index'])->name('getProgram');
+    Route::get('program/inst', [ProgramController::class, 'indexProgInst'])->name('indexProgInst');
+    Route::delete('program/inst/{id}', [ProgramController::class, 'deleteProgInst'])->name('deleteProgInst');
     Route::post('program', [ProgramController::class, 'store'])->name('storeProgram');
     Route::post('program/upload', [ProgramController::class, 'upload'])->name('uploadProgram');
+    Route::post('program/inst/upload', [ProgramController::class, 'uploadProgInst'])->name('uploadProgramInst');
     Route::get('program/{username}', [ProgramController::class, 'show'])->name('showProgram');
     Route::delete('program/{id}', [ProgramController::class, 'del'])->name('delProgram');
 
     Route::get('paper', [SubjectsController::class, 'show'])->name('getSubjects');
+    
 
-    Route::get('questions/{paper_id}', [QuestionSetController::class, 'show'])->name('getUser');
+    Route::get('questions/{paper_id}', [QuestionSetController::class, 'show'])->name('getQuestions');
+    Route::get('questions/specification/compare', [QuestionSetController::class, 'specificationCompare'])->name('getQuestSpecificationCompare');
 
     Route::post('subject', [SubjectsController::class, 'store'])->name('postSubject');
     Route::put('subject/{id}', [SubjectsController::class, 'update'])->name('updateSubject');
@@ -100,15 +109,20 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::put('subject/test/{id}', [SubjectsController::class, 'updateTest'])->name('updateTestSubject');
     Route::put('subject/config/{id}', [SubjectsController::class, 'updateConfig'])->name('updateConfigSubject');
     Route::get('subject', [SubjectsController::class, 'index'])->name('getSubject');
+    
     Route::delete('subject/{id}', [SubjectsController::class, 'del'])->name('delSubject');
 
-    Route::get('subject/topic', [SubjectsController::class, 'getTopic'])->name('getTopic');
+    
     Route::post('subject/topic', [SubjectsController::class, 'storeTopic'])->name('storeTopic');
     Route::post('subject/topic/upload', [SubjectsController::class, 'storeTopicUpload'])->name('storeTopicUpload');
     Route::delete('subject/topic/{id}', [SubjectsController::class, 'delTopic'])->name('delTopic');
 
     Route::post('exam/upload', [ExamController::class, 'upload'])->name('uploadExam');
     Route::delete('exam/{id}', [ExamController::class, 'del'])->name('delExam');
+
+    Route::get('exam/report/count', [ExamController::class, 'examReportCount'])->name('examReportCount');
+    Route::get('exam/bypaperid/type', [ExamController::class, 'examByPaperIdAndType'])->name('examByPaperIdAndType');
+
 });
 //------------------------------------------------------------------------------
 ?>

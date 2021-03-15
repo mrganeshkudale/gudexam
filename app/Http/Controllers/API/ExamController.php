@@ -132,4 +132,44 @@ class ExamController extends Controller
     }
   }
 
+  public function examReportCount(Request $request,Admin $a)
+  {
+    if(Auth::user() && Auth::user()->role != 'STUDENT')
+    {
+      if($request->type == 'instwise')
+      {
+        return $a->examReportCount($request->instId);
+      }
+      else
+      {
+        if(Auth::user()->role == 'EADMIN')
+        {
+          return $a->examReportCount(Auth::user()->username);
+        }
+      }
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 400);
+    }
+  }
+
+  public function examByPaperIdAndType(Request $request, Admin $a)
+  {    
+    if(Auth::user())
+    {
+      return $a->examByPaperIdAndType($request);
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 400);
+    }
+  }
+
 }
