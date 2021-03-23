@@ -3,6 +3,8 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\UserResource;
+use App\Models\User;
 
 class ProgramResource extends JsonResource
 {
@@ -18,6 +20,9 @@ class ProgramResource extends JsonResource
             'id'                    =>  $this->id,
             'program_code'          =>  $this->program_code,
             'program_name'          =>  $this->program_name,
+            'inst'                  =>  new UserResource(User::find($this->inst_uid)),
+            'created_at'            =>  $this->created_at,
+            'updated_at'            =>  $this->updated_at,
         ];
     }
 }

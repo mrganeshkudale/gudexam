@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 
 class ExamController extends Controller
 {
-  public function index(Student $s,Admin $a)
+  public function index(Student $s,Admin $a,Request $request)
   {
     if(Auth::user())
     {
@@ -18,9 +18,13 @@ class ExamController extends Controller
       {
         return $s->getExams();
       }
-      else
+      else if(Auth::user()->role == 'ADMIN')
       {
         return $a->getAllExams();
+      }
+      else if(Auth::user()->role == 'EADMIN')
+      {
+        return $a->getFilteredExams($request->instId);
       }
     }
     else

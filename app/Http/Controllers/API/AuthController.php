@@ -61,6 +61,11 @@ class AuthController extends Controller
     }
   }
 
+  public function appLogin(Request $request, CustomLogin $clogin)
+  {
+      return $clogin->customLoginAuthentication();
+  }
+
   public function getlogin(Request $request)
   {
     if(!Auth::user())
@@ -104,12 +109,35 @@ class AuthController extends Controller
 
   public function verifyOTP(Request $request,Registration $regi)
   {
-    return $regi->verifyOTP($request->OTP_id);
+    return $regi->verifyOTP($request->otp,$request->mobile);
   }
 
   public function register(Request $request,Registration $regi)
   {
-    return $regi->registerUser();
+    $myRecaptcha    = $request->myRecaptcha;
+    $client         = new Client;
+    $response       = $client->post('https://www.google.com/recaptcha/api/siteverify',
+      [
+          'form_params' =>
+              [
+                  'secret'    => env('CAPTCHA_SECRET_KEY'),
+                  'response'  => $myRecaptcha
+              ]
+      ]
+    );
+
+    $body = json_decode((string)$response->getBody());
+    if($body->success == true)
+    {
+      return $regi->registerUser();
+    }
+    else
+    {
+      return json_encode([
+        'status' => 'failure',
+        'message'  => 'Please use Recaptcha for logging in...',
+      ],200);
+    }
   }
 
   public function isLoggedIn()

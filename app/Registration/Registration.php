@@ -8,6 +8,7 @@ use App\Models\Session;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\CollegeMaster;
+use App\Mail\GudExamMail;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -27,29 +28,29 @@ class Registration
 
 	public function __construct(Request $request)
 	{
-    $this->username = $request->username;
-    $this->reg_type = $request->reg_type;
-    $this->name = $request->name;
-    $this->inst_name = $request->inst_name;
-    $this->mobile = $request->mobile;
-    $this->email = $request->email;
-    $this->password = $request->password;
-    $this->otp = $request->otp;
+    $this->username       = $request->username;
+    $this->reg_type       = $request->reg_type;
+    $this->name           = $request->name;
+    $this->inst_name      = $request->inst_name;
+    $this->mobile         = $request->mobile;
+    $this->email          = $request->email;
+    $this->password       = $request->password;
+    $this->otp            = $request->otp;
   }
 
   public function getMaxInstId()
   {
-      $max = User::max('inst_id');
+      $max = User::where('role','EADMIN')->max('inst_id');
+      $max = preg_replace("/[^0-9]/", "", $max );
       return ($max+1);
   }
 
   public function send_sms()
   {
-      $apiKey = urlencode('WYb3gsH8qH0-aHvaDjhoWMpLGJGijgl34Iz9yXil6F');
-    // Message details
-    $numbers = array($this->mobile);
-    $sender = urlencode('VTPLPN');
-    $message = rawurlencode("Dear User,
+    $apiKey       = urlencode('WYb3gsH8qH0-aHvaDjhoWMpLGJGijgl34Iz9yXil6F');
+    $numbers      = array($this->mobile);
+    $sender       = urlencode('VTPLPN');
+    $message      = rawurlencode("Dear User,
 Your Username is $this->username , password is $this->password and Institute code is $this->inst_id for GudExams.
 
 Thank You.
@@ -76,7 +77,7 @@ Bynaric Systems Pvt. Ltd.");
     }
     else if($result->status=='success')
     {
-              return '1';
+      return '1';
     }
   }
 
@@ -92,10 +93,10 @@ Bynaric Systems Pvt. Ltd.");
       ],400);
     }
 
-    $current_timestamp = Carbon::now()->timestamp;
-    $current_time = Carbon::now();
-    $otp=rand(100000,999999);
-    $r = User::where('mobile',$this->mobile)->get();
+    $current_timestamp  = Carbon::now()->timestamp;
+    $current_time       = Carbon::now();
+    $otp                = rand(100000,999999);
+    $r                  = User::where('mobile',$this->mobile)->get();
 
     if(!count($r))
     {
@@ -141,7 +142,7 @@ Bynaric Systems Pvt. Ltd.");
         {
               return response()->json([
                 'status'    => 'success',
-                'OTP_id'        => $OTPresult->id,
+                'OTP_id'    => $OTPresult->id,
                 'message'   => 'OTP Sent Successfully',
               ],200);
         }
@@ -155,15 +156,17 @@ Bynaric Systems Pvt. Ltd.");
     }
   }
 
-  public function verifyOTP($OTP_id)
+  public function verifyOTP($otp,$mobile)
   {
     $current_time 				= Carbon::now();
-    $validator = Validator::make(['mobile' => $this->mobile,'OTP' => $this->otp,'OTP_id' => $OTP_id],
+
+    $validator = Validator::make(['mobile' => $mobile,'OTP' => $otp],
     [
       'mobile'  => 'required|digits:10',
       'OTP'     => 'required|digits:6',
-      'OTP_id'  => 'required|numeric',
+
     ]);
+
     if ($validator->fails())
     {
       return json_encode([
@@ -173,12 +176,11 @@ Bynaric Systems Pvt. Ltd.");
     }
 
 
-    $result = DB::select("SELECT otp,time_to_sec(timediff('$current_time',created_at)) as mytime FROM `otp_verify` where mobile=$this->mobile and id='$OTP_id'");
+    $result = DB::select("select * from otp_verify where mobile='$mobile' order by created_at desc limit 1");
 
     if($result)
     {
-        $otpexpiry = Config::get('constants.OTPEXPIRY');
-        if(($result[0]->otp == $this->otp) && ($result[0]->mytime <= $otpexpiry))
+        if(($result[0]->otp == $otp))
         {
             return response()->json([
               'status'    => 'success',
@@ -200,6 +202,8 @@ Bynaric Systems Pvt. Ltd.");
           'message'   => 'Wrong OTP Entered',
         ],400);
     }
+
+
   }
 
   public function registerUser()
@@ -230,15 +234,17 @@ Bynaric Systems Pvt. Ltd.");
     }
 
     $username = '';
-    if($this->reg_type=='Student')
+    if($this->reg_type=='STUDENT')
     {
         $users = User::where('username',$this->mobile)->first();
         if(!$users)
         {
             $current_timestamp    = Carbon::now()->timestamp;
             $current_time         = Carbon::now();
-            $inst_id              = '1000';$password = $this->password;
+            $inst_id              = '1000';
+            $password             = $this->password;
             $this->inst_id        = $inst_id;
+            
             if($this->username=='')
             {
               $this->username       = $this->mobile;
@@ -267,6 +273,15 @@ Bynaric Systems Pvt. Ltd.");
             if($user)
             {
               $this->send_sms();
+
+              $details = [
+                'username'      => $this->username,
+                'password'      => $this->password,
+                'institute_Id'  => $inst_id
+              ];
+
+              Mail::to($this->email)->send(new GudExamMail($details));
+
               return response()->json([
                     'status' 		=> 'success',
                     'message'		=> 'Student Registration Successfull...',
@@ -359,6 +374,13 @@ Bynaric Systems Pvt. Ltd.");
         if($user)
         {
           $this->send_sms();
+          $details = [
+            'username'      => $this->username,
+            'password'      => $this->password,
+            'institute_Id'  => $inst_id
+          ];
+          
+          Mail::to($this->email)->send(new GudExamMail($details));
           return response()->json([
                 'status' 		=> 'success',
                 'message'		=> 'User Registration Successfull...',

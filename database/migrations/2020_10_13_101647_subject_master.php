@@ -56,7 +56,7 @@ class SubjectMaster extends Migration
             $table->index('paper_code');
             $table->index('program_id');
             $table->index('semester');
-            $table->unique(['paper_code']);
+            $table->unique(['paper_code','inst_uid']);
             $table->timestamps();
         });
     }

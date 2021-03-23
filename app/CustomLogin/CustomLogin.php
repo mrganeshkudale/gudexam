@@ -86,15 +86,29 @@ class CustomLogin
 		}
 		else
 		{
-			$rrr = User::where('username',$this->username)->first();
-			$paass = $rrr->origpass;
-			$user_data = array(
-				'username'  				=> $this->username,
-				'password' 					=> $paass,
-				'status' 					=> 'ON'
-			);
-		}
+			if($this->flag==0)
+			{
+				$rrr = User::where('username',$this->username)->where('inst_id',$this->inst_id)->first();
+				$paass = $rrr->origpass;
 
+				$user_data = array(
+					'username'  				=> $this->username,
+					'password' 					=> $paass,
+					'inst_id' 					=> $this->inst_id,
+					'status' 					=> 'ON'
+				);
+			}
+			else
+			{
+				$rrr = User::where('username',$this->username)->first();
+				$paass = $rrr->origpass;
+				$user_data = array(
+					'username'  				=> $this->username,
+					'password' 					=> $paass,
+					'status' 					=> 'ON'
+				);
+			}
+		}
 			if(Auth::attempt($user_data))
 			{
 

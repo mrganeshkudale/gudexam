@@ -15,7 +15,8 @@ class QuestionSet extends Migration
     {
         Schema::create('question_set', function (Blueprint $table) {
             $table->increments('qnid');
-            $table->integer('paper_id');
+            $table->integer('paper_uid');
+            $table->string('paper_id',20);
             $table->text('question')->nullable();
             $table->integer('topic')->nullable();
             $table->integer('subtopic')->nullable();
@@ -39,6 +40,7 @@ class QuestionSet extends Migration
             $table->integer('difficulty_level')->nullable();
 
             $table->index('qnid');
+            $table->index('paper_uid');
             $table->index('paper_id');
             $table->index('topic');
             $table->index('subtopic');

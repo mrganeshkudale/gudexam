@@ -5,6 +5,8 @@ use App\Models\StudentExam;
 use App\Http\Resources\ExamCollection;
 use App\Http\Resources\InstProgramCollection;
 use App\Http\Resources\PaperCollection;
+use App\Http\Resources\QuestionCollection;
+use App\Http\Resources\ProgramCollection;
 use App\Http\Resources\TopicCollection;
 use App\Http\Resources\PaperResource;
 use App\Http\Resources\ExamResource;
@@ -30,6 +32,7 @@ use App\Http\Resources\InstituteResource;
 use Illuminate\Support\Facades\Hash;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use QuestionCollection as GlobalQuestionCollection;
 
 class Admin
 {
@@ -187,7 +190,7 @@ class Admin
       {
         return response()->json([
           "status"        => "success",
-          "data"          => $result,
+          "data"          => new ProgramCollection($result),
         ], 200);
       }
       else
@@ -214,7 +217,7 @@ class Admin
       {
         return response()->json([
           "status"        => "success",
-          "data"          => $result,
+          "data"          => new ProgramCollection($result),
         ], 200);
       }
       else
@@ -326,6 +329,42 @@ class Admin
   public function getAllUsers($role)
   {
     $result = User::where('role',$role)->get();
+    if($result)
+    {
+      return response()->json([
+        "status"        => "success",
+        "data"          =>  $result
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"        => "failure",
+      ], 400);
+    }
+  }
+
+  public function getFilteredUsers($role,$instUid)
+  {
+    $result = User::where('role',$role)->where('uid',$instUid)->get();
+    if($result)
+    {
+      return response()->json([
+        "status"        => "success",
+        "data"          =>  $result
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"        => "failure",
+      ], 400);
+    }
+  }
+
+  public function getFilteredUsersByInstCode($role,$inst_id)
+  {
+    $result = User::where('role',$role)->where('inst_id',$inst_id)->get();
     if($result)
     {
       return response()->json([
@@ -578,26 +617,47 @@ class Admin
     $progName           = $request->progName;
     $instId             = $request->instId;
     $current_time 			= Carbon::now();
-    
-    try
-    {
-      $user = ProgramMaster::create([
-        'program_code' 	=> $progCode,
-        'program_name'  => $progName,
-        'inst_uid'      => $instId,
-        'created_at' 	  => $current_time,
-      ]);
 
-      return response()->json([
-        'status' 		    => 'success',
-        'message'       => 'Program Added Successfully...',
-      ],200);
+    $count = ProgramMaster::where('program_code',$progCode)->where('inst_uid',$instId)->get()->count();
+    
+    if(!$count)
+    {
+      try
+      {
+        $prog = ProgramMaster::create([
+          'program_code' 	=> $progCode,
+          'program_name'  => $progName,
+          'inst_uid'      => $instId,
+          'created_at' 	  => $current_time,
+        ]);
+
+       
+        $instProg = InstPrograms::create([
+            'program_id'  => $prog->id,
+            'inst_uid'    => $instId,
+            'created_at' 	  => $current_time,
+        ]);
+       
+
+        return response()->json([
+          'status' 		    => 'success',
+          'message'       => 'Program Added Successfully...',
+        ],200);
+      }
+      catch(\Exception $e)
+      {
+        
+        return response()->json([
+          'status' 		    => 'failure',
+          'message'       => 'Problem Inserting Program in Database.',
+        ],400);
+      }
     }
-    catch(\Exception $e)
+    else
     {
       return response()->json([
         'status' 		    => 'failure',
-        'message'       => 'Problem Inserting Program in Database.Probably Duplicate',
+        'message'       => 'This Program Code:'.$progCode.' already exist in database (Already used by your Institute). In order to insert this record please change your program code and try again...' ,
       ],400);
     }
   }
@@ -618,7 +678,7 @@ class Admin
       ], 400);
     }
 
-
+    DB::beginTransaction();
     if ($extension == "xlsx") 
     {
       $fileName           = 'programs.xlsx';  
@@ -633,26 +693,34 @@ class Admin
         $progCode         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
         $progName         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
         $instID           =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
-
+      
         $instUid          = User::where('username',$instID)->first()->uid;
   
         try
         {
-            $user = ProgramMaster::create([
+            $prog = ProgramMaster::create([
               'program_code'    => $progCode,
               'program_name'    => $progName,
               'inst_uid'        => $instUid,
               'created_at' 			=> $current_time,
             ]);
+
+            $instProg = InstPrograms::create([
+                'program_id'  => $prog->id,
+                'inst_uid'    => $instUid,
+                'created_at' 	  => $current_time,
+            ]);
         }
         catch(\Exception $e)
         {
+          DB::rollback();
           return response()->json([
             'status' 		=> 'failure',
-            'message'   => 'Problem Inserting Programs in Database.Probably Duplicate Entry. All Programs till row number '.$i.' in Excel file are Inserted Successfully',
+            'message'   => 'Problem Inserting Programs in Database.Probably Duplicate Program Code Entry for your Institute. All Programs till row number '.$i.' in Excel file are Inserted Successfully',
             'row'       =>  $i
           ],400);
         }
+        DB::commit();
       }
       return response()->json([
         'status' 		=> 'success',
@@ -678,7 +746,7 @@ class Admin
       {
         return response()->json([
           "status"        => "success",
-          "data"          => $result,
+          "data"          => new ProgramCollection($result),
         ], 200);
       }
       else
@@ -727,28 +795,40 @@ class Admin
     $semester   = $request->semester;
     $current_time 			= Carbon::now();
 
-    try
-    {
-      $result = SubjectMaster::create([
-        'paper_code'    =>  $paperCode,
-        'paper_name'    =>  $paperName,
-        'program_id'    =>  $programId,
-        'inst_uid' 			=>  $instId,
-        'semester'      =>  $semester,
-        'created_at'    =>  $current_time
-      ]);
+    $count = SubjectMaster::where('paper_code',$paperCode)->where('inst_uid',$instId)->get()->count();
 
-      return response()->json([
-        'status' 		=> 'success',
-        'message'   => 'Subject Added Successfully...',
-      ],200);
-    }
-    catch(\Exception $e)
+    if(!$count)
     {
-          return response()->json([
-            'status' 		=> 'failure',
-            'message'   => 'Problem Inserting Subjects in Database.Probably Duplicate Entry',
-          ],400);
+      try
+      {
+        $result = SubjectMaster::create([
+          'paper_code'    =>  $paperCode,
+          'paper_name'    =>  $paperName,
+          'program_id'    =>  $programId,
+          'inst_uid' 			=>  $instId,
+          'semester'      =>  $semester,
+          'created_at'    =>  $current_time
+        ]);
+
+        return response()->json([
+          'status' 		=> 'success',
+          'message'   => 'Subject Added Successfully...',
+        ],200);
+      }
+      catch(\Exception $e)
+      {
+            return response()->json([
+              'status' 		=> 'failure',
+              'message'   => 'Problem Inserting Subjects in Database.',
+            ],400);
+      }
+    }
+    else
+    {
+      return response()->json([
+        'status' 		=> 'failure',
+        'message'   => 'The Paper Code: '.$paperCode.' already Exists in selected institute. Duplicate Entry of Subject Code in same institute is not allowed...',
+      ],400);
     }
   }
 
@@ -786,23 +866,36 @@ class Admin
         $instCode         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
         $instId           =   User::where('username',$instCode)->first()->uid;
         $programCode      =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
-        $rrr              =   ProgramMaster::where('program_code',$programCode)->first();
+        $rrr              =   ProgramMaster::where('program_code',$programCode)->where('inst_uid',$instId)->first();
         $programId        =   $rrr->id;
         $semester         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
-  
-        try
+
+        $count = SubjectMaster::where('paper_code',$paperCode)->where('inst_uid',$instId)->get()->count();
+
+        if(!$count)
         {
-          $result = SubjectMaster::create([
-            'paper_code'    =>  $paperCode,
-            'paper_name'    =>  $paperName,
-            'program_id'    =>  $programId,
-            'inst_uid' 			=>  $instId,
-            'semester'      =>  $semester,
-            'created_at'    =>  $current_time
-          ]);
-    
+          try
+          {
+            $result = SubjectMaster::create([
+              'paper_code'    =>  $paperCode,
+              'paper_name'    =>  $paperName,
+              'program_id'    =>  $programId,
+              'inst_uid' 			=>  $instId,
+              'semester'      =>  $semester,
+              'created_at'    =>  $current_time
+            ]);
+      
+          }
+          catch(\Exception $e)
+          {
+            return response()->json([
+              'status' 		=> 'failure',
+              'message'   => 'Problem Inserting Subjects in Database. All Subjects till row number '.$i.' in Excel file are Inserted Successfully',
+              'row'       =>  $i
+            ],400);
+          }
         }
-        catch(\Exception $e)
+        else
         {
           return response()->json([
             'status' 		=> 'failure',
@@ -829,6 +922,16 @@ class Admin
   public function getAllSubjects()
   {
     $result = SubjectMaster::all();
+
+    return response()->json([
+      'status' 		=> 'success',
+      'data'      =>  new PaperCollection($result),
+    ],200);
+  }
+
+  public function getSubjectsByInstUid($instUid)
+  {
+    $result = SubjectMaster::where('inst_uid',$instUid)->get();
 
     return response()->json([
       'status' 		=> 'success',
@@ -1014,7 +1117,9 @@ class Admin
         $paper_code      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
         $current_time 	 = Carbon::now();
 
-        $res = User::where('username',$enrollno)->first();
+      
+
+        $res = User::where('username',$enrollno)->where('inst_id',$instId)->first();
         if($res)
         {
           $uid = $res->uid;
@@ -1038,7 +1143,15 @@ class Admin
           ],400);
         }
         */
-        $res2 = SubjectMaster::where('paper_code',$paper_code)->first();
+        if(Auth::user()->role == 'ADMIN')
+        {
+          $res2 = SubjectMaster::where('paper_code',$paper_code)->first();
+        }
+        else if(Auth::user()->role == 'EADMIN')
+        {
+          $res2 = SubjectMaster::where('paper_code',$paper_code)->where('inst_uid',Auth::user()->uid)->first();
+        }
+
         if($res2)
         {
           $paperId = $res2->id;
@@ -1241,6 +1354,21 @@ class Admin
 		}
   }
 
+  public function getFilteredExams($instId)
+  {
+    $exams 	= CandTest::where('inst',$instId)->get();
+		if($exams)
+		{
+			return new ExamCollection($exams);
+		}
+		else
+		{
+			return json_encode([
+				'status' => 'failure'
+			],200);
+		}
+  }
+
   public function delExam($id)
   {
     $result = CandTest::find($id)->delete();
@@ -1314,11 +1442,13 @@ class Admin
       for($i=2;$i<=$highestRow;$i++)
       {
         $paperCode      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
-        $topic          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
-        $subTopic       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
-        $questType      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
-        $questions      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
-        $marks          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
+        $instCode       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $instId         = User::where('username',$instCode)->where('role','EADMIN')->first()->uid;
+        $topic          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $subTopic       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+        $questType      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $questions      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
+        $marks          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue();
 
         if($subTopic == '' || $subTopic == NULL)
         {
@@ -1327,7 +1457,7 @@ class Admin
 
         $current_time 	 = Carbon::now();
 
-        $res = SubjectMaster::where('paper_code',$paperCode)->first();
+        $res = SubjectMaster::where('paper_code',$paperCode)->where('inst_uid',$instId)->first();
         if($res)
         {
           $paperId = $res->id;
@@ -1465,22 +1595,24 @@ class Admin
       for($i=2;$i<=$highestRow;$i++)
       {
         $paperCode  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
-        $exam_name  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
-        $marks      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
-        $questions  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
-        $durations  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $instId     = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $instUid    = User::where('username',$instId)->where('role','EADMIN')->first()->uid;
+        $exam_name  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $marks      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+        $questions  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $durations  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
         //------------------------Convert Date from Local to UTC Format--------------------------------------
-        $from_date  = new \DateTime($spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue(), new \DateTimeZone($tz_from));
+        $from_date  = new \DateTime($spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue(), new \DateTimeZone($tz_from));
         $from_date->setTimezone(new \DateTimeZone($tz_to));
 
-        $to_date    = new \DateTime($spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue(), new \DateTimeZone($tz_from));
+        $to_date    = new \DateTime($spreadsheet->getActiveSheet()->getCellByColumnAndRow(8, $i)->getValue(), new \DateTimeZone($tz_from));
         $to_date->setTimezone(new \DateTimeZone($tz_to));
         //--------------------------------------------------------------------------------------------------
         $current_time 	  = Carbon::now();
         
         try
         {
-          $result = SubjectMaster::where('paper_code',$paperCode)->update([
+          $result = SubjectMaster::where('paper_code',$paperCode)->where('inst_uid',$instUid)->update([
             'exam_name' => $exam_name,
             'marks'     => $marks,
             'questions' => $questions,
@@ -1532,7 +1664,7 @@ class Admin
 
   public function updateConfigSubject($id,$request)
   {
-    $result = SubjectMaster::find($id)->first();
+    $result = SubjectMaster::find($id);
 
     $result->score_view         =   $request->score_view;
     $result->review_question    =   $request->review_question;
@@ -1854,5 +1986,382 @@ class Admin
 
   }
 
+  public function storeQuestion($request)
+  {
+    $subjectId              = $request->subjectId;
+    $subjectCode            = SubjectMaster::find($subjectId)->paper_code;
+    $topic                  = $request->topic;
+    $subtopic               = ($request->subtopic == null) ? 0 : $request->subtopic;
+    $difficultyLevel        = $request->difficultyLevel;
+    $marks                  = $request->marks;
+    $questType              = $request->questType;
+    $correctoption          = $request->correctoption;
+    $question               = $request->question;
+    $optiona                = $request->optiona;
+    $optionb                = $request->optionb;
+    $optionc                = $request->optionc;
+    $optiond                = $request->optiond;
+    $correctAnswer          = '';
+
+    $qfilepath              = '';
+    $a1filepath             = '';
+    $a2filepath             = '';
+    $a3filepath             = '';
+    $a4filepath             = '';
+
+
+      $new_name='';
+      if($request->qufig)
+      {
+            $part = rand(100000,999999);
+            $validation = Validator::make($request->all(), ['qufig' => 'required|mimes:jpeg,jpg']);
+            $path = $request->file('qufig')->getRealPath();
+
+            if($validation->passes())
+            {
+                $image = $request->file('qufig');
+                $new_name = 'Q_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                $image->move(public_path('files'), $new_name);
+                $path=public_path('files').'/'.$new_name;
+                $qfilepath = $new_name;
+            }
+            else
+            {
+              return response()->json([
+                "status"            => "failure",
+                "message"           => 'Question Image must be jpeg or jpg',
+              ], 400);
+            }
+      }
+      $new_name='';
+      if($request->a1)
+      {
+            $part = rand(100000,999999);
+            $validation = Validator::make($request->all(), ['a1' => 'required|mimes:jpeg,jpg']);
+            $path = $request->file('a1')->getRealPath();
+
+            if($validation->passes())
+            {
+                $image = $request->file('a1');
+                $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                $image->move(public_path('files'), $new_name);
+                $path=public_path('files').'/'.$new_name;
+                $a1filepath = $new_name;
+            }
+            else
+            {
+              return response()->json([
+                "status"            => "failure",
+                "message"           => 'Option A Image must be jpeg or jpg',
+              ], 400);
+            }
+      }
+      $new_name='';
+      if($request->a2)
+      {
+            $part = rand(100000,999999);
+            $validation = Validator::make($request->all(), ['a2' => 'required|mimes:jpeg,jpg']);
+            $path = $request->file('a2')->getRealPath();
+
+            if($validation->passes())
+            {
+                $image = $request->file('a2');
+                $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                $image->move(public_path('files'), $new_name);
+                $path=public_path('files').'/'.$new_name;
+                $a2filepath = $new_name;
+            }
+            else
+            {
+              return response()->json([
+                "status"            => "failure",
+                "message"           => 'Option B Image must be jpeg or jpg',
+              ], 400);
+            }
+      }
+      $new_name='';
+      if($request->a3)
+      {
+            $part = rand(100000,999999);
+            $validation = Validator::make($request->all(), ['a3' => 'required|mimes:jpeg,jpg']);
+            $path = $request->file('a3')->getRealPath();
+
+            if($validation->passes())
+            {
+                $image = $request->file('a3');
+                $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                $image->move(public_path('files'), $new_name);
+                $path=public_path('files').'/'.$new_name;
+                $a3filepath = $new_name;
+            }
+            else
+            {
+              return response()->json([
+                "status"            => "failure",
+                "message"           => 'Option C Image must be jpeg or jpg',
+              ], 400);
+            }
+      }
+      $new_name='';
+      if($request->a4)
+      {
+            $part = rand(100000,999999);
+            $validation = Validator::make($request->all(), ['a4' => 'required|mimes:jpeg,jpg']);
+            $path = $request->file('a4')->getRealPath();
+
+            if($validation->passes())
+            {
+                $image = $request->file('a4');
+                $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                $image->move(public_path('files'), $new_name);
+                $path=public_path('files').'/'.$new_name;
+                $a4filepath = $new_name;
+            }
+            else
+            {
+              return response()->json([
+                "status"            => "failure",
+                "message"           => 'Option D Image must be jpeg or jpg',
+              ], 400);
+            }
+      }
+      if($correctoption == 'optiona')
+      {
+        if($request->a1)
+        {
+          $correctAnswer = $a1filepath.':$:optiona';
+        }
+        else
+        {
+          $correctAnswer = $optiona.':$:optiona';
+        }
+      }
+      else if($correctoption == 'optionb')
+      {
+        if($request->a2)
+        {
+          $correctAnswer = $a2filepath.':$:optionb';
+        }
+        else
+        {
+          $correctAnswer = $optionb.':$:optionb';
+        }
+      }
+      else if($correctoption == 'optionc')
+      {
+        if($request->a3)
+        {
+          $correctAnswer = $a3filepath.':$:optionc';
+        }
+        else
+        {
+          $correctAnswer = $optionc.':$:optionc';
+        }
+      }
+      else if($correctoption == 'optiond')
+      {
+        if($request->a4)
+        {
+          $correctAnswer = $a4filepath.':$:optiond';
+        }
+        else
+        {
+          $correctAnswer = $optiond.':$:optiond';
+        }
+      }
+
+
+      if($questType == 'N' || $questType == 'N1')
+      {
+        $optiona = $optiona.':$:optiona';
+        $optionb = $optionb.':$:optionb';
+        $optionc = $optionc.':$:optionc';
+        $optiond = $optiond.':$:optiond';
+      }
+      else if($questType == 'N2' || $questType == 'N3')
+      {
+        $a1filepath = $a1filepath.':$:optiona';
+        $a2filepath = $a2filepath.':$:optionb';
+        $a3filepath = $a3filepath.':$:optionc';
+        $a4filepath = $a4filepath.':$:optiond';
+      }
+
+      $values = [
+        'paper_uid'       => $subjectId,
+        'paper_id'        => $subjectCode,
+        'question'        => $question,
+        'topic'           => $topic,
+        'subtopic'        => $subtopic,
+        'qu_fig'          => $qfilepath,
+        'figure'          => $questType,
+        'optiona'         => $optiona,
+        'a1'              => $a1filepath,
+        'optionb'         => $optionb,
+        'a2'              => $a2filepath,
+        'optionc'         => $optionc,
+        'a3'              => $a3filepath,
+        'optiond'         => $optiond,
+        'a4'              => $a4filepath,
+        'correctanswer'   => $correctAnswer,
+        'coption'         => $correctoption,
+        'marks'           => $marks,
+        'difficulty_level'=> $difficultyLevel
+      ];
+    
+      $result         = QuestionSet::create($values); 
+
+      if($result)
+      {
+        return response()->json([
+          "status"            => "success",
+          "message"           => 'Question Inserted Successfully...',
+        ], 200);
+      }
+      else
+      {
+        return response()->json([
+          "status"            => "failure",
+          "message"           => 'Problem Inserting Question...',
+        ], 400);
+      }
+
+  }
+
+  public function uploadQuestion($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'file'      => 'required|max:10240',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails())
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File for uploading is required with max file size 10 MB",
+      ], 400);
+    }
+
+
+    if ($extension == "xlsx") 
+    {
+      $fileName           = 'QuestionBank.xlsx';  
+
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/').$fileName);
+      $current_time 			= Carbon::now();
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+      $values             = [];
+    
+      for($i=2;$i<=$highestRow;$i++)
+      {
+        $correctAnswer    = '';
+        $instId           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+        $paper_code       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $question         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $topic            = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+        $subtopic         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $optiona          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
+        $optionb          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue();
+        $optionc          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(8, $i)->getValue();
+        $optiond          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(9, $i)->getValue();
+        $correctoption   = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(10, $i)->getValue();
+        $marks            = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(11, $i)->getValue();
+        $diff_level       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(12, $i)->getValue();
+        $inst_uid         = User::where('username',$instId)->first()->uid;
+       
+        $paper_id         = SubjectMaster::where('paper_code',$paper_code)->where('inst_uid',$inst_uid)->first()->id;
+
+
+        $optiona = $optiona.':$:optiona';
+        $optionb = $optionb.':$:optionb';
+        $optionc = $optionc.':$:optionc';
+        $optiond = $optiond.':$:optiond';
+
+        if($correctoption == 'optiona')
+        {
+            $correctAnswer = $optiona.':$:optiona';
+        }
+        else if($correctoption == 'optionb')
+        {
+            $correctAnswer = $optionb.':$:optionb';
+        }
+        else if($correctoption == 'optionc')
+        {
+            $correctAnswer = $optionc.':$:optionc';
+        }
+        else if($correctoption == 'optiond')
+        {
+            $correctAnswer = $optiond.':$:optiond';
+        }
+
+        $values = [
+          'paper_uid'       => $paper_id,
+          'paper_id'        => $paper_code,
+          'question'        => $question,
+          'topic'           => $topic,
+          'subtopic'        => $subtopic,
+          'figure'          => 'N',
+          'optiona'         => $optiona,
+          'optionb'         => $optionb,
+          'optionc'         => $optionc,
+          'optiond'         => $optiond,
+          'correctanswer'   => $correctAnswer,
+          'coption'         => $correctoption,
+          'marks'           => $marks,
+          'difficulty_level'=> $diff_level
+        ];
+
+        $result         = QuestionSet::create($values); 
+
+        if(!$result)
+        {
+          return response()->json([
+            "status"            => "failure",
+            "message"           => 'Problem Inserting Question on Row '.$i.'...',
+          ], 400);
+        }
+      }
+      return response()->json([
+        "status"            => "success",
+        "message"           => 'Questions uploaded successfully... ',
+      ], 200);
+    }
+  }
+
+  public function getAllQuestionsFromArray($subArray)
+  {
+    $subArray = rtrim($subArray,",");
+    $array = explode(",",$subArray);
+  
+    $result = QuestionSet::whereIn('paper_uid',$array)->get();
+
+    if($result)
+    {
+      return response()->json([
+        "status"            => "success",
+        "data"              => new QuestionCollection($result),
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"            => "failure",
+        "message"           => 'Unable to fetch Questions...',
+      ], 400);
+    }
+  }
+
+  public function deleteQuestion($qnid)
+  {
+    $result = QuestionSet::find($qnid)->delete();
+
+    return response()->json([
+      "status"            => "success",
+      "message"              => "Record Deleted successfully...",
+    ], 200);    
+  }
 }
 ?>

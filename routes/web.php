@@ -85,7 +85,6 @@ Route::get('/forceClearDB', function () {
   DB::table('cand_test')->truncate();
   DB::table('exam_session')->truncate();
   DB::table('global_to_cluster_maps')->truncate();
-  DB::table('header_footer_text')->truncate();
   DB::table('inst_programs')->truncate();
   DB::table('proctor_snaps')->truncate();
   DB::table('proctor_snap_details')->truncate();

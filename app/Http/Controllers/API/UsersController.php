@@ -15,7 +15,18 @@ class UsersController extends Controller
         {
             if($request->role!='')
             {
-                return $a->getAllUsers($request->role);
+                if($request->instUid!='')
+                {
+                    return $a->getFilteredUsers($request->role,$request->instUid);
+                }
+                else if($request->instId!='')
+                {
+                    return $a->getFilteredUsersByInstCode($request->role,$request->instId);
+                }
+                else
+                {
+                    return $a->getAllUsers($request->role);
+                }
             }
         }
         else

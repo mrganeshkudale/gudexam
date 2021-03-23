@@ -78,6 +78,10 @@ class SubjectsController extends Controller
       {
         return $a->getAllSubjects();
       }
+      if($request->type == 'byInstUid')
+      {
+        return $a->getSubjectsByInstUid($request->instUid);
+      }
     }
     else
     {
@@ -228,4 +232,35 @@ class SubjectsController extends Controller
         ], 200);
     }
  }
+
+ public function storeQuestion(Request $request, Admin $a)
+ {
+    if(Auth::user())
+    {
+      return $a->storeQuestion($request);
+    }
+    else
+    {
+        return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Unauthorized User...",
+        ], 200);
+    }
+ }
+
+ public function uploadQuestion(Request $request , Admin $a)
+ {
+    if(Auth::user())
+    {
+      return $a->uploadQuestion($request);
+    }
+    else
+    {
+        return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Unauthorized User...",
+        ], 200);
+    }
+ }
+
 }

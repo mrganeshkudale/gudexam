@@ -34,6 +34,7 @@ use App\Http\Controllers\API\ProgramController;
 
 
 Route::post('login',[AuthController::class, 'login'])->name('postlogin');
+Route::post('appLogin',[AuthController::class, 'appLogin'])->name('postAppLogin');
 Route::get('login',[AuthController::class, 'getlogin'])->name('login');
 Route::post('OTP/send',[AuthController::class, 'sendOTP'])->name('sendOTP');
 Route::post('OTP/resend',[AuthController::class, 'resendOTP'])->name('resendOTP');
@@ -101,6 +102,7 @@ Route::middleware(['auth:api','admin'])->group(function()
 
     Route::get('questions/{paper_id}', [QuestionSetController::class, 'show'])->name('getQuestions');
     Route::get('questions/specification/compare', [QuestionSetController::class, 'specificationCompare'])->name('getQuestSpecificationCompare');
+    Route::delete('questions/{qnid}', [QuestionSetController::class, 'delete'])->name('delQuestions');
 
     Route::post('subject', [SubjectsController::class, 'store'])->name('postSubject');
     Route::put('subject/{id}', [SubjectsController::class, 'update'])->name('updateSubject');
@@ -116,6 +118,9 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('subject/topic', [SubjectsController::class, 'storeTopic'])->name('storeTopic');
     Route::post('subject/topic/upload', [SubjectsController::class, 'storeTopicUpload'])->name('storeTopicUpload');
     Route::delete('subject/topic/{id}', [SubjectsController::class, 'delTopic'])->name('delTopic');
+
+    Route::post('subject/question/add', [SubjectsController::class, 'storeQuestion'])->name('storeQuestion');
+    Route::post('subject/question/upload', [SubjectsController::class, 'uploadQuestion'])->name('uploadQuestion');
 
     Route::post('exam/upload', [ExamController::class, 'upload'])->name('uploadExam');
     Route::delete('exam/{id}', [ExamController::class, 'del'])->name('delExam');

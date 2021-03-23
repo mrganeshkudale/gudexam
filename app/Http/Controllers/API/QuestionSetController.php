@@ -19,6 +19,11 @@ class QuestionSetController extends Controller
             $paper_id = $request->paper_id;
             return $a->getPreviewQuestions($paper_id);
         }
+        else if($request->type == 'getAllQuestionsFromArray')
+        {
+          $subArray   = $request->paper_id;
+          return $a->getAllQuestionsFromArray($subArray);
+        }
     }
     else
     {
@@ -41,6 +46,21 @@ class QuestionSetController extends Controller
       {
         return $a->specificationCompare();
       }
+    }
+    else
+    {
+        return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Unauthorized User...",
+        ], 200);
+    }
+  } 
+
+  public function delete($qnid,Admin $a)
+  {
+    if(Auth::user())
+    {
+        return $a->deleteQuestion($qnid);
     }
     else
     {
