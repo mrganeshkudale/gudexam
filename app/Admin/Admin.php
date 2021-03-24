@@ -2363,5 +2363,324 @@ class Admin
       "message"              => "Record Deleted successfully...",
     ], 200);    
   }
+
+
+  public function getQuestion($qnid)
+  {
+    $result = QuestionSet::find($qnid);
+
+    if($result)
+    {
+      return response()->json([
+        "status"                => "success",
+        "data"                  => $result,
+      ], 200); 
+    }
+    else
+    {
+      return response()->json([
+        "status"            => "failure",
+        "message"           => "Question Does not Exist...",
+      ], 400);    
+    }
+  }
+
+  public function updateQuestion($qnid,$request)
+  {
+    
+    
+
+    $subjectId              = $request->subjectId;
+    $subjectCode            = SubjectMaster::find($subjectId)->paper_code;
+    $topic                  = $request->topic;
+    $subtopic               = ($request->subtopic == null) ? 0 : $request->subtopic;
+    $difficultyLevel        = $request->difficultyLevel;
+    $marks                  = $request->marks;
+    $questType              = $request->questType;
+    $correctoption          = $request->correctoption;
+    $question               = $request->question;
+    $optiona                = $request->optiona;
+    $optionb                = $request->optionb;
+    $optionc                = $request->optionc;
+    $optiond                = $request->optiond;
+    $correctAnswer          = '';
+    $imgChange              = explode(',',$request->imgChange);
+    $values                 = [];
+    
+    $origQustion            = QuestionSet::find($qnid);
+
+    
+    //dd($subjectId.':'.$subjectId.':'.$topic.':'.$subtopic.':'.$difficultyLevel.':'.$marks.':'.$questType.':'.$correctoption.':'.$question.':'.$optiona.':'.$optionb.':'.$optionc.':'.$optiond);
+  
+    
+
+    $qfilepath              = '';
+    $a1filepath             = '';
+    $a2filepath             = '';
+    $a3filepath             = '';
+    $a4filepath             = '';
+
+
+      $new_name='';
+      if(in_array("qufig",$imgChange))
+      {
+            $validation = Validator::make($request->all(), ['qufig' => 'required|mimes:jpeg,jpg']);
+            $path = $request->file('qufig')->getRealPath();
+
+            if($validation->passes())
+            {
+                $image = $request->file('qufig');
+                $new_name = $origQustion->qu_fig;
+                $image->move(public_path('files'), $new_name);
+                $path=public_path('files').'/'.$new_name;
+                $qfilepath = $new_name;
+
+                $request->qufig = $qfilepath;
+            }
+            else
+            {
+              return response()->json([
+                "status"            => "failure",
+                "message"           => 'Question Image must be jpeg or jpg',
+              ], 400);
+            }
+      }
+      else
+      {
+        $request->qufig = $origQustion->qu_fig;
+      }
+      $new_name='';
+      if(in_array("a1",$imgChange))
+      {
+            $validation = Validator::make($request->all(), ['a1' => 'required|mimes:jpeg,jpg']);
+            $path = $request->file('a1')->getRealPath();
+
+            if($validation->passes())
+            {
+                $image = $request->file('a1');
+                $new_name = explode(':$:',$origQustion->a1)[0];
+                $image->move(public_path('files'), $new_name);
+                $path=public_path('files').'/'.$new_name;
+                $a1filepath = $new_name;
+
+                $request->a1 = $a1filepath;
+            }
+            else
+            {
+              return response()->json([
+                "status"            => "failure",
+                "message"           => 'Option A Image must be jpeg or jpg',
+              ], 400);
+            }
+      }
+      else
+      {
+        $request->a1 = explode(':$:',$origQustion->a1)[0];
+      }
+      $new_name='';
+      if(in_array("a2",$imgChange))
+      {
+            $validation = Validator::make($request->all(), ['a2' => 'required|mimes:jpeg,jpg']);
+            $path = $request->file('a2')->getRealPath();
+
+            if($validation->passes())
+            {
+                $image = $request->file('a2');
+                $new_name = explode(':$:',$origQustion->a2)[0];
+                $image->move(public_path('files'), $new_name);
+                $path=public_path('files').'/'.$new_name;
+                $a2filepath = $new_name;
+
+                $request->a2 = $a2filepath;
+            }
+            else
+            {
+              return response()->json([
+                "status"            => "failure",
+                "message"           => 'Option B Image must be jpeg or jpg',
+              ], 400);
+            }
+      }
+      else
+      {
+        $request->a2 = explode(':$:',$origQustion->a2)[0];
+      }
+
+      $new_name='';
+      if(in_array("a3",$imgChange))
+      {
+            $validation = Validator::make($request->all(), ['a3' => 'required|mimes:jpeg,jpg']);
+            $path = $request->file('a3')->getRealPath();
+
+            if($validation->passes())
+            {
+                $image = $request->file('a3');
+                $new_name = explode(':$:',$origQustion->a3)[0];
+                $image->move(public_path('files'), $new_name);
+                $path=public_path('files').'/'.$new_name;
+                $a3filepath = $new_name;
+
+                $request->a3 = $a3filepath;
+            }
+            else
+            {
+              return response()->json([
+                "status"            => "failure",
+                "message"           => 'Option C Image must be jpeg or jpg',
+              ], 400);
+            }
+      }
+      else
+      {
+        $request->a3 = explode(':$:',$origQustion->a3)[0];
+      }
+
+      $new_name='';
+      if(in_array("a4",$imgChange))
+      {
+            $validation = Validator::make($request->all(), ['a4' => 'required|mimes:jpeg,jpg']);
+            $path = $request->file('a4')->getRealPath();
+
+            if($validation->passes())
+            {
+                $image = $request->file('a4');
+                $new_name = explode(':$:',$origQustion->a4)[0];
+                $image->move(public_path('files'), $new_name);
+                $path=public_path('files').'/'.$new_name;
+                $a4filepath = $new_name;
+
+                $request->a4 = $a4filepath;
+            }
+            else
+            {
+              return response()->json([
+                "status"            => "failure",
+                "message"           => 'Option D Image must be jpeg or jpg',
+              ], 400);
+            }
+      }
+      else
+      {
+        $request->a4 = explode(':$:',$origQustion->a4)[0];
+      }
+
+      //dd($request->qufig.':'.$request->a1.':'.$request->a2.':'.$request->a3.':'.$request->a4);
+
+      if($correctoption == 'optiona')
+      {
+        if($request->a1)
+        {
+          $correctAnswer = explode(':$:',$request->a1)[0].':$:optiona';
+        }
+        else
+        {
+          $correctAnswer = $optiona.':$:optiona';
+        }
+      }
+      else if($correctoption == 'optionb')
+      {
+        if($request->a2)
+        {
+          $correctAnswer = explode(':$:',$request->a2)[0].':$:optionb';
+        }
+        else
+        {
+          $correctAnswer = $optionb.':$:optionb';
+        }
+      }
+      else if($correctoption == 'optionc')
+      {
+        if($request->a3)
+        {
+          $correctAnswer = explode(':$:',$request->a3)[0].':$:optionc';
+        }
+        else
+        {
+          $correctAnswer = $optionc.':$:optionc';
+        }
+      }
+      else if($correctoption == 'optiond')
+      {
+        if($request->a4)
+        {
+          $correctAnswer = explode(':$:',$request->a4)[0].':$:optiond';
+        }
+        else
+        {
+          $correctAnswer = $optiond.':$:optiond';
+        }
+      }
+  
+      if($questType == 'N' || $questType == 'N1')
+      {
+        $optiona = $optiona.':$:optiona';
+        $optionb = $optionb.':$:optionb';
+        $optionc = $optionc.':$:optionc';
+        $optiond = $optiond.':$:optiond';
+      }
+      else if($questType == 'N2' || $questType == 'N3')
+      {
+        $a1filepath = $a1filepath.':$:optiona';
+        $a2filepath = $a2filepath.':$:optionb';
+        $a3filepath = $a3filepath.':$:optionc';
+        $a4filepath = $a4filepath.':$:optiond';
+      }
+
+      $values = [
+        'paper_uid'       => $subjectId,
+        'paper_id'        => $subjectCode,
+        'question'        => $question,
+        'topic'           => $topic,
+        'subtopic'        => $subtopic,
+        'figure'          => $questType,
+        'optiona'         => $optiona,
+        'optionb'         => $optionb,
+        'optionc'         => $optionc,
+        'optiond'         => $optiond,
+        'correctanswer'   => $correctAnswer,
+        'coption'         => $correctoption,
+        'marks'           => $marks,
+        'difficulty_level'=> $difficultyLevel,
+        'moderator'       => Auth::user()->uid,
+        'updated_at'      => Carbon::now(),
+      ];
+
+      if(in_array("qufig",$imgChange))
+      {
+        $values['qu_fig']   = $qfilepath;
+      }
+      if(in_array("a1",$imgChange))
+      {
+        $values['a1']       = $a1filepath;
+      }
+      if(in_array("a2",$imgChange))
+      {
+        $values['a2']       = $a2filepath;
+      }
+      if(in_array("a3",$imgChange))
+      {
+        $values['a3']       = $a3filepath;
+      }
+      if(in_array("a4",$imgChange))
+      {
+        $values['a4']       = $a4filepath;
+      }
+      $result         = QuestionSet::find($qnid)->update($values); 
+
+      if($result)
+      {
+        return response()->json([
+          "status"            => "success",
+          "message"           => 'Question Moderated Successfully...',
+        ], 200);
+      }
+      else
+      {
+        return response()->json([
+          "status"            => "failure",
+          "message"           => 'Problem Moderating Question...',
+        ], 400);
+      }
+  }
 }
 ?>

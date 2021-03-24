@@ -103,6 +103,8 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('questions/{paper_id}', [QuestionSetController::class, 'show'])->name('getQuestions');
     Route::get('questions/specification/compare', [QuestionSetController::class, 'specificationCompare'])->name('getQuestSpecificationCompare');
     Route::delete('questions/{qnid}', [QuestionSetController::class, 'delete'])->name('delQuestions');
+    Route::get('question/{qnid}', [QuestionSetController::class, 'getQuestion'])->name('getQuestion');
+    Route::post('question/moderate/{qnid}', [QuestionSetController::class, 'updateQuestion'])->name('updateQuestion');
 
     Route::post('subject', [SubjectsController::class, 'store'])->name('postSubject');
     Route::put('subject/{id}', [SubjectsController::class, 'update'])->name('updateSubject');
@@ -120,6 +122,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::delete('subject/topic/{id}', [SubjectsController::class, 'delTopic'])->name('delTopic');
 
     Route::post('subject/question/add', [SubjectsController::class, 'storeQuestion'])->name('storeQuestion');
+   
     Route::post('subject/question/upload', [SubjectsController::class, 'uploadQuestion'])->name('uploadQuestion');
 
     Route::post('exam/upload', [ExamController::class, 'upload'])->name('uploadExam');

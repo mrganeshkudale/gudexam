@@ -70,4 +70,34 @@ class QuestionSetController extends Controller
         ], 200);
     }
   } 
+
+  public function getQuestion($qnid,Admin $a)
+  {
+    if(Auth::user())
+    {
+        return $a->getQuestion($qnid);
+    }
+    else
+    {
+        return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Unauthorized User...",
+        ], 200);
+    }
+  }
+
+  public function updateQuestion($qnid,Request $request,Admin $a)
+  {
+    if(Auth::user())
+    { 
+        return $a->updateQuestion($qnid,$request);
+    }
+    else
+    {
+        return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Unauthorized User...",
+        ], 200);
+    }
+  }
 }
