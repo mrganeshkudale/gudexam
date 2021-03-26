@@ -41,6 +41,10 @@ class Registration
   public function getMaxInstId()
   {
       $max = User::where('role','EADMIN')->max('inst_id');
+      if($max == null)
+      {
+        $max = 0;
+      }
       $max = preg_replace("/[^0-9]/", "", $max );
       return ($max+1);
   }

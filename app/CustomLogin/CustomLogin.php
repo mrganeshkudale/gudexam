@@ -199,10 +199,20 @@ class CustomLogin
 			}
 			else
 			{
-				return response()->json([
-							'status' 		=> 'failure',
-							'message'		=> 'Invalid Username or Password',
-						],200);
+				if($this->flag==0)
+				{
+					return response()->json([
+						'status' 		=> 'failure',
+						'message'		=> 'Invalid Username or Password or Institute Id',
+					],200);
+				}
+				else
+				{
+					return response()->json([
+								'status' 		=> 'failure',
+								'message'		=> 'Invalid Username or Password',
+							],200);
+				}
 			}
     }
 

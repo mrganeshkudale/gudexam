@@ -102,9 +102,9 @@ class Student
 		if($exam)
 		{
 			DB::beginTransaction();
-			$paper_id = $exam->paper_id;
+			$paper_id 	= $exam->paper_id;
 			$stdid 		= $exam->stdid;
-			if($stdid != Auth::user()->uid)
+			if($stdid 	!= Auth::user()->uid)
 			{
 				return json_encode([
 					'status' => 'failure'
@@ -157,8 +157,9 @@ class Student
 				  
 							$actualMarks = $actualMarks + $mmarks;
 				  
-							$fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_id)=trim('$paper_codee') AND  topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
+							$fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paper_id') AND  topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
 						}
+						
 						$fetchQuery = rtrim($fetchQuery," UNION ");
 							  
 						try

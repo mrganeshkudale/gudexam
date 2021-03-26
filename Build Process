@@ -1,0 +1,37 @@
+1) tar.gz both api and frontend development folders
+2) add them to server using filezilla
+
+3) rename existing folders on that location to _old suffix
+    - sudo rm -rf *.tar.gz gudexam_old react-template-hooks-old
+    - sudo mv gudexam gudexam_old
+    - sudo mv react-template-hooks react-template-hooks-old
+
+4) send tar.gz files to var/www/apps.gudexams.in/public_html/
+    - sudo mv react-template-hooks.tar.gz gudexam.tar.gz /var/www/apps.gudexams.in/public_html/
+
+5) untar both folders
+    - sudo tar -zxvf gudexam.tar.gz
+    - sudo tar -zxvf react-template-hooks.tar.gz
+
+6) for api copy .env file from old to new extracted foler and also copy /config/constants.php to extracted folder
+7) for front end copy .env folder from old to new extracted folder.
+
+8) Build frontend using following command
+    - npm run build
+
+9) Delete assets static and index.html file in api folders public directory.
+    - sudo rm -rf assets static index.html
+
+10) Move assets static and index.html from frontend folders build directory to api folders public directory.
+    - mv assets static index.html ../../gudexam/public/
+
+11) Change permissions of assets static index.html
+    - sudo chmod -R 775 assets static index.html
+    - sudo chown www-data:ubuntu assets/ static/ index.html
+12) change permissions of storage folder for laravel log
+    - sudo chown -R $USER:www-data storage
+    - sudo chown -R $USER:www-data bootstrap/cache
+    - chmod -R 775 storage
+    - chmod -R 775 bootstrap/cache
+
+

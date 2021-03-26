@@ -959,6 +959,7 @@ class Admin
     $mobile          = $request->mobile;
     $email           = $request->email;
     $password        = $request->password;
+    $ph              = $request->ph == 'PH' ? $request->ph : null;
     $current_time 	 = Carbon::now();
 
     $res = User::where('username',$instId)->first();
@@ -981,6 +982,7 @@ class Admin
         'verified'    =>  'verified',
         'name'        =>  $name,
         'regi_type'   =>  'STUDENT',
+        'ph'          =>  $ph,
         'created_at'  =>  $current_time
       ]);
     }
@@ -1033,6 +1035,10 @@ class Admin
         $mobile          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
         $email           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue();
         $password        = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(8, $i)->getValue();
+        $ph              = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(9, $i)->getValue();
+
+        $ph              = ($ph == 'PH') ? $ph : null;
+
         $current_time 	 = Carbon::now();
 
         $res = User::where('username',$instId)->first();
@@ -1055,6 +1061,7 @@ class Admin
             'verified'    =>  'verified',
             'name'        =>  $name,
             'regi_type'   =>  'STUDENT',
+            'ph'          =>  $ph,
             'created_at'  =>  $current_time
           ]);
         }
@@ -1117,7 +1124,6 @@ class Admin
         $paper_code      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
         $current_time 	 = Carbon::now();
 
-      
 
         $res = User::where('username',$enrollno)->where('inst_id',$instId)->first();
         if($res)
@@ -1132,20 +1138,20 @@ class Admin
             'row'       =>  $i
           ],400);
         }
-      /*
-        $res1= User::where('username',$instId)->first();
-        if(!$res1)
-        {
-          return response()->json([
-            'status' 		=> 'failure',
-            'message'   => 'Institute with Institute Code on Row '.$i.' in Excel file is not available in Users Table. All rows till this are uploaded successfully',
-            'row'       =>  $i
-          ],400);
-        }
-        */
+      
         if(Auth::user()->role == 'ADMIN')
         {
-          $res2 = SubjectMaster::where('paper_code',$paper_code)->first();
+          $res1= User::where('username',$instId)->first();
+          if(!$res1)
+          {
+            return response()->json([
+              'status' 		=> 'failure',
+              'message'   => 'Institute with Institute Code on Row '.$i.' in Excel file is not available in Users Table. All rows till this are uploaded successfully',
+              'row'       =>  $i
+            ],400);
+          }
+          $inst_uuid = $res1->uid;
+          $res2 = SubjectMaster::where('paper_code',$paper_code)->where('inst_uid',$inst_uuid)->first();
         }
         else if(Auth::user()->role == 'EADMIN')
         {
@@ -1191,8 +1197,9 @@ class Admin
 
               $actualMarks = $actualMarks + $mmarks;
 
-              $fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_id)=trim('$paper_code') AND topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
+              $fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paperId') AND topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
             }
+            
             $fetchQuery = rtrim($fetchQuery," UNION ");
             
             try
@@ -1805,22 +1812,35 @@ class Admin
 
   public function specificationCompare()
   {
+    $add ='';
+    if(Auth::user()->role == 'EADMIN')
+    {
+      $ress = SubjectMaster::select('id')->where('inst_uid',Auth::user()->uid)->get();
+      $str ='';
+      foreach($ress as $res)
+      {
+        $str = $str .$res->id.',';
+      }
+      $str = rtrim($str,',');
+      $add = "and final.paper_uid in ($str)";
+    }
+
     $result = DB::select("SELECT * FROM
-    (SELECT topic_data.topic, topic_data.paper_code, topic_data.questType, topic_data.marks, CASE WHEN topic_data.expected IS NULL THEN 0 ELSE topic_data.expected END AS expected, CASE WHEN question_data.actual IS NULL THEN 0 ELSE question_data.actual END AS actual  FROM
+    (SELECT topic_data.topic, topic_data.paper_uid,topic_data.paper_code, topic_data.questType, topic_data.marks, CASE WHEN topic_data.expected IS NULL THEN 0 ELSE topic_data.expected END AS expected, CASE WHEN question_data.actual IS NULL THEN 0 ELSE question_data.actual END AS actual  FROM
     
-    (SELECT topic_master.topic, topic_master.paper_code, topic_master.questType, topic_master.marks, SUM(topic_master.questions) as expected
+    (SELECT topic_master.topic, topic_master.paper_uid,topic_master.paper_code, topic_master.questType, topic_master.marks, SUM(topic_master.questions) as expected
     FROM
-    (SELECT subject_master.paper_code, topic_master.* FROM subject_master INNER JOIN topic_master on subject_master.id = topic_master.paper_id) topic_master
+    (SELECT subject_master.paper_code, subject_master.id as paper_uid,topic_master.* FROM subject_master INNER JOIN topic_master on subject_master.id = topic_master.paper_id) topic_master
     GROUP BY
-    topic_master.topic, topic_master.paper_code, topic_master.questType, topic_master.marks) topic_data
+    topic_master.topic, topic_master.paper_uid,topic_master.paper_code, topic_master.questType, topic_master.marks) topic_data
     
     LEFT JOIN 
     
-    (SELECT question_set.topic, question_set.paper_id, question_set.difficulty_level, question_set.marks, COUNT(*) as actual FROM question_set GROUP BY question_set.topic, question_set.paper_id, question_set.difficulty_level, question_set.marks) question_data
+    (SELECT question_set.topic, question_set.paper_uid,question_set.paper_id, question_set.difficulty_level, question_set.marks, COUNT(*) as actual FROM question_set GROUP BY question_set.topic, question_set.paper_uid,question_set.paper_id, question_set.difficulty_level, question_set.marks) question_data
     
-    ON topic_data.topic = question_data.topic AND topic_data.paper_code = question_data.paper_id AND topic_data.questType = question_data.difficulty_level AND topic_data.marks = question_data.marks) final
-    WHERE final.expected > final.actual
-    ORDER BY final.paper_code");
+    ON topic_data.topic = question_data.topic AND topic_data.paper_uid=question_data.paper_uid AND topic_data.paper_code = question_data.paper_id AND topic_data.questType = question_data.difficulty_level AND topic_data.marks = question_data.marks) final
+    WHERE final.expected > final.actual $add
+    ORDER BY final.paper_uid");
 
 
     if($result)
@@ -1950,22 +1970,36 @@ class Admin
 
   public function specificationMatch()
   {
+    $add ='';
+    if(Auth::user()->role == 'EADMIN')
+    {
+      $ress = SubjectMaster::select('id')->where('inst_uid',Auth::user()->uid)->get();
+      $str ='';
+      foreach($ress as $res)
+      {
+        $str = $str .$res->id.',';
+      }
+      $str = rtrim($str,',');
+
+      $add = "and final.paper_uid in ($str)";
+    }
+
     $result = DB::select("SELECT * FROM
-    (SELECT topic_data.topic, topic_data.paper_code, topic_data.questType, topic_data.marks, CASE WHEN topic_data.expected IS NULL THEN 0 ELSE topic_data.expected END AS expected, CASE WHEN question_data.actual IS NULL THEN 0 ELSE question_data.actual END AS actual  FROM
+    (SELECT topic_data.topic, topic_data.paper_uid,topic_data.paper_code, topic_data.questType, topic_data.marks, CASE WHEN topic_data.expected IS NULL THEN 0 ELSE topic_data.expected END AS expected, CASE WHEN question_data.actual IS NULL THEN 0 ELSE question_data.actual END AS actual  FROM
     
-    (SELECT topic_master.topic, topic_master.paper_code, topic_master.questType, topic_master.marks, SUM(topic_master.questions) as expected
+    (SELECT topic_master.topic, topic_master.paper_uid,topic_master.paper_code, topic_master.questType, topic_master.marks, SUM(topic_master.questions) as expected
     FROM
-    (SELECT subject_master.paper_code, topic_master.* FROM subject_master INNER JOIN topic_master on subject_master.id = topic_master.paper_id) topic_master
+    (SELECT subject_master.paper_code, subject_master.id as paper_uid,topic_master.* FROM subject_master INNER JOIN topic_master on subject_master.id = topic_master.paper_id) topic_master
     GROUP BY
-    topic_master.topic, topic_master.paper_code, topic_master.questType, topic_master.marks) topic_data
+    topic_master.topic, topic_master.paper_uid,topic_master.paper_code, topic_master.questType, topic_master.marks) topic_data
     
     LEFT JOIN 
     
-    (SELECT question_set.topic, question_set.paper_id, question_set.difficulty_level, question_set.marks, COUNT(*) as actual FROM question_set GROUP BY question_set.topic, question_set.paper_id, question_set.difficulty_level, question_set.marks) question_data
+    (SELECT question_set.topic, question_set.paper_uid,question_set.paper_id, question_set.difficulty_level, question_set.marks, COUNT(*) as actual FROM question_set GROUP BY question_set.topic, question_set.paper_uid,question_set.paper_id, question_set.difficulty_level, question_set.marks) question_data
     
-    ON topic_data.topic = question_data.topic AND topic_data.paper_code = question_data.paper_id AND topic_data.questType = question_data.difficulty_level AND topic_data.marks = question_data.marks) final
-    WHERE final.expected <= final.actual
-    ORDER BY final.paper_code");
+    ON topic_data.topic = question_data.topic AND topic_data.paper_uid=question_data.paper_uid AND topic_data.paper_code = question_data.paper_id AND topic_data.questType = question_data.difficulty_level AND topic_data.marks = question_data.marks) final
+    WHERE final.expected <= final.actual $add
+    ORDER BY final.paper_uid");
 
 
     if($result)
@@ -2189,20 +2223,20 @@ class Admin
       $values = [
         'paper_uid'       => $subjectId,
         'paper_id'        => $subjectCode,
-        'question'        => $question,
+        'question'        => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$question))),
         'topic'           => $topic,
         'subtopic'        => $subtopic,
         'qu_fig'          => $qfilepath,
         'figure'          => $questType,
-        'optiona'         => $optiona,
+        'optiona'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optiona))),
         'a1'              => $a1filepath,
-        'optionb'         => $optionb,
+        'optionb'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optionb))),
         'a2'              => $a2filepath,
-        'optionc'         => $optionc,
+        'optionc'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optionc))),
         'a3'              => $a3filepath,
-        'optiond'         => $optiond,
+        'optiond'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optiond))),
         'a4'              => $a4filepath,
-        'correctanswer'   => $correctAnswer,
+        'correctanswer'   => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$correctAnswer))),
         'coption'         => $correctoption,
         'marks'           => $marks,
         'difficulty_level'=> $difficultyLevel
@@ -2629,15 +2663,15 @@ class Admin
       $values = [
         'paper_uid'       => $subjectId,
         'paper_id'        => $subjectCode,
-        'question'        => $question,
+        'question'        => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$question))),
         'topic'           => $topic,
         'subtopic'        => $subtopic,
         'figure'          => $questType,
-        'optiona'         => $optiona,
-        'optionb'         => $optionb,
-        'optionc'         => $optionc,
-        'optiond'         => $optiond,
-        'correctanswer'   => $correctAnswer,
+        'optiona'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optiona))),
+        'optionb'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optionb))),
+        'optionc'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optionc))),
+        'optiond'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optiond))),
+        'correctanswer'   => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$correctAnswer))),
         'coption'         => $correctoption,
         'marks'           => $marks,
         'difficulty_level'=> $difficultyLevel,

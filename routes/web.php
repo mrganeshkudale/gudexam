@@ -80,7 +80,8 @@ Route::get('/specification', function () {
   }
 });
 
-Route::get('/forceClearDB', function () {
+Route::get('/forceClearDB', function () 
+{
   DB::table('cand_questions')->truncate();
   DB::table('cand_test')->truncate();
   DB::table('exam_session')->truncate();
@@ -89,12 +90,13 @@ Route::get('/forceClearDB', function () {
   DB::table('proctor_snaps')->truncate();
   DB::table('proctor_snap_details')->truncate();
   DB::table('program_master')->truncate();
+  DB::table('otp_verify')->truncate();
   DB::table('question_set')->truncate();
   DB::table('sessions')->truncate();
-  DB::table('specification')->truncate();
   DB::table('subject_master')->truncate();
   DB::table('topic_master')->truncate();
   DB::table('users')->where('role', '!=', 'ADMIN')->delete();
+  DB::table('specification')->truncate();
   echo '<br><br><center><font size=5>Database Force Cleared Successfully</font></center>';
 });
 
