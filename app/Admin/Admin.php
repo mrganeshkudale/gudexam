@@ -15,6 +15,7 @@ use App\Models\TopicMaster;
 use App\Models\Elapsed;
 use App\Models\QuestionSet;
 use App\Models\CandQuestion;
+use App\Models\OauthAccessToken;
 use App\Models\InstPrograms;
 use App\Models\ProgramMaster;
 use App\Models\SubjectMaster;
@@ -57,12 +58,18 @@ class Admin
   {
       $date     = new Carbon('2001-01-01 01:01:01');
 
+      $result = OauthAccessToken::where('user_id',$uid)->orderBy('created_at','DESC')->first();
+
       $result1  = Session::where('uid',$uid)->where('endtime',NULL)->orderBy('starttime','DESC')->first();
 
       if($result1)
       {
         $result1->endtime =  $date;
         $result1->save();
+
+        $result->revoked ='1';
+        $result->save();
+
         return response()->json([
           "status" => "success",
           "message" => "Session Cleared Successfully...",
@@ -2715,6 +2722,34 @@ class Admin
           "message"           => 'Problem Moderating Question...',
         ], 400);
       }
+  }
+
+  public function updateProgram($id,$request)
+  {
+    $result = ProgramMaster::find($id);
+  
+    if($result)
+    {
+      $result->program_code = $request->progCode;
+      $result->program_name = $request->progName;
+      $result->inst_uid     = $request->instId;
+      $result->updated_at   = Carbon::now();
+
+      $result->save();
+
+      return response()->json([
+        "status"            => "success",
+        "message"           => 'Program Data updated Successfully...',
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"            => "failure",
+        "message"           => 'Invalid Program Id...',
+      ], 400);
+    }
+
   }
 }
 ?>

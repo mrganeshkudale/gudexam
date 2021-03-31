@@ -151,4 +151,19 @@ class ProgramController extends Controller
         }
     }
 
+    public function update($id,Request $request,Admin $a)
+    {
+        if(Auth::user())
+        {
+            return $a->updateProgram($id,$request);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 200);
+        }
+    }
+
 }

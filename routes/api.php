@@ -89,6 +89,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('configurations', [ConfigurationsController::class, 'store'])->name('postConfig');
 
     Route::get('program', [ProgramController::class, 'index'])->name('getProgram');
+    Route::put('program/{id}', [ProgramController::class, 'update'])->name('updateProgram');
     Route::get('program/inst', [ProgramController::class, 'indexProgInst'])->name('indexProgInst');
     Route::delete('program/inst/{id}', [ProgramController::class, 'deleteProgInst'])->name('deleteProgInst');
     Route::post('program', [ProgramController::class, 'store'])->name('storeProgram');

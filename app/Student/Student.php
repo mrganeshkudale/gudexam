@@ -420,6 +420,7 @@ class Student
 		{
 			//-----check Time difference between now and last_update_time-------------
 			$heartbeatdiff = Carbon::now()->diffInSeconds($result->last_update_time);
+			
 			if($heartbeatdiff > $heartbeattime)
 			{
 				//-----------convert first active record to over state------------------
@@ -429,17 +430,17 @@ class Student
 				//----------------------------------------------------------------------
 
 				//---------------Calculate New Elapsed Time-----------------------------
-					$actualElapsedTime = $result->elapsed_time + 2;
+					$actualElapsedTime = $result->elapsed_time + $heartbeattime;
 				//----------------------------------------------------------------------
 
 				//-----------------Create new Exam Session Entry------------------------
 				$values = array(
 					'exam_id' 							=> $exam_id,
-					'session_start_time'		=> Carbon::now()->subSeconds(2),
+					'session_start_time'		=> Carbon::now()->subSeconds($heartbeattime+2),
 					'last_update_time'			=> Carbon::now(),
-					'session_state' 				=> 'active',
-					'elapsed_time' 					=> $actualElapsedTime,
-					'created_at'						=> Carbon::now()
+					'session_state' 			=> 'active',
+					'elapsed_time' 				=> $actualElapsedTime,
+					'created_at'				=> Carbon::now()
 				);
 				try
 				{
@@ -481,16 +482,16 @@ class Student
 			//---------------create ExamSession Entry---------------------------------
 			$values = array(
 				'exam_id' 							=> $exam_id,
-				'session_start_time'		=> Carbon::now()->subSeconds(2),
-				'last_update_time'			=> Carbon::now(),
-				'session_state' 				=> 'active',
-				'elapsed_time' 					=> 2,
+				'session_start_time'				=> Carbon::now()->subSeconds($heartbeattime+2),
+				'last_update_time'					=> Carbon::now(),
+				'session_state' 					=> 'active',
+				'elapsed_time' 						=> $heartbeattime+2,
 				'created_at'						=> Carbon::now()
 			);
 			try
 			{
 				$inserted = DB::table('exam_session')->insert($values);
-				$actualElapsedTime = 2;
+				$actualElapsedTime = $heartbeattime+2;
 			}
 			catch(\Exception $e)
 			{
@@ -505,7 +506,7 @@ class Student
 		//--------------------------------------------------------------------------
 		return response()->json([
 					'status' 				=> 'success',
-					'elapsedTime'		=> $actualElapsedTime
+					'elapsedTime'			=> $actualElapsedTime
 				],200);
 	}
 
@@ -517,14 +518,14 @@ class Student
 		{
 			return response()->json([
 						'status' 				=> 'success',
-						'elapsedTime'		=> $result->elapsed_time
+						'elapsedTime'			=> $result->elapsed_time
 					],200);
 		}
 		else
 		{
 			return response()->json([
 						'status' 				=> 'success',
-						'elapsedTime'		=> 0
+						'elapsedTime'			=> 0
 					],200);
 		}
 	}
@@ -538,7 +539,7 @@ class Student
 
 		return response()->json([
 					'status' 				=> 'success',
-					'switchedcount' => $count
+					'switchedcount' 		=> $count
 				],200);
 	}
 
