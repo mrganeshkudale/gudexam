@@ -17,5 +17,6 @@ class Controller extends BaseController
         ini_set('upload_max_filesize', 512);
         ini_set('post_max_size', 512);
         ini_set('max_input_time',600);
+        ini_set('memory_limit', '512M');
     }*/
 }

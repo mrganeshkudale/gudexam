@@ -45,6 +45,10 @@ class SubjectsController extends Controller
       {
         return $a->updateTestSubjects($id,$request);
       }
+      else if($request->type == 'form')
+      {
+        return $a->updateSubjectMaster($id,$request);
+      }
     }
     else
     {

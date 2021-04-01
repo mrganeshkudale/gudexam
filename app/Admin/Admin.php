@@ -219,7 +219,14 @@ class Admin
 
   public function getAllPrograms()
   {
+    if(Auth::user()->role == 'ADMIN')
+    {
       $result = ProgramMaster::all();
+    }
+    else if(Auth::user()->role == 'EADMIN')
+    {
+      $result = ProgramMaster::where('inst_uid',Auth::user()->uid)->get();
+    }
       if($result)
       {
         return response()->json([
@@ -2747,6 +2754,35 @@ class Admin
       return response()->json([
         "status"            => "failure",
         "message"           => 'Invalid Program Id...',
+      ], 400);
+    }
+
+  }
+
+  public function updateSubjectMaster($id,$request)
+  {
+    $result = SubjectMaster::find($id);
+
+    if($result)
+    {
+      $result->paper_code = $request->paperCode;
+      $result->paper_name = $request->paperName;
+      $result->program_id = $request->programId;
+      $result->inst_uid   = $request->instId;
+      $result->semester   = $request->semester;
+
+      $result->save();
+
+      return response()->json([
+        "status"            => "success",
+        "message"           => 'Subject Master Data updated Successfully...',
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"            => "failure",
+        "message"           => 'Invalid Subject Id...',
       ], 400);
     }
 
