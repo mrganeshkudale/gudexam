@@ -617,8 +617,15 @@ class Admin
 
   public function updateUser($id,$request)
   {
-    $result = User::find($id)->update($request->all());
+    $result = User::find($id);
+    $res = $result->update($request->all());
     
+    if($request->password != '')
+    {
+      $result->password = Hash::make($request->password);
+      $result->save();
+    }
+
     return response()->json([
       "status"          => "success",
       "message"         => "User Updated Successfully.",

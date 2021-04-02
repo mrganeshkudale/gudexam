@@ -11,12 +11,12 @@ class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
 
-   /* public function __construct()
+    public function __construct()
     {
         ini_set('max_execution_time', 99999999);
         ini_set('upload_max_filesize', 512);
         ini_set('post_max_size', 512);
         ini_set('max_input_time',600);
         ini_set('memory_limit', '512M');
-    }*/
+    }
 }
