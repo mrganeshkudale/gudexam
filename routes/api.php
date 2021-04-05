@@ -63,12 +63,11 @@ Route::middleware(['auth:api'])->group(function()
     Route::get('answer', [AnswerController::class, 'index'])->name('getAnswer');
     Route::put('answer/{id}', [AnswerController::class, 'update'])->name('updateAnswer');
 
-    Route::post('proctor', [ProctorController::class, 'store'])->name('PostProctor');
-    Route::post('proctorDetails', [ProctorDetailsController::class, 'store'])->name('PostroctorDetails');
+    Route::post('proctor/{id}', [ProctorController::class, 'store'])->name('PostProctor');
+    Route::post('proctorDetails/{id}', [ProctorDetailsController::class, 'store'])->name('PostroctorDetails');
 
     Route::get('paper/{id}', [SubjectsController::class, 'showById'])->name('getSubjectsById');
     Route::get('subject/topic', [SubjectsController::class, 'getTopic'])->name('getTopic');
-
 });
 //---------------------------------Student API End------------------------------
 
@@ -113,7 +112,12 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('subject/test/upload', [SubjectsController::class, 'uploadTest'])->name('uploadTestSubject');
     Route::put('subject/test/{id}', [SubjectsController::class, 'updateTest'])->name('updateTestSubject');
     Route::put('subject/config/{id}', [SubjectsController::class, 'updateConfig'])->name('updateConfigSubject');
+
+    Route::put('subject/config/generic/{id}', [SubjectsController::class, 'updateGenericConfig'])->name('updateGenericConfig');
+    
     Route::get('subject', [SubjectsController::class, 'index'])->name('getSubject');
+    Route::get('subject/config/generic', [SubjectsController::class, 'getGenericConfig'])->name('getGenericConfig');
+
     
     Route::delete('subject/{id}', [SubjectsController::class, 'del'])->name('delSubject');
 
@@ -131,7 +135,9 @@ Route::middleware(['auth:api','admin'])->group(function()
 
     Route::get('exam/report/count', [ExamController::class, 'examReportCount'])->name('examReportCount');
     Route::get('exam/bypaperid/type', [ExamController::class, 'examByPaperIdAndType'])->name('examByPaperIdAndType');
+    Route::get('exam/log/{enrollno}/{paperId}', [ExamController::class, 'examLog'])->name('getExamLog');
 
+    Route::get('proctor/{enrollno}/{paperId}', [ProctorController::class, 'proctorByEnrollno'])->name('GetProctorByEnrollno');
 });
 //------------------------------------------------------------------------------
 ?>

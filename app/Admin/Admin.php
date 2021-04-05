@@ -5,6 +5,8 @@ use App\Models\StudentExam;
 use App\Http\Resources\ExamCollection;
 use App\Http\Resources\InstProgramCollection;
 use App\Http\Resources\PaperCollection;
+use App\Http\Resources\ProctorSnapCollection;
+use App\Http\Resources\AnswerCollection;
 use App\Http\Resources\QuestionCollection;
 use App\Http\Resources\ProgramCollection;
 use App\Http\Resources\TopicCollection;
@@ -16,6 +18,8 @@ use App\Models\Elapsed;
 use App\Models\QuestionSet;
 use App\Models\CandQuestion;
 use App\Models\OauthAccessToken;
+use App\Models\ProctorSnaps;
+use App\Models\ProctorSnapDetails;
 use App\Models\InstPrograms;
 use App\Models\ProgramMaster;
 use App\Models\SubjectMaster;
@@ -2793,6 +2797,177 @@ class Admin
       ], 400);
     }
 
+  }
+
+  public function getGenericConfig($request)
+  {
+    //--Find this ID in subjects list if not present then create subject with name GENERICTEST------
+    $result = SubjectMaster::where('paper_code',$request->paperCode)->where('inst_uid',Auth::user()->uid)->first();
+    if(!$result)
+    {
+      $value = [
+        'paper_code' => $request->paperCode,
+        'paper_name' => $request->paperName,
+        'program_id' => '0',
+        'inst_uid'   => Auth::user()->uid,
+        'semester'   => '0',
+      ];
+      $res = SubjectMaster::create($value);
+
+      $result = SubjectMaster::where('paper_code',$request->paperCode)->where('inst_uid',Auth::user()->uid)->first();
+
+      return response()->json([
+        "status"            => "success",
+        "data"              => new PaperResource($result),
+      ], 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"            => "success",
+        "data"              => new PaperResource($result),
+      ], 200);
+    }
+    //-----------------------------------------------------------------------------------------
+  }
+
+  public function updateGenericConfig($id,$request)
+  {
+    $paperCode = $id;
+    $result = SubjectMaster::where('paper_code',$paperCode)->where('inst_uid',Auth::user()->uid)->first();
+
+    $score_view         =   $request->score_view ? $request->score_view : '0';
+    $review_question    =   $request->review_question ? $request->review_question : '0';
+    $proctoring         =   $request->proctoring;
+    $photo_capture      =   $request->photo_capture ? $request->photo_capture : '0';
+    $capture_interval   =   $request->capture_interval ? $request->capture_interval : '0';
+    $negative_marking   =   $request->negative_marking ? $request->negative_marking : '0';
+    $negative_marks     =   $request->negative_marks;
+    $time_remaining_reminder  =   $request->time_remaining_reminder ? $request->time_remaining_reminder : '0';
+    $exam_switch_alerts =   $request->exam_switch_alerts ? $request->exam_switch_alerts : '0';
+    $option_shuffle     =   $request->option_shuffle ? $request->option_shuffle : '0';
+    $question_marks     =   $request->question_marks ? $request->question_marks : '0';
+    $ph_time            =   $request->ph_time;
+    $static_assign      =   $request->static_assign;
+
+    $res = SubjectMaster :: where('inst_uid',Auth::user()->uid)->update([
+      'score_view'          => $score_view,
+      'review_question'     => $review_question,
+      'proctoring'          => $proctoring,
+      'photo_capture'       => $photo_capture,
+      'capture_interval'    => $capture_interval,
+      'negative_marking'    => $negative_marking, 
+      'negative_marks'      => $negative_marks,
+      'time_remaining_reminder' => $time_remaining_reminder,
+      'exam_switch_alerts'  => $exam_switch_alerts,
+      'option_shuffle'      => $option_shuffle,
+      'question_marks'      => $question_marks,
+      'ph_time'             => $ph_time,
+      'static_assign'       => $static_assign
+    ]);
+
+    return response()->json([
+      "status"          => "success",
+      "message"         => "Exam Configuration Updated Successfully.",
+    ], 200);
+  }
+
+  public function getExamsByEnrollno($enrollno)
+  {
+    $result = User::where('username',$enrollno)->where('role','STUDENT')->where('inst_id',Auth::user()->username)->first();
+
+    $exams 	= User::find($result->uid)->exams;
+		if($exams)
+		{
+			return new ExamCollection($exams);
+		}
+		else
+		{
+			return json_encode([
+				'status' => 'failure'
+			],200);
+		}
+  }
+
+  public function getExamLog($enrollno,$paperId)
+  {
+    $result = User::where('username',$enrollno)->where('inst_id',Auth::user()->username)->first();
+    if($result)
+    {
+      $stdid = $result->uid;
+       //----------Find Exam Id of this student---------------------------------------
+       $result1 = CandTest::where('stdid',$stdid)->where('paper_id',$paperId)->where('inst',Auth::user()->username)->first();
+       //------------------------------------------------------------------------------
+       if($result1)
+       {
+          $examId = $result1->id;
+
+          $result2 = CandQuestion::where('exam_id',$examId)->get();
+          if($result2)
+          {
+            return json_encode([
+              'status'  => 'success',
+              'data'    => new AnswerCollection($result2),
+            ],200);
+          }
+          else
+          {
+            return json_encode([
+              'status'  => 'failure',
+              'message' => 'No Questions found for this Candidate...',
+            ],400);
+          }
+       }
+       else
+       {
+          return json_encode([
+            'status'  => 'failure',
+            'message' => 'No Exam Data for this Student Found...',
+          ],400);
+       }
+    }
+    else
+    {
+      return json_encode([
+				'status'  => 'failure',
+        'message' => 'Invalid Username Data...',
+			],400);
+    }
+  }
+
+  public function proctorByEnrollno($enrollno,$paperId)
+  {
+    $result = User::where('username',$enrollno)->where('inst_id',Auth::user()->username)->first();
+    if($result)
+    {
+      $stdid = $result->uid;
+      //----------Find Exam Id of this student---------------------------------------
+       $result1 = CandTest::where('stdid',$stdid)->where('paper_id',$paperId)->where('inst',Auth::user()->username)->first();
+      //------------------------------------------------------------------------------
+       if($result1)
+       {
+          $examId = $result1->id;
+          $result2= ProctorSnaps::where('examid',$examId)->get();
+          return json_encode([
+            'status'  => 'success',
+            'data'    => new ProctorSnapCollection($result2),
+          ],200);
+       }
+       else
+       {
+        return json_encode([
+          'status'  => 'failure',
+          'message' => 'No Proctoring Data found for this Candidate...',
+        ],400);
+       }
+    }
+    else
+    {
+      return json_encode([
+        'status'  => 'failure',
+        'message' => 'Invalid User Data...'
+      ],400);
+    }
   }
 }
 ?>

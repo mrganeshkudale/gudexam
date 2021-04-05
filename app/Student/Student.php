@@ -545,7 +545,7 @@ class Student
 
 	public function storeSnapshot($examid,$image)
 	{
-		$path  = storage_path().'/snapshots/'.$examid.'_'.Carbon::now()->timestamp.'.jpg';
+		$path  = public_path().'/snapshots/'.$examid.'_'.Carbon::now()->timestamp.'.jpg';
 		$image = str_replace('data:image/jpeg;base64,', '', $image);
     	$image = str_replace(' ', '+', $image);
 		$image = base64_decode($image);

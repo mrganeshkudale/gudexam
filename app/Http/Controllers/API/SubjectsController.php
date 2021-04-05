@@ -267,4 +267,34 @@ class SubjectsController extends Controller
     }
  }
 
+ public function getGenericConfig(Request $request,Admin $a)
+ {
+    if(Auth::user())
+    {
+      return $a->getGenericConfig($request);
+    }
+    else
+    {
+        return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Unauthorized User...",
+        ], 200);
+    }
+ }
+
+ public function updateGenericConfig($id,Request $request,Admin $a)
+ {
+    if(Auth::user())
+    {
+      return $a->updateGenericConfig($id,$request);
+    }
+    else
+    {
+        return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Unauthorized User...",
+        ], 200);
+    }
+ }
+
 }

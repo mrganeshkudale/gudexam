@@ -27,8 +27,11 @@ class ExamResource extends JsonResource
             'examstatus'            =>  $this->status,
             'starttime'             =>  $this->starttime,
             'endtime'               =>  $this->endtime,
-            'startedon'             =>  $this->entry_on,
-            'endon'                 =>  $this->end_on,
+
+            'startedon'             =>  $this->entry_on ? Carbon::createFromFormat('Y-m-d H:i:s.u', $this->entry_on, 'UTC')->getPreciseTimestamp(3) : '',
+
+            'endon'                 =>  $this->end_on ? Carbon::createFromFormat('Y-m-d H:i:s.u', $this->end_on, 'UTC')->getPreciseTimestamp(3) : '',
+            
             'switched'              =>  $this->switched,
             'now'                   =>  round(microtime(true) * 1000),
             'paper'                 =>  new PaperResource(SubjectMaster::find($this->paper_id))

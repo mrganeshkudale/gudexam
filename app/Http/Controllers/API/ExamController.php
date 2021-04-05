@@ -22,9 +22,13 @@ class ExamController extends Controller
       {
         return $a->getAllExams();
       }
-      else if(Auth::user()->role == 'EADMIN')
+      else if(Auth::user()->role == 'EADMIN' && $request->type == '')
       {
         return $a->getFilteredExams($request->instId);
+      }
+      else if(Auth::user()->role == 'EADMIN' && $request->type == 'byEnrollno')
+      {
+        return $a->getExamsByEnrollno($request->enrollno);
       }
     }
     else
@@ -166,6 +170,21 @@ class ExamController extends Controller
     if(Auth::user())
     {
       return $a->examByPaperIdAndType($request);
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 400);
+    }
+  }
+
+  public function examLog($enrollno,$paperId, Admin $a)
+  {
+    if(Auth::user())
+    {
+      return $a->getExamLog($enrollno,$paperId);
     }
     else
     {

@@ -10,11 +10,11 @@ use Illuminate\Http\Request;
 
 class ProctorDetailsController extends Controller
 {
-    public function store(Student $s,Request $request)
+    public function store($id,Request $request,Student $s)
     {
         if(Auth::user())
         { 
-            return $s->storeSnapshotDetails($request->examid,$request->snapid,$request->agerange,$request->beard,$request->eyeglasses,$request->eyesopen,$request->gender,$request->mustache,$request->smile,$request->sunglasses);
+            return $s->storeSnapshotDetails($id,$request->snapid,$request->agerange,$request->beard,$request->eyeglasses,$request->eyesopen,$request->gender,$request->mustache,$request->smile,$request->sunglasses);
         }
         else
         {
