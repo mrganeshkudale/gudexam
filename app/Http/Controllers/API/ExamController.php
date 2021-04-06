@@ -195,4 +195,19 @@ class ExamController extends Controller
     }
   }
 
+  public function examReportCountByDate(Request $request,Admin $a)
+  {
+    if(Auth::user())
+    {
+      return $a->examReportCountByDate($request);
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 400);
+    }
+  }
+
 }

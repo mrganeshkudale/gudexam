@@ -2969,5 +2969,34 @@ class Admin
       ],400);
     }
   }
+
+  public function getSubjectByDate($date)
+  {
+    if(Auth::user()->role == 'EADMIN')
+    {
+      $inst_uid = Auth::user()->uid;
+
+      $result = SubjectMaster::where('inst_uid',$inst_uid)->where('from_date','LIKE','%'.$date.'%')->get();
+
+      return json_encode([
+        'status'  => 'success',
+        'data'    => $result,
+      ],200);
+    }
+  }
+
+  public function examReportCountByDate($request)
+  {
+    $subject  = $request->subject;
+    $date     = $request->date;
+
+    $result   = CandTest::where('paper_id',$subject)->get();
+
+    return json_encode([
+      'status'  => 'success',
+      'data'    => new ExamCollection($result),
+    ],200);
+  }
+
 }
 ?>

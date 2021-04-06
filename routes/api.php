@@ -116,6 +116,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::put('subject/config/generic/{id}', [SubjectsController::class, 'updateGenericConfig'])->name('updateGenericConfig');
     
     Route::get('subject', [SubjectsController::class, 'index'])->name('getSubject');
+    Route::get('subject/byDate/{date}', [SubjectsController::class, 'getSubjectByDate'])->name('getSubjectByDate');
     Route::get('subject/config/generic', [SubjectsController::class, 'getGenericConfig'])->name('getGenericConfig');
 
     
@@ -138,6 +139,8 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('exam/log/{enrollno}/{paperId}', [ExamController::class, 'examLog'])->name('getExamLog');
 
     Route::get('proctor/{enrollno}/{paperId}', [ProctorController::class, 'proctorByEnrollno'])->name('GetProctorByEnrollno');
+
+    Route::get('exam/report/countByDate', [ExamController::class, 'examReportCountByDate'])->name('examReportCountByDate');
 });
 //------------------------------------------------------------------------------
 ?>

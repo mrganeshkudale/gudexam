@@ -297,4 +297,19 @@ class SubjectsController extends Controller
     }
  }
 
+ public function getSubjectByDate($date,Admin $a)
+ {
+    if(Auth::user())
+    {
+      return $a->getSubjectByDate($date);
+    }
+    else
+    {
+        return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Unauthorized User...",
+        ], 200);
+    }
+ }
+
 }
