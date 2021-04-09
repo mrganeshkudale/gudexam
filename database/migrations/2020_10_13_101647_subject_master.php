@@ -25,6 +25,7 @@ class SubjectMaster extends Migration
             $table->integer('questions')->default('0');
             
             $table->integer('durations')->default('0');
+            $table->integer('slot')->default('0');
             $table->timestamp('from_date', $precision = 3)->nullable();
             $table->timestamp('to_date', $precision = 3)->nullable();
 
@@ -44,6 +45,11 @@ class SubjectMaster extends Migration
             $table->text('instructions')->nullable();
             $table->integer('ph_time')->default('0');
             $table->integer('static_assign')->default('0');
+            $table->tinyInteger('questwisetimer')->default('0')->nullable();
+            $table->integer('secperquest')->nullable();
+
+            $table->index('questwisetimer');
+            $table->index('secperquest');
 
             $table->index('id');
             $table->index('inst_uid');
@@ -52,6 +58,7 @@ class SubjectMaster extends Migration
             
             $table->index('from_date');
             $table->index('to_date');
+            $table->index('slot');
 
             $table->index('paper_code');
             $table->index('program_id');

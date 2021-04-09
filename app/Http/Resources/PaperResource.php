@@ -30,6 +30,7 @@ class PaperResource extends JsonResource
           'mark3'         =>  $this->mark3,
           'mark4'         =>  $this->mark4,
           'duration'      =>  $this->durations,
+          'slot'          =>  $this->slot,
           'from_date'     =>  $this->from_date != '' ? Carbon::createFromFormat('Y-m-d H:i:s.u', $this->from_date, 'UTC')->getPreciseTimestamp(3) : '',
           'to_date'       =>  $this->to_date != '' ? Carbon::createFromFormat('Y-m-d H:i:s.u', $this->to_date, 'UTC')->getPreciseTimestamp(3) : '',
           /*'from_date' => $this->from_date,
@@ -47,6 +48,8 @@ class PaperResource extends JsonResource
           'instructions'    =>  $this->instructions,
           'ph_time'         =>  $this->ph_time,
           'static_assign'   =>  $this->static_assign,
+          'questwisetimer'  =>  $this->questwisetimer,
+          'secperquest'     =>  $this->secperquest, 
           'created_at'      =>  $this->created_at,
           'updated_at'      =>  $this->updated_at
         ];

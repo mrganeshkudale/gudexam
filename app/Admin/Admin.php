@@ -1575,6 +1575,7 @@ class Admin
       'marks'     => $request->marks,
       'questions' => $request->questions,
       'durations' => $request->durations,
+      'slot'      => $request->slot,
       'from_date' => $fromDate->format('Y-m-d H:i:s.u'),
       'to_date'   => $toDate->format('Y-m-d H:i:s.u'),
     ]);
@@ -1633,34 +1634,26 @@ class Admin
         $marks      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
         $questions  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
         $durations  = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
+        $slot       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue();
         //------------------------Convert Date from Local to UTC Format--------------------------------------
-        $from_date  = new \DateTime($spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue(), new \DateTimeZone($tz_from));
+        $from_date  = new \DateTime($spreadsheet->getActiveSheet()->getCellByColumnAndRow(8, $i)->getValue(), new \DateTimeZone($tz_from));
         $from_date->setTimezone(new \DateTimeZone($tz_to));
 
-        $to_date    = new \DateTime($spreadsheet->getActiveSheet()->getCellByColumnAndRow(8, $i)->getValue(), new \DateTimeZone($tz_from));
+        $to_date    = new \DateTime($spreadsheet->getActiveSheet()->getCellByColumnAndRow(9, $i)->getValue(), new \DateTimeZone($tz_from));
         $to_date->setTimezone(new \DateTimeZone($tz_to));
         //--------------------------------------------------------------------------------------------------
         $current_time 	  = Carbon::now();
         
-        try
-        {
-          $result = SubjectMaster::where('paper_code',$paperCode)->where('inst_uid',$instUid)->update([
+          $result = SubjectMaster::where('paper_code','like',$paperCode)->where('inst_uid',$instUid)->update([
             'exam_name' => $exam_name,
             'marks'     => $marks,
             'questions' => $questions,
             'durations' => $durations,
+            'slot'      => $slot,
             'from_date' => $from_date->format("Y-m-d H:i:s.u"),
             'to_date'   => $to_date->format("Y-m-d H:i:s.u"),
           ]);
-        }
-        catch(\Exception $e)
-        {
-          return response()->json([
-            'status' 		=> 'failure',
-            'message'   => 'Problem Inserting Test Data in Database.All Tests Data till row number '.$i.' in Excel file are Inserted Successfully',
-            'row'       =>  $i
-          ],400);
-        }
+        
         
       }
       return response()->json([
@@ -1698,19 +1691,21 @@ class Admin
   {
     $result = SubjectMaster::find($id);
 
-    $result->score_view         =   $request->score_view;
-    $result->review_question    =   $request->review_question;
-    $result->proctoring         =   $request->proctoring;
-    $result->photo_capture      =   $request->photo_capture;
-    $result->capture_interval   =   $request->capture_interval;
-    $result->negative_marking   =   $request->negative_marking;
-    $result->negative_marks     =   $request->negative_marks;
+    $result->score_view         =   $request->score_view ? $request->score_view : '0';
+    $result->review_question    =   $request->review_question ? $request->review_question : '0';
+    $result->proctoring         =   $request->proctoring ? $request->proctoring : '0';
+    $result->photo_capture      =   $request->photo_capture ? $request->photo_capture : '0';
+    $result->capture_interval   =   $request->capture_interval ? $request->capture_interval : '0';
+    $result->negative_marking   =   $request->negative_marking ? $request->negative_marking : '0';
+    $result->negative_marks     =   $request->negative_marks ? $request->negative_marks : '0';
     $result->time_remaining_reminder  =   $request->time_remaining_reminder;
     $result->exam_switch_alerts =   $request->exam_switch_alerts;
-    $result->option_shuffle     =   $request->option_shuffle;
-    $result->question_marks     =   $request->question_marks;
-    $result->ph_time            =   $request->ph_time;
-    $result->static_assign      =   $request->static_assign;
+    $result->option_shuffle     =   $request->option_shuffle ? $request->option_shuffle : '0';
+    $result->question_marks     =   $request->question_marks ? $request->question_marks :  '0';
+    $result->ph_time            =   $request->ph_time ? $request->ph_time : '0';
+    $result->static_assign      =   $request->static_assign ? $request->static_assign : '0';
+    $result->questwisetimer     =   $request->questwisetimer ? $request->questwisetimer : '0';
+    $result->secperquest        =   $request->secperquest ? $request->secperquest : '0';
 
     $result->save();
 
@@ -2849,6 +2844,8 @@ class Admin
     $question_marks     =   $request->question_marks ? $request->question_marks : '0';
     $ph_time            =   $request->ph_time;
     $static_assign      =   $request->static_assign;
+    $questwisetimer     =   $request->questwisetimer ? $request->questwisetimer :'0';
+    $secperquest        =   $request->secperquest ? $request->secperquest :'0';
 
     $res = SubjectMaster :: where('inst_uid',Auth::user()->uid)->update([
       'score_view'          => $score_view,
@@ -2857,13 +2854,15 @@ class Admin
       'photo_capture'       => $photo_capture,
       'capture_interval'    => $capture_interval,
       'negative_marking'    => $negative_marking, 
-      'negative_marks'      => $negative_marks,
+      'negative_marks'      => $negative_marks ? $negative_marks : '0',
       'time_remaining_reminder' => $time_remaining_reminder,
       'exam_switch_alerts'  => $exam_switch_alerts,
       'option_shuffle'      => $option_shuffle,
       'question_marks'      => $question_marks,
       'ph_time'             => $ph_time,
-      'static_assign'       => $static_assign
+      'static_assign'       => $static_assign,
+      'questwisetimer'      => $questwisetimer,
+      'secperquest'         => $secperquest
     ]);
 
     return response()->json([
@@ -2998,5 +2997,76 @@ class Admin
     ],200);
   }
 
+  public function examReportCountDatewise($date,$subject,$slot,$inst_id)
+  {
+      $result = User::where('username',$inst_id)->first();
+      $instUid = $result->uid;
+
+      $results = InstPrograms::where('inst_uid',$instUid)->get();
+      $programArray = array();
+      foreach($results as $result)
+      {
+        array_push($programArray,$result->program_id);
+      }
+
+      $data = array();
+      if($date == 'all' && $subject =='all' && $slot == 'all') // 000
+      {
+        $ress = SubjectMaster::whereIn('program_id',$programArray)->get();
+      }
+      else if($date == 'all' && $subject =='all' && $slot != 'all') // 001
+      {
+        $ress = SubjectMaster::whereIn('program_id',$programArray)->where('slot',$slot)->get();
+      }
+      else if($date == 'all' && $subject != 'all' && $slot == 'all') // 010
+      {
+        $ress = SubjectMaster::whereIn('program_id',$programArray)->where('id',$subject)->get();
+      }
+      else if($date == 'all' && $subject != 'all' && $slot != 'all') // 011
+      {
+        $ress = SubjectMaster::whereIn('program_id',$programArray)->where('id',$subject)->where('slot',$slot)->get();
+      }
+      else if($date != 'all' && $subject == 'all' && $slot == 'all') // 100
+      {
+        $ress = SubjectMaster::whereIn('program_id',$programArray)->where('from_date','LIKE','%'.$date.'%')->get();
+      }
+      else if($date != 'all' && $subject == 'all' && $slot != 'all') // 101
+      {
+        $ress = SubjectMaster::whereIn('program_id',$programArray)->where('from_date','LIKE','%'.$date.'%')->where('slot',$slot)->get();
+      }
+      else if($date != 'all' && $subject != 'all' && $slot == 'all') // 110
+      {
+        $ress = SubjectMaster::whereIn('program_id',$programArray)->where('from_date','LIKE','%'.$date.'%')->where('id',$subject)->get();
+      }
+      else if($date != 'all' && $subject!= 'all' && $slot != 'all') // 111
+      {
+        $ress = SubjectMaster::whereIn('program_id',$programArray)->where('from_date','LIKE','%'.$date.'%')->where('id',$subject)->where('slot',$slot)->get(); 
+      }
+      
+      $i = 0;
+
+      foreach($ress as $res)
+      {
+        $data[$i++] = [
+          'id'                  =>  $res->id,
+          'from_date'           =>  $res->from_date,
+          'paper_code'          =>  $res->paper_code,
+          'paper_name'          =>  $res->paper_name,
+          'marks'               =>  $res->marks,
+          'questions'           =>  $res->questions,
+          'duration'            =>  $res->durations,
+          'slot'                =>  $res->slot,
+          'allStudents'         =>  $this->getAllocatedStudentsCount($res->id,'all'),
+          'overStudents'        =>  $this->getAllocatedStudentsCount($res->id,'over'),
+          'inprogressStudents'  =>  $this->getAllocatedStudentsCount($res->id,'inprogress'),
+          'unattendStudents'    =>  $this->getAllocatedStudentsCount($res->id,'unattend'),
+          'exam'                =>  $this->getExam($res->paper_code),
+        ];
+      }
+      return response()->json([
+        "status"        => "success",
+        "data"          => $data,
+      ], 200);
+  }
 }
 ?>

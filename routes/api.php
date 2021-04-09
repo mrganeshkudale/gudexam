@@ -119,7 +119,6 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('subject/byDate/{date}', [SubjectsController::class, 'getSubjectByDate'])->name('getSubjectByDate');
     Route::get('subject/config/generic', [SubjectsController::class, 'getGenericConfig'])->name('getGenericConfig');
 
-    
     Route::delete('subject/{id}', [SubjectsController::class, 'del'])->name('delSubject');
 
     
@@ -135,6 +134,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::delete('exam/{id}', [ExamController::class, 'del'])->name('delExam');
 
     Route::get('exam/report/count', [ExamController::class, 'examReportCount'])->name('examReportCount');
+    Route::get('exam/report/countDatewise/{date}/{subject}/{slot}', [ExamController::class, 'examReportCountDatewise'])->name('examReportCountDatewise');
     Route::get('exam/bypaperid/type', [ExamController::class, 'examByPaperIdAndType'])->name('examByPaperIdAndType');
     Route::get('exam/log/{enrollno}/{paperId}', [ExamController::class, 'examLog'])->name('getExamLog');
 

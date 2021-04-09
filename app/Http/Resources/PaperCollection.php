@@ -34,6 +34,7 @@ class PaperCollection extends ResourceCollection
             'marks'             =>  $single->marks,
             'questions'         =>  $single->questions,
             'durations'         =>  $single->durations,
+            'slot'              =>  $single->slot,
             'from_date'         =>  $single->from_date != '' ? Carbon::createFromFormat('Y-m-d H:i:s.u',$single->from_date, 'UTC')->getPreciseTimestamp(3) : '',
             'to_date'           =>  $single->to_date != '' ? Carbon::createFromFormat('Y-m-d H:i:s.u',$single->to_date, 'UTC')->getPreciseTimestamp(3) : '',
             'active'            =>  $single->active,
@@ -51,6 +52,8 @@ class PaperCollection extends ResourceCollection
             'instructions'      => $single->instructions,
             'ph_time'           => $single->ph_time,
             'static_assign'     =>  $single->static_assign,
+            'questwisetimer'    =>  $single->questwisetimer,
+          'secperquest'         =>  $single->secperquest, 
             'created_at'        => $single->created_at,
             'updated_at'        => $single->updated_at
           ];
