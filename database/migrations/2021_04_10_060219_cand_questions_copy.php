@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CandQuestions extends Migration
+class CandQuestionsCopy extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,8 @@ class CandQuestions extends Migration
      */
     public function up()
     {
-      Schema::create('cand_questions', function (Blueprint $table) {
-          $table->bigIncrements('id');
+      Schema::create('cand_questions_copy', function (Blueprint $table) {
+          $table->bigInteger('id');
           $table->index('id');
           $table->bigInteger('exam_id');
           $table->index('exam_id');
@@ -29,7 +29,7 @@ class CandQuestions extends Migration
           $table->integer('qnid');
           $table->index('qnid');
           $table->integer('qtopic');
-          $table->varchar('qtype',3);
+          $table->string('qtype',3);
           $table->string('answered',20);
           $table->string('stdanswer',20)->nullable();
           $table->integer('qnid_sr');
@@ -42,7 +42,6 @@ class CandQuestions extends Migration
           $table->integer('marks');
           $table->string('ip',50);
           $table->integer('obtmarks')->nullable();
-          $table->unique(['stdid','inst','paper_id','qnid']);
         });
     }
 
@@ -53,6 +52,6 @@ class CandQuestions extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('cand_questions');
+        Schema::dropIfExists('cand_questions_copy');
     }
 }

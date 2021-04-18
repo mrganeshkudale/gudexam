@@ -6,6 +6,7 @@ use App\Http\Resources\AnswerCollection;
 use App\Models\QuestionSet;
 use App\Models\TopicMaster;
 use App\Models\CandQuestion;
+use App\Models\CandQuestionsCopy;
 use App\Models\CandTest;
 use App\Models\SubjectMaster;
 use App\Models\Session;
@@ -373,7 +374,17 @@ class Student
 		$results->answer_by = $request->answer_by;
 		$results->answer_on = Carbon::now();
 
+		$examId      = $request->answer_by;
+		$curQuestion = $request->curQuestion;
+
+
+		$rrr = CandTest::where('id',$examId)->update([
+			'curQuestion' => $curQuestion,
+		]);
+
 		$results->save();
+
+		$result = DB::statement("insert into cand_questions_copy select * from cand_questions where id='$id'");
 
 		return json_encode([
 			'status'						=> 'success',
@@ -385,6 +396,8 @@ class Student
 		$results = CandQuestion::where('id',$id)->first();
 		$results->answered = $request->answered;
 		$results->save();
+
+		$result = DB::statement("insert into cand_questions_copy select * from cand_questions where id='$id'");
 
 		return json_encode([
 			'status'						=> 'success',

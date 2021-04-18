@@ -21,6 +21,12 @@ class Sessions extends Migration
           $table->string('role',20);
           $table->index('role');
           $table->string('ip',50);
+          $table->string('browser',100);
+          $table->index('browser');
+          $table->string('os',100);
+          $table->index('os');
+          $table->string('version',100);
+          $table->index('version');
           $table->index('ip');
           $table->timestamp('starttime', $precision = 3)->nullable();
           $table->timestamp('endtime', $precision = 3)->nullable();

@@ -63,7 +63,7 @@ class AuthController extends Controller
 
   public function appLogin(Request $request, CustomLogin $clogin)
   {
-      return $clogin->customLoginAuthentication();
+      return $clogin->customLoginAuthentication($request);
   }
 
   public function getlogin(Request $request)

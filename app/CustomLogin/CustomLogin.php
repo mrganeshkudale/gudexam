@@ -45,8 +45,10 @@ class CustomLogin
 	}
 
 
-	public function customLoginAuthentication()
+	public function customLoginAuthentication($request)
 	{
+		
+
 		$validator = Validator::make([
 		'username' => $this->username,
 		'password' => $this->password,
@@ -134,22 +136,21 @@ class CustomLogin
 				$ip 					= request()->ip();
 				$user 					= Auth::user();
 				$token 					= $user->createToken('GudExam')->accessToken;
+				$uid   				    = Auth::user()->uid;
 
-				$session = Session::create([
-					'uid' 						=> Auth::user()->uid,
-					'role' 						=> $role,
-					'ip' 						=> $ip,
-					'starttime' 				=> $current_time,
-					'created_at' 				=> $current_time,
-					'updated_at' 				=> $current_time,
-				]);
+				$browser = $request->browser;
+				$os      = $request->os;
+				$version = $request->version;
+
+
+				$rres = DB::statement("INSERT INTO `sessions`(`uid`, `role`, `ip`, `browser`, `os`, `version`, `starttime`, `created_at`, `updated_at`) 
+				VALUES ($uid,'$role','$ip','$browser','$os','$version','$current_time','$current_time','$current_time')");
 
 				if(strtoupper($role)=='ADMIN')
 				{
 					return response()->json([
 								'status' 		=> 'success',
                 				'token' 		=> $token,
-								'session_id'	=> $session->session_id,
 								'data' 			=> Auth::user(),
 							],200);
 				}
@@ -158,7 +159,6 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 				'token' 		=> $token,
-								'session_id'	=> $session->session_id,
 								'data' 			=> Auth::user(),
 							],200);
 				}
@@ -167,7 +167,6 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 				'token' 		=> $token,
-								'session_id'	=> $session->session_id,
 								'data' 			=> Auth::user(),
 							],200);
 				}
@@ -176,7 +175,6 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                					'token' 		=> $token,
-								'session_id'	=> $session->session_id,
 								'data' 			=> Auth::user(),
 							],200);
 				}
@@ -185,7 +183,6 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 				'token' 		=> $token,
-								'session_id'	=> $session->session_id,
 								'data' 			=> Auth::user(),
 							],200);
 				}

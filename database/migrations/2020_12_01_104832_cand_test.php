@@ -23,6 +23,7 @@ class CandTest extends Migration
           $table->index('paper_id');
           $table->integer('program_id');
           $table->index('program_id');
+          $table->integer('curQuestion')->default(0);
           $table->timestamp('starttime', $precision = 3)->nullable();
           $table->index('starttime');
           $table->timestamp('endtime', $precision = 3)->nullable();
@@ -36,6 +37,7 @@ class CandTest extends Migration
           $table->timestamp('end_on', $precision = 3)->nullable();
           $table->string('end_by',20)->nullable();
           $table->string('examip',20)->nullable();
+          
           $table->integer('continueexam')->default('0');
           $table->index('continueexam');
           $table->string('pa',5)->nullable();

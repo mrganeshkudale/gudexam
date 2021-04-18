@@ -25,6 +25,7 @@ class ExamResource extends JsonResource
             'id'                    =>  $this->id,
             'stdid'                 =>  new UserResource(User::find($this->stdid)),
             'examstatus'            =>  $this->status,
+            'curQuestion'           =>  $this->curQuestion,
             'starttime'             =>  $this->starttime,
             'endtime'               =>  $this->endtime,
 

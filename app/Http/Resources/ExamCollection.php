@@ -31,6 +31,7 @@ class ExamCollection extends ResourceCollection
             'id'          =>  $single->id,
             'stdid'       =>  new UserResource(User::find($single->stdid)),
             'examstatus'  =>  $single->status,
+            'curQuestion' =>  $single->curQuestion,
             'starttime'   =>  $single->starttime,
             'endtime'     =>  $single->endtime,
             'startedon'   =>  $single->entry_on,
