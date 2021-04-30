@@ -3,6 +3,7 @@ namespace App\Admin;
 use App\Models\User;
 use App\Models\StudentExam;
 use App\Http\Resources\ExamCollection;
+use App\Http\Resources\CustomExamReportCollection;
 use App\Http\Resources\InstProgramCollection;
 use App\Http\Resources\PaperCollection;
 use App\Http\Resources\ProctorSnapCollection;
@@ -2984,6 +2985,18 @@ class Admin
     }
   }
 
+  public function getSubjectByDateInst($date,$inst)
+  {
+      $res    = User::where('username',$inst)->where('role','EADMIN')->first();
+      $inst_uid = $res->uid;
+      $result = SubjectMaster::where('inst_uid',$inst_uid)->where('from_date','LIKE','%'.$date.'%')->get();
+
+      return json_encode([
+        'status'  => 'success',
+        'data'    => $result,
+      ],200);
+  }
+
   public function examReportCountByDate($request)
   {
     $subject  = $request->subject;
@@ -3068,5 +3081,260 @@ class Admin
         "data"          => $data,
       ], 200);
   }
+
+  public function studSubAlloc()
+  {
+    $exams 	= DB::table("cand_test")->select(DB::raw("stdid,inst,GROUP_CONCAT(paper_id) as paper_id,program_id"))->where('inst',Auth::user()->username)->groupBy('stdid')->get();
+
+		if($exams)
+		{
+      return json_encode([
+				'status' => 'success',
+        'data'   => new CustomExamReportCollection($exams),
+			],200);
+		}
+		else
+		{
+			return json_encode([
+				'status' => 'failure'
+			],400);
+		}
+  }
+
+  public function clearSessionMulitiple($users,$instUid)
+  {
+      $date     = new Carbon('2001-01-01 01:01:01');
+
+      $rres     = User::whereIn('username',$users)->where('inst_id',$instUid)->select(DB::raw('group_concat(uid) as uidd'))->first();
+      $result   = OauthAccessToken::whereIn('user_id',explode(',',$rres->uidd))->update(['revoked' => 1]);
+      $result1  = Session::whereIn('uid',explode(',',$rres->uidd))->where('endtime',NULL)->update(['endtime' => $date]);
+
+      if($result1)
+      {
+        return response()->json([
+          "status" => "success",
+          "message" => "Session Cleared Successfully...",
+        ], 200);
+      }
+      else
+      {
+        return response()->json([
+          "status" => "failure",
+          "message" => "Session is already cleared for these Users...",
+        ], 200);
+      }
+  }
+
+  public function getAutoEndExamCount($request)
+  {
+    $date     = $request->date;
+    $slot     = $request->slot != ''    ? $request->slot : 'all';
+    $paperId  = $request->paperId != '' ? $request->paperId : 'all';
+
+    $instID   = $request->instId;
+    $rres = User::where('username',$instID)->where('role','EADMIN')->first();
+    $instUid = $rres->uid;
+
+    $cnt = 0;
+
+    if($slot == 'all' && $paperId == 'all')
+    {
+      //----------find all papersId of given institute on given date-----------------------------
+        $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and inst_uid like '$instUid' group by inst_uid");
+
+        if($result)
+        {
+          $paperId = $result[0]->id;
+
+          $result1= DB::select("select count(*) as cnt from cand_test where paper_id in($paperId) and status='inprogress'");
+          if($result1)
+          {
+            $cnt  = $result1[0]->cnt;
+          }
+
+          return response()->json([
+            "status"  => "success",
+            "cnt"     => $cnt,
+            'type'    => '1',
+          ], 200);
+        }
+        else
+        {
+          return response()->json([
+            "status"  => "success",
+            "cnt"     => 0,
+            'type'    => '1',
+          ], 200);
+        }
+        
+      //-----------------------------------------------------------------------------------------
+    }
+    else if($slot == 'all' && $paperId != 'all')
+    {
+        $result1= DB::select("select count(*) as cnt from cand_test where paper_id in($paperId) and status='inprogress'");
+
+        if($result1)
+        {
+          $cnt  = $result1[0]->cnt;
+        }
+
+        return response()->json([
+          "status"  => "success",
+          "cnt"     => $cnt,
+          'type'    => '2',
+        ], 200);
+    }
+    elseif($slot != 'all' && $paperId == 'all')
+    {
+      //----------find all papersId of given institute on given date and slot-----------------------------
+      $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and inst_uid like '$instUid' group by inst_uid");
+
+      if($result)
+      {
+        $paperId = $result[0]->id;
+      }
+      
+      $result1= DB::select("select count(*) as cnt from cand_test where paper_id in($paperId) and status='inprogress'");
+      if($result1)
+      {
+        $cnt  = $result1[0]->cnt;
+      }
+
+      return response()->json([
+        "status"  => "success",
+        "cnt"     => $cnt,
+        'type'    => '3',
+      ], 200);
+    //-----------------------------------------------------------------------------------------
+    }
+    else if($slot != 'all' && $paperId != 'all')
+    {
+        //----------find all papersId of given institute on given date and slot-----------------------------
+        $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and id='$paperId' and inst_uid like '$instUid' group by inst_uid");
+
+        if($result)
+        {
+          $paperId = $result[0]->id;
+        }
+        else
+        {
+          return response()->json([
+            "status"  => "success",
+            "cnt"     => 0,
+            'type'    => '4',
+          ], 200);
+        }
+        
+        $result1= DB::select("select count(*) as cnt from cand_test where paper_id in($paperId) and status='inprogress'");
+        if($result1)
+        {
+          $cnt  = $result1[0]->cnt;
+        }
+        else
+        {
+          return response()->json([
+            "status"  => "success",
+            "cnt"     => 0,
+            'type'    => '4',
+          ], 200);
+        }
+
+        return response()->json([
+          "status"  => "success",
+          "cnt"     => $cnt,
+          'type'    => '4',
+        ], 200);
+        //--------------------------------------------------------------------------------------
+    }
+  }
+
+  public function autoEndExam($date,$request)
+  {
+    $slot     = $request->slot != ''    ? $request->slot : 'all';
+    $paperId  = $request->paperId != '' ? $request->paperId : 'all';
+
+    $instID   = $request->instId;
+    $rres = User::where('username',$instID)->where('role','EADMIN')->first();
+    $instUid = $rres->uid;
+
+    if($slot == 'all' && $paperId == 'all')
+    {
+      //----------find all papersId of given institute on given date-----------------------------
+        $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and inst_uid like '$instUid' group by inst_uid");
+
+        if($result)
+        {
+          $paperId = $result[0]->id;
+
+          $result1= DB::select("update cand_test set status='over' where paper_id in($paperId) and status='inprogress'");
+          
+          return response()->json([
+            "status"  => "success",
+          ], 200);
+        }
+        else
+        {
+          return response()->json([
+            "status"  => "failure",
+          ], 200);
+        }
+        
+      //-----------------------------------------------------------------------------------------
+    }
+    else if($slot == 'all' && $paperId != 'all')
+    {
+        $result1= DB::select("update cand_test set status='over' where paper_id in($paperId) and status='inprogress'");
+
+        return response()->json([
+          "status"  => "success",
+        ], 200);
+    }
+    elseif($slot != 'all' && $paperId == 'all')
+    {
+      //----------find all papersId of given institute on given date and slot-----------------------------
+      $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and inst_uid like '$instUid' group by inst_uid");
+
+      if($result)
+      {
+        $paperId = $result[0]->id;
+
+        $result1= DB::select("update cand_test set status='over' where paper_id in($paperId) and status='inprogress'");
+      
+        return response()->json([
+          "status"  => "success",
+        ], 200);
+      }
+      else
+      {
+        return response()->json([
+          "status"  => "failure",
+        ], 200);
+      }
+    //-----------------------------------------------------------------------------------------
+    }
+    else if($slot != 'all' && $paperId != 'all')
+    {
+        //----------find all papersId of given institute on given date and slot-----------------------------
+        $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and id='$paperId' and inst_uid like '$instUid' group by inst_uid");
+
+        if($result)
+        {
+          $paperId = $result[0]->id;
+          $result1= DB::select("update cand_test set status='over' where paper_id in($paperId) and status='inprogress'");
+          
+          return response()->json([
+              "status"  => "success",
+          ], 200);
+        }
+        else
+        {
+          return response()->json([
+            "status"  => "failure",
+          ], 200);
+        }
+        //--------------------------------------------------------------------------------------
+    }
+  }
+
 }
 ?>

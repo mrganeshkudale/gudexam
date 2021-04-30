@@ -314,20 +314,20 @@ class Student
 	{
 			$cqnid='';$wqnid='';$uqnid='';$marksobt=0;
 			//----------get value of cqnid,wqnid,uqnid--------------------------------
-				$result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','reviewandanswered') and trim(stdanswer)=trim(cans)");
+				$result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)=trim(cans)");
 				if($result)
 				{
 					$cqnid 		= $result[0]->cqnid;
-					$marksobt = $result[0]->marksobt;
+					$marksobt 	= $result[0]->marksobt;
 				}
 
-				$result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','reviewandanswered') and trim(stdanswer)!=trim(cans)");
+				$result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)!=trim(cans)");
 				if($result1)
 				{
 					$wqnid = $result1[0]->wqnid;
 				}
 
-				$result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','reviewandunanswered')");
+				$result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','unansweredandreview')");
 				if($result2)
 				{
 					$uqnid = $result2[0]->uqnid;
@@ -428,6 +428,10 @@ class Student
 
 		//--------Search for entry in ExamSession with given exam_id----------------
 		$result = ExamSession::where('exam_id',$exam_id)->where('session_state','active')->first();
+		
+		$result1 = CandTest::select("status")->where('id',$exam_id)->first();
+
+
 		DB::beginTransaction();
 		if($result)
 		{
@@ -464,6 +468,7 @@ class Student
 					DB::rollBack();
 					return response()->json([
 								'status' 		=> 'failure',
+								'examStatus'			=> $result1->status,
 							],400);
 				}
 				//----------------------------------------------------------------------
@@ -511,6 +516,7 @@ class Student
 				DB::rollBack();
 				return response()->json([
 							'status' 		=> 'failure',
+							'examStatus'			=> $result1->status,
 						],400);
 			}
 			//------------------------------------------------------------------------
@@ -519,7 +525,8 @@ class Student
 		//--------------------------------------------------------------------------
 		return response()->json([
 					'status' 				=> 'success',
-					'elapsedTime'			=> $actualElapsedTime
+					'elapsedTime'			=> $actualElapsedTime,
+					'examStatus'			=> $result1->status,
 				],200);
 	}
 
@@ -527,18 +534,22 @@ class Student
 	{
 		$result = ExamSession::select("elapsed_time")->where('exam_id',$exam_id)->where('session_state','active')->orderBy('session_start_time', 'desc')->first();
 
+		$result1 = CandTest::select("status")->where('id',$exam_id)->first();
+
 		if($result)
 		{
 			return response()->json([
 						'status' 				=> 'success',
-						'elapsedTime'			=> $result->elapsed_time
+						'elapsedTime'			=> $result->elapsed_time,
+						'examStatus'			=> $result1->status,
 					],200);
 		}
 		else
 		{
 			return response()->json([
 						'status' 				=> 'success',
-						'elapsedTime'			=> 0
+						'elapsedTime'			=> 0,
+						'examStatus'			=> $result1->status,
 					],200);
 		}
 	}

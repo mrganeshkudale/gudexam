@@ -52,11 +52,11 @@ Route::middleware(['auth:api'])->group(function()
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('exam', [ExamController::class, 'index'])->name('getExam');
-    Route::get('exam/{id}', [ExamController::class, 'show'])->name('getExam1');
+    Route::get('exam/{id}', [ExamController::class, 'show'])->name('showExam');
     Route::put('exam/{id}', [ExamController::class, 'update'])->name('putExam');
 
-    Route::put('examSession', [ExamSessionController::class, 'update'])->name('putExam');
-    Route::get('examSession', [ExamSessionController::class, 'show'])->name('getExam');
+    Route::put('examSession', [ExamSessionController::class, 'update'])->name('putExam1');
+    Route::get('examSession', [ExamSessionController::class, 'show'])->name('getExamSession');
 
     Route::get('headerImage', [HeaderImageController::class, 'index'])->name('headerImage');
 
@@ -117,6 +117,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     
     Route::get('subject', [SubjectsController::class, 'index'])->name('getSubject');
     Route::get('subject/byDate/{date}', [SubjectsController::class, 'getSubjectByDate'])->name('getSubjectByDate');
+    Route::get('subject/byDateInst/{date}/{inst}', [SubjectsController::class, 'getSubjectByDateInst'])->name('getSubjectByDateInst');
     Route::get('subject/config/generic', [SubjectsController::class, 'getGenericConfig'])->name('getGenericConfig');
 
     Route::delete('subject/{id}', [SubjectsController::class, 'del'])->name('delSubject');
@@ -141,6 +142,10 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('proctor/{enrollno}/{paperId}', [ProctorController::class, 'proctorByEnrollno'])->name('GetProctorByEnrollno');
 
     Route::get('exam/report/countByDate', [ExamController::class, 'examReportCountByDate'])->name('examReportCountByDate');
+
+    Route::get('exam/autoEnd/count', [ExamController::class, 'getAutoEndExamCount'])->name('getAutoEndExamCount');
+
+    Route::put('exam/autoEnd/{date}', [ExamController::class, 'autoEndExam'])->name('putAutoEndExam');
 });
 //------------------------------------------------------------------------------
 ?>

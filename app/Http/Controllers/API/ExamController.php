@@ -30,6 +30,10 @@ class ExamController extends Controller
       {
         return $a->getExamsByEnrollno($request->enrollno);
       }
+      else if(Auth::user()->role == 'EADMIN' && $request->type == 'StudentSubAllocReport')
+      {
+        return $a->studSubAlloc();
+      }
     }
     else
     {
@@ -215,6 +219,36 @@ class ExamController extends Controller
     if(Auth::user())
     {
       return $a->examReportCountDatewise($date,$subject,$slot,Auth::user()->username);
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 400);
+    }
+  }
+
+  public function getAutoEndExamCount(Request $request,Admin $a)
+  {
+    if(Auth::user())
+    {
+      return $a->getAutoEndExamCount($request);
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 400);
+    }
+  }
+
+  public function autoEndExam($date,Request $request,Admin $a)
+  {
+    if(Auth::user())
+    {
+      return $a->autoEndExam($date,$request);
     }
     else
     {

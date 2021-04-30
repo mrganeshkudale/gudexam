@@ -17,6 +17,10 @@ class SessionsController extends Controller
             {
                 return $a->clearSession($request->uid);
             }
+            else if($request->type === 'clearsessionMultiple')
+            {
+                return $a->clearSessionMulitiple($request->users,$request->instUid);
+            }
         }
         else
         {
