@@ -2977,6 +2977,26 @@ class Admin
       $inst_uid = Auth::user()->uid;
 
       $result = SubjectMaster::where('inst_uid',$inst_uid)->where('from_date','LIKE','%'.$date.'%')->get();
+      if($result)
+      {
+        return json_encode([
+          'status'  => 'success',
+          'data'    => $result,
+        ],200);
+      }
+      else
+      {
+        return json_encode([
+          'status'  => 'failure',
+          'data'    => $result,
+        ],200);
+      }
+    }
+    else if(Auth::user()->role == 'ADMIN')
+    {
+      $res    = User::where('username',$inst)->where('role','EADMIN')->first();
+      $inst_uid = $res->uid;
+      $result = SubjectMaster::where('inst_uid',$inst_uid)->where('from_date','LIKE','%'.$date.'%')->get();
 
       return json_encode([
         'status'  => 'success',
@@ -3333,6 +3353,188 @@ class Admin
           ], 200);
         }
         //--------------------------------------------------------------------------------------
+    }
+  }
+
+  public function getActiveExamCount($request)
+  {
+    $date = $request->date;
+    $paperId = [];
+    $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%'");
+
+    if($result)
+    {
+      $paperId = explode(',',$result[0]->id);
+    }
+
+    $result1 = CandTest::whereIn('paper_id',$paperId)->where('status','inprogress')->get();
+
+    $count = $result1->count();
+
+    return response()->json([
+      "status"  => "success",
+      "data"    => $count,
+    ], 200);
+  }
+
+  public function examReportCountDateInstWise($date,$slot)
+  {
+    $institutes = User::where('role','EADMIN')->get();
+    $data = [];
+    $i = 0;
+
+    foreach($institutes as $institute)
+    {
+      $data[$i++] = [
+        'instCode'            =>  $institute->username,
+        'instName'            =>  $institute->college_name,
+        'allStudents'         =>  $this->getInstStudentsCount($institute->uid,$date,$slot,'all'),
+        'overStudents'        =>  $this->getInstStudentsCount($institute->uid,$date,$slot,'over'),
+        'inprogressStudents'  =>  $this->getInstStudentsCount($institute->uid,$date,$slot,'inprogress'),
+        'unattendStudents'    =>  $this->getInstStudentsCount($institute->uid,$date,$slot,'unattend'),
+      ];
+    }
+
+    return response()->json([
+      "status"  => "success",
+      "data"    => $data,
+    ], 200);
+  }
+
+  public function getInstStudentsCount($inst,$date,$slot,$str)
+  {
+    $result = null;
+    if($str == 'all')
+    {
+      if($slot == '')
+      {
+        $result = DB::select("select group_concat(id) as subjectList from subject_master where inst_uid='$inst' and from_date like '%$date%'");
+
+        if($result)
+        {
+          $array = explode(',',$result[0]->subjectList);
+          $count = CandTest::whereIn('paper_id',$array)->count();
+          return $count;
+        }
+        else
+        {
+          return 0;
+        }
+      }
+      else
+      {
+        $result = DB::select("select group_concat(id) as subjectList from subject_master where inst_uid='$inst' and from_date like '%$date%' and slot='$slot'");
+
+        if($result)
+        {
+          $array = explode(',',$result[0]->subjectList);
+          $count = CandTest::whereIn('paper_id',$array)->count();
+          return $count;
+        }
+        else
+        {
+          return 0;
+        }
+      }
+    }
+    else if($str=='over')
+    {
+      if($slot == '')
+      {
+        $result = DB::select("select group_concat(id) as subjectList from subject_master where inst_uid='$inst' and from_date like '%$date%'");
+
+        if($result)
+        {
+          $array = explode(',',$result[0]->subjectList);
+          $count = CandTest::whereIn('paper_id',$array)->where('status','over')->count();
+          return $count;
+        }
+        else
+        {
+          return 0;
+        }
+      }
+      else
+      {
+        $result = DB::select("select group_concat(id) as subjectList from subject_master where inst_uid='$inst' and from_date like '%$date%' and slot='$slot'");
+
+        if($result)
+        {
+          $array = explode(',',$result[0]->subjectList);
+          $count = CandTest::whereIn('paper_id',$array)->where('status','over')->count();
+          return $count;
+        }
+        else
+        {
+          return 0;
+        }
+      }
+    }
+    else if($str=='inprogress')
+    {
+      if($slot == '')
+      {
+        $result = DB::select("select group_concat(id) as subjectList from subject_master where inst_uid='$inst' and from_date like '%$date%'");
+
+        if($result)
+        {
+          $array = explode(',',$result[0]->subjectList);
+          $count = CandTest::whereIn('paper_id',$array)->where('status','inprogress')->count();
+          return $count;
+        }
+        else
+        {
+          return 0;
+        }
+      }
+      else
+      {
+        $result = DB::select("select group_concat(id) as subjectList from subject_master where inst_uid='$inst' and from_date like '%$date%' and slot='$slot'");
+
+        if($result)
+        {
+          $array = explode(',',$result[0]->subjectList);
+          $count = CandTest::whereIn('paper_id',$array)->where('status','inprogress')->count();
+          return $count;
+        }
+        else
+        {
+          return 0;
+        }
+      }
+    }
+    else if($str=='unattend')
+    {
+      if($slot == '')
+      {
+        $result = DB::select("select group_concat(id) as subjectList from subject_master where inst_uid='$inst' and from_date like '%$date%'");
+
+        if($result)
+        {
+          $array = explode(',',$result[0]->subjectList);
+          $count = CandTest::whereIn('paper_id',$array)->where('status','')->count();
+          return $count;
+        }
+        else
+        {
+          return 0;
+        }
+      }
+      else
+      {
+        $result = DB::select("select group_concat(id) as subjectList from subject_master where inst_uid='$inst' and from_date like '%$date%' and slot='$slot'");
+
+        if($result)
+        {
+          $array = explode(',',$result[0]->subjectList);
+          $count = CandTest::whereIn('paper_id',$array)->where('status','')->count();
+          return $count;
+        }
+        else
+        {
+          return 0;
+        }
+      }
     }
   }
 

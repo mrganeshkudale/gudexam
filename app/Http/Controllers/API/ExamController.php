@@ -214,11 +214,18 @@ class ExamController extends Controller
     }
   }
 
-  public function examReportCountDatewise($date,$subject,$slot,Admin $a)
+  public function examReportCountDatewise($date,$subject,$slot,Admin $a,Request $request)
   {
     if(Auth::user())
     {
-      return $a->examReportCountDatewise($date,$subject,$slot,Auth::user()->username);
+      if(Auth::user()->role == 'EADMIN')
+      {
+        return $a->examReportCountDatewise($date,$subject,$slot,Auth::user()->username);
+      }
+      else if(Auth::user()->role == 'ADMIN')
+      {
+        return $a->examReportCountDatewise($date,$subject,$slot,$request->instId);
+      }
     }
     else
     {
@@ -259,4 +266,33 @@ class ExamController extends Controller
     }
   }
 
+  public function getActiveExamCount(Request $request,Admin $a)
+  {
+    if(Auth::user())
+    {
+      return $a->getActiveExamCount($request);
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 400);
+    }
+  }
+
+  public function examReportCountDateInstWise(Request $request,Admin $a)
+  {
+    if(Auth::user())
+    {
+      return $a->examReportCountDateInstWise($request->date,$request->slot);
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 400);
+    }
+  }
 }

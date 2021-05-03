@@ -136,6 +136,9 @@ Route::middleware(['auth:api','admin'])->group(function()
 
     Route::get('exam/report/count', [ExamController::class, 'examReportCount'])->name('examReportCount');
     Route::get('exam/report/countDatewise/{date}/{subject}/{slot}', [ExamController::class, 'examReportCountDatewise'])->name('examReportCountDatewise');
+
+    Route::get('exam/dashboardreport/countDateInstWise', [ExamController::class, 'examReportCountDateInstWise'])->name('examReportCountDateInstWise');
+
     Route::get('exam/bypaperid/type', [ExamController::class, 'examByPaperIdAndType'])->name('examByPaperIdAndType');
     Route::get('exam/log/{enrollno}/{paperId}', [ExamController::class, 'examLog'])->name('getExamLog');
 
@@ -144,6 +147,8 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('exam/report/countByDate', [ExamController::class, 'examReportCountByDate'])->name('examReportCountByDate');
 
     Route::get('exam/autoEnd/count', [ExamController::class, 'getAutoEndExamCount'])->name('getAutoEndExamCount');
+
+    Route::get('exam/active/count', [ExamController::class, 'getActiveExamCount'])->name('getActiveExamCount');
 
     Route::put('exam/autoEnd/{date}', [ExamController::class, 'autoEndExam'])->name('putAutoEndExam');
 });

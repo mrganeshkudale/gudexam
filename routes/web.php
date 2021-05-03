@@ -83,6 +83,7 @@ Route::get('/specification', function () {
 Route::get('/forceClearDB', function () 
 {
   DB::table('cand_questions')->truncate();
+  DB::table('cand_questions_copy')->truncate();
   DB::table('cand_test')->truncate();
   DB::table('exam_session')->truncate();
   DB::table('global_to_cluster_maps')->truncate();
