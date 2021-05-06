@@ -11,10 +11,9 @@ use App\Models\ProgramMaster;
 use Carbon\Carbon;
 use App\Http\Resources\ExamResource;
 use App\Models\CandQuestionsCopy;
-use App\Http\Resources\AnswerCopyCollection;
 
 
-class AnswerCollection extends ResourceCollection
+class AnswerCopyCollection extends ResourceCollection
 {
     /**
      * Transform the resource collection into an array.
@@ -22,9 +21,9 @@ class AnswerCollection extends ResourceCollection
      * @param  \Illuminate\Http\Request  $request
      * @return array
      */
-     public function toArray($request)
-     {
-         $arr = [];
+    public function toArray($request)
+    {
+        $arr = [];
          $i=0;
          foreach($this->collection as $single)
          {
@@ -51,22 +50,8 @@ class AnswerCollection extends ResourceCollection
 
              'cans'         =>  $single->cans,
              'ip'           =>  $single->ip,
-             'ansChangeLog' =>  new AnswerCopyCollection(CandQuestionsCopy::where('id',$single->id)->orderBy('entry_on','DESC')->get()),
            ];
          }
          return $arr;
-     }
-
-     public function with($request)
-     {
-       return [
-         'status'       				=>	'success',
-         'uid'       					  =>	Auth::user()->uid,
-         'username'       			=>	Auth::user()->username,
-         'role'       					=>	Auth::user()->role,
-         'inst_id'       			  =>	Auth::user()->inst_id,
-         'program_code'   			=>	Auth::user()->course_code,
-         'semester'   					=>	Auth::user()->semester,
-       ];
-     }
+    }
 }

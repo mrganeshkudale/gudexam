@@ -39,6 +39,7 @@ class ExamCollection extends ResourceCollection
             'switched'    =>  $single->switched,
             'now'         =>  round(microtime(true) * 1000),
             'paper'       =>  new PaperResource(SubjectMaster::find($single->paper_id)),
+            'marksobt'    =>  $single->marksobt,
           ];
         }
         return $arr;

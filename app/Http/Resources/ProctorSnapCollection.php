@@ -20,6 +20,7 @@ class ProctorSnapCollection extends ResourceCollection
          foreach($this->collection as $single)
          {
            $arr[$i++] = [
+             'id'           => $single->id,
             'totalPersons' =>  ProctorSnapDetails::where('snapid',$single->id)->count(),
              'proctorData'  =>  new ProctorCollection(ProctorSnapDetails::where('snapid',$single->id)->get()),
     

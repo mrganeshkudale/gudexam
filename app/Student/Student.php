@@ -375,6 +375,7 @@ class Student
 		$results->answer_on = Carbon::now();
 
 		$examId      = $request->answer_by;
+
 		$curQuestion = $request->curQuestion;
 
 
@@ -385,10 +386,21 @@ class Student
 		$results->save();
 
 		$result = DB::statement("insert into cand_questions_copy select * from cand_questions where id='$id'");
-
-		return json_encode([
-			'status'						=> 'success',
-		],200);
+		$res = CandQuestion::where('exam_id',$examId)->get();
+		if($rrr)
+		{
+			return json_encode([
+				'status'						=> 'success',
+				'questions'						=> new AnswerCollection($res),
+			],200);
+		}
+		else
+		{
+			return json_encode([
+				'status'						=> 'failure',
+			],200);
+		}
+		
 	}
 
 	public function updateReview(Request $request,$id)
