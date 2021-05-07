@@ -1902,7 +1902,7 @@ class Admin
       {
         $data[$i++] = [
           'id'                  =>  $res->id,
-          'from_date'           =>  $res->from_date,
+          'from_date'           =>  $res->from_date ? Carbon::createFromFormat('Y-m-d H:i:s.u', $res->from_date, 'UTC')->getPreciseTimestamp(3) : '',
           'paper_code'          =>  $res->paper_code,
           'paper_name'          =>  $res->paper_name,
           'marks'               =>  $res->marks,
@@ -3272,87 +3272,257 @@ class Admin
   {
     $slot     = $request->slot != ''    ? $request->slot : 'all';
     $paperId  = $request->paperId != '' ? $request->paperId : 'all';
-
+    
     $instID   = $request->instId;
     $rres = User::where('username',$instID)->where('role','EADMIN')->first();
     $instUid = $rres->uid;
-
+    DB::beginTransaction();
+    
     if($slot == 'all' && $paperId == 'all')
     {
-      //----------find all papersId of given institute on given date-----------------------------
-        $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and inst_uid like '$instUid' group by inst_uid");
+      //----------find all papersId of given institute on given date---------------
+        $results = DB::select("select group_concat(id) as id from gudexam.subject_master where from_date like '%$date%' and inst_uid like '$instUid' group by inst_uid");
 
-        if($result)
+        try
         {
-          $paperId = $result[0]->id;
+          $paperId = explode(',',$results[0]->id);
+          $paperIdStr = $results[0]->id;
 
-          $result1= DB::select("update cand_test set status='over' where paper_id in($paperId) and status='inprogress'");
-          
+          $results2 = CandTest::whereIn('paper_id',$paperId)->where('status','inprogress')->get();
+
+          foreach($results2 as $resultt2)
+          {
+            $id = $resultt2->id;
+              $cqnid='';$wqnid='';$uqnid='';$marksobt=0;
+              //----------get value of cqnid,wqnid,uqnid--------------------------------
+                $result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)=trim(cans)");
+                if($result)
+                {
+                  $cqnid 		= $result[0]->cqnid;
+                  $marksobt 	= $result[0]->marksobt;
+                }
+
+                $result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)!=trim(cans)");
+                if($result1)
+                {
+                  $wqnid = $result1[0]->wqnid;
+                }
+
+                $result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','unansweredandreview')");
+                if($result2)
+                {
+                  $uqnid = $result2[0]->uqnid;
+                }
+              //------------------------------------------------------------------------
+
+              //-------------------Update Exam Resource with End Exam Records-----------
+              $result3 = DB::table('cand_test')->where('id',$id)->update([
+                'cqnid' 			=> 	$cqnid,
+                'wqnid' 			=> 	$wqnid,
+                'uqnid' 			=> 	$uqnid,
+                'end_on' 			=>	Carbon::now(),
+                'end_by'			=>	$this->uid,
+                'status'			=>	'over',
+                'marksobt'		=>	$marksobt,
+                'updated_at'	=>	Carbon::now(),
+              ]);
+              //------------------------------------------------------------------------
+          }
+
           return response()->json([
             "status"  => "success",
           ], 200);
         }
-        else
+        catch(\Exception $e)
         {
+          DB::rollback();
           return response()->json([
             "status"  => "failure",
           ], 200);
         }
-        
-      //-----------------------------------------------------------------------------------------
+        DB::commit();
+      //-------------------------------------------------------------------
     }
     else if($slot == 'all' && $paperId != 'all')
     {
-        $result1= DB::select("update cand_test set status='over' where paper_id in($paperId) and status='inprogress'");
+      $paperIdStr = $paperId;
+      $paperId = explode(',',$paperId);
+      
+      $results2 = CandTest::whereIn('paper_id',$paperId)->where('status','inprogress')->get();
 
+      foreach($results2 as $resultt2)
+      {
+        $id = $resultt2->id;
+          $cqnid='';$wqnid='';$uqnid='';$marksobt=0;
+          //----------get value of cqnid,wqnid,uqnid--------------------------------
+            $result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)=trim(cans)");
+            if($result)
+            {
+              $cqnid 		= $result[0]->cqnid;
+              $marksobt 	= $result[0]->marksobt;
+            }
+
+            $result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)!=trim(cans)");
+            if($result1)
+            {
+              $wqnid = $result1[0]->wqnid;
+            }
+
+            $result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','unansweredandreview')");
+            if($result2)
+            {
+              $uqnid = $result2[0]->uqnid;
+            }
+          //------------------------------------------------------------------------
+          //-------------------Update Exam Resource with End Exam Records-----------
+          $result3 = DB::table('cand_test')->where('id',$id)->update([
+            'cqnid' 			=> 	$cqnid,
+            'wqnid' 			=> 	$wqnid,
+            'uqnid' 			=> 	$uqnid,
+            'end_on' 			=>	Carbon::now(),
+            'end_by'			=>	$this->uid,
+            'status'			=>	'over',
+            'marksobt'		=>	$marksobt,
+            'updated_at'	=>	Carbon::now(),
+          ]);
+          
+          //------------------------------------------------------------------------
+      }
+
+      DB::commit();
         return response()->json([
           "status"  => "success",
         ], 200);
     }
     elseif($slot != 'all' && $paperId == 'all')
     {
-      //----------find all papersId of given institute on given date and slot-----------------------------
-      $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and inst_uid like '$instUid' group by inst_uid");
+      //----------find all papersId of given institute on given date and slot-------
+      $results = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and inst_uid like '$instUid' group by inst_uid");
 
-      if($result)
-      {
-        $paperId = $result[0]->id;
-
-        $result1= DB::select("update cand_test set status='over' where paper_id in($paperId) and status='inprogress'");
-      
-        return response()->json([
-          "status"  => "success",
-        ], 200);
-      }
-      else
-      {
-        return response()->json([
-          "status"  => "failure",
-        ], 200);
-      }
-    //-----------------------------------------------------------------------------------------
-    }
-    else if($slot != 'all' && $paperId != 'all')
-    {
-        //----------find all papersId of given institute on given date and slot-----------------------------
-        $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and id='$paperId' and inst_uid like '$instUid' group by inst_uid");
-
-        if($result)
+      try
         {
-          $paperId = $result[0]->id;
-          $result1= DB::select("update cand_test set status='over' where paper_id in($paperId) and status='inprogress'");
-          
+          $paperId = explode(',',$results[0]->id);
+          $paperIdStr = $results[0]->id;
+
+          $results2 = CandTest::whereIn('paper_id',$paperId)->where('status','inprogress')->get();
+
+          foreach($results2 as $resultt2)
+          {
+            $id = $resultt2->id;
+              $cqnid='';$wqnid='';$uqnid='';$marksobt=0;
+              //----------get value of cqnid,wqnid,uqnid--------------------------------
+                $result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)=trim(cans)");
+                if($result)
+                {
+                  $cqnid 		= $result[0]->cqnid;
+                  $marksobt 	= $result[0]->marksobt;
+                }
+
+                $result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)!=trim(cans)");
+                if($result1)
+                {
+                  $wqnid = $result1[0]->wqnid;
+                }
+
+                $result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','unansweredandreview')");
+                if($result2)
+                {
+                  $uqnid = $result2[0]->uqnid;
+                }
+              //------------------------------------------------------------------------
+                
+              //-------------------Update Exam Resource with End Exam Records-----------
+              $result3 = DB::table('cand_test')->where('id',$id)->update([
+                'cqnid' 			=> 	$cqnid,
+                'wqnid' 			=> 	$wqnid,
+                'uqnid' 			=> 	$uqnid,
+                'end_on' 			=>	Carbon::now(),
+                'end_by'			=>	$this->uid,
+                'status'			=>	'over',
+                'marksobt'		=>	$marksobt,
+                'updated_at'	=>	Carbon::now(),
+              ]);
+              //------------------------------------------------------------------------
+          }
+          DB::commit();
           return response()->json([
-              "status"  => "success",
+            "status"  => "success",
           ], 200);
         }
-        else
+        catch(\Exception $e)
         {
+          DB::rollback();
           return response()->json([
             "status"  => "failure",
           ], 200);
         }
-        //--------------------------------------------------------------------------------------
+      //-------------------------------------------------------------------
+      
+    //----------------------------------------------------------------
+    }
+    else if($slot != 'all' && $paperId != 'all')
+    {
+        //----------find all papersId of given institute on given date and slot------
+        $results = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and id='$paperId' and inst_uid like '$instUid' group by inst_uid");
+
+        try
+        {
+          $paperId = explode(',',$results[0]->id);
+          $paperIdStr = $results[0]->id;
+
+          $results2 = CandTest::whereIn('paper_id',$paperId)->where('status','inprogress')->get();
+
+          foreach($results2 as $resultt2)
+          {
+            $id = $resultt2->id;
+              $cqnid='';$wqnid='';$uqnid='';$marksobt=0;
+              //----------get value of cqnid,wqnid,uqnid--------------------------------
+                $result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)=trim(cans)");
+                if($result)
+                {
+                  $cqnid 		= $result[0]->cqnid;
+                  $marksobt 	= $result[0]->marksobt;
+                }
+
+                $result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)!=trim(cans)");
+                if($result1)
+                {
+                  $wqnid = $result1[0]->wqnid;
+                }
+
+                $result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','unansweredandreview')");
+                if($result2)
+                {
+                  $uqnid = $result2[0]->uqnid;
+                }
+              //------------------------------------------------------------------------
+                
+              //-------------------Update Exam Resource with End Exam Records-----------
+              $result3 = DB::table('cand_test')->where('id',$id)->update([
+                'cqnid' 			=> 	$cqnid,
+                'wqnid' 			=> 	$wqnid,
+                'uqnid' 			=> 	$uqnid,
+                'end_on' 			=>	Carbon::now(),
+                'end_by'			=>	$this->uid,
+                'status'			=>	'over',
+                'marksobt'		=>	$marksobt,
+                'updated_at'	=>	Carbon::now(),
+              ]);
+              //------------------------------------------------------------------------
+          }
+          DB::commit();
+          return response()->json([
+            "status"  => "success",
+          ], 200);
+        }
+        catch(\Exception $e)
+        {
+          DB::rollback();
+          return response()->json([
+            "status"  => "failure",
+          ], 200);
+        }
+        //---------------------------------------------------------------------------
     }
   }
 
@@ -3535,6 +3705,138 @@ class Admin
           return 0;
         }
       }
+    }
+  }
+
+  public function storeStudSubjectMapping($request)
+  {
+    $enrollno         = $request->enrollno;
+    $paperId          = $request->paperId;
+    $instId           = $request->instId;
+    $current_time 			= Carbon::now();
+
+    $result           = User::where('username',$enrollno)->where('inst_id',$instId)->first();
+    $stdid            = $result->uid;
+
+    $result           = SubjectMaster::where('id',$paperId)->first();
+    $programId        = $result->program_id;
+    $static_assign    = $result->static_assign;
+
+    DB::beginTransaction();
+
+    try
+    {
+      
+      $result = CandTest::create([
+                      'stdid'       =>  $stdid,
+                      'inst'        =>  $instId,
+                      'paper_id'    =>  $paperId,
+                      'program_id'  =>  $programId,
+                      'created_at'  =>  $current_time 
+      ]);
+
+      if($static_assign)
+      {
+        $res4             = TopicMaster::where('paper_id',$paperId)->get();
+        if($res4)
+        { 
+                
+                $fetchQuery = '';
+                $actualMarks = 0;
+                foreach($res4 as $record)
+                {
+                  $topic    = $record->topic;
+                  $subtopic = $record->subtopic;
+                  $questType= $record->questType;
+                  
+                  $quest    = $record->questions;
+                  $mrk      = $record->marks;
+                  $mmarks   = $mrk * $quest;
+
+                  $actualMarks = $actualMarks + $mmarks;
+
+                  $fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paperId') AND topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
+                }
+        }
+                
+        $fetchQuery = rtrim($fetchQuery," UNION ");
+        $res5 = DB::select($fetchQuery);
+        $res5dummy = $res5;
+        if($res5)
+        {
+          //------------------Insert Questions into Candidate Questions----------------------
+          $j = 1;
+          $k = 0;
+          $values = array();
+          foreach ($res5dummy as $question)
+          {
+            $values[$k++] = array(
+              'exam_id' 					=> $result->id,
+              'stdid' 						=> $stdid,
+              'inst' 							=> $instId,
+              'paper_id' 					=> $paperId,
+              'program_id' 				=> $programId,
+              'qnid' 							=> $question->qnid,
+              'qtopic' 						=> $question->topic,
+              'qtype' 						=> $question->difficulty_level,
+              'answered' 					=> 'unanswered',
+              'cans' 							=> $question->coption,
+              'marks' 						=> $question->marks,
+              'ip' 								=> request()->ip(),
+              'entry_on' 					=> $current_time,
+              'qnid_sr' 					=> $j++
+            );
+          }
+
+          try
+          {
+            $inserted = DB::table('cand_questions')->insert($values);
+            $values = null;
+          }
+          catch(\Exception $e)
+          {
+            dd('1');
+            DB::rollback();
+            return response()->json([
+              "status"  => "failure"
+            ], 400);
+          }
+        }
+        DB::commit();
+        return response()->json([
+          "status"  => "success"
+        ], 200);
+      }
+      DB::commit();
+      return response()->json([
+        "status"  => "success"
+      ], 200);
+    }
+    catch(\Exception $e)
+    {
+      dd('2');
+      DB::rollback();
+      return response()->json([
+        "status"  => "failure"
+      ], 400);
+    }
+  }
+
+
+  public function clearResponse($qnidSr,$examId)
+  {
+    $result = CandQuestion::where('qnid_sr',$qnidSr)->where('exam_id',$examId)->update([
+      'answered' => 'unanswered',
+      'stdanswer'=> ''
+    ]);
+
+    $result2 = CandQuestion::where('exam_id',$examId)->get();
+    if($result2)
+    {
+      return json_encode([
+              'status'  => 'success',
+              'data'    => new AnswerCollection($result2),
+      ],200);
     }
   }
 

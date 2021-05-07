@@ -62,6 +62,7 @@ Route::middleware(['auth:api'])->group(function()
 
     Route::get('answer', [AnswerController::class, 'index'])->name('getAnswer');
     Route::put('answer/{id}', [AnswerController::class, 'update'])->name('updateAnswer');
+    Route::put('answer/{qnidSr}/{examId}', [AnswerController::class, 'updateByExamId'])->name('updateByExamId');
 
     Route::post('proctor/{id}', [ProctorController::class, 'store'])->name('PostProctor');
     Route::post('proctorDetails/{id}', [ProctorDetailsController::class, 'store'])->name('PostroctorDetails');
@@ -132,6 +133,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('subject/question/upload', [SubjectsController::class, 'uploadQuestion'])->name('uploadQuestion');
 
     Route::post('exam/upload', [ExamController::class, 'upload'])->name('uploadExam');
+    Route::post('exam/', [ExamController::class, 'store'])->name('postExam');
     Route::delete('exam/{id}', [ExamController::class, 'del'])->name('delExam');
 
     Route::get('exam/report/count', [ExamController::class, 'examReportCount'])->name('examReportCount');

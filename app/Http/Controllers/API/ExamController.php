@@ -114,6 +114,21 @@ class ExamController extends Controller
     }
   }
 
+  public function store(Request $request, Admin $a)
+  {
+    if(Auth::user())
+    {
+      return $a->storeStudSubjectMapping($request);
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 400);
+    }
+  }
+
   public function upload(Request $request, Admin $a)
   {
     if(Auth::user())
