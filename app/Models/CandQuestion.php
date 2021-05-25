@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class CandQuestion extends Model
 {
     use HasFactory;protected $table = 'cand_questions';
-    protected $fillable = ['id','stdid','inst','paper_id','program_id','qnid','qtopic','qtype','answered','stdanswer','qnid_sr','entry_on','answer_by','answer_on','cans','marks','ip','obtmarks','exam_id'];
+    protected $fillable = ['id','stdid','inst','paper_id','program_id','qnid','qtopic','qtype','answered','stdanswer','qnid_sr','entry_on','answer_by','answer_on','cans','marks','ip','obtmarks','exam_id','questMode'];
 
     public $timestamps = false;
 

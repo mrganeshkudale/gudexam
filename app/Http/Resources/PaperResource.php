@@ -40,10 +40,11 @@ class PaperResource extends JsonResource
           'proctoring'    =>  $this->proctoring,
           'photo_capture' =>  $this->photo_capture,
           'capture_interval'=>  $this->capture_interval,
-          'negative_marks'=> $this->negative_marks,
+          'negative_marks'=>    $this->negative_marks,
           'time_remaining_reminder'       =>  $this->time_remaining_reminder,
+          'exam_switch'     =>  $this->exam_switch,
           'exam_switch_alerts' => $this->exam_switch_alerts,
-          'option_shuffle'  => $this->option_shuffle,
+          'option_shuffle'  =>  $this->option_shuffle,
           'question_marks'  =>  $this->question_marks,
           'instructions'    =>  $this->instructions,
           'ph_time'         =>  $this->ph_time,
@@ -51,7 +52,8 @@ class PaperResource extends JsonResource
           'questwisetimer'  =>  $this->questwisetimer,
           'secperquest'     =>  $this->secperquest, 
           'created_at'      =>  $this->created_at,
-          'updated_at'      =>  $this->updated_at
+          'updated_at'      =>  $this->updated_at,
+          'exam_mode'       => $this->exam_mode
         ];
     }
 }

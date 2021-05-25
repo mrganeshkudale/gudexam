@@ -100,6 +100,7 @@ class Student
 		$elapsed =0 ;
 		$continueexam =0;
 		$exam = CandTest::find($exam_id);
+		
 		if($exam)
 		{
 			DB::beginTransaction();
@@ -129,6 +130,7 @@ class Student
 			{
 				//----------------------------Insert Answers in CandQuestion-------
 				$insertcount=0;
+				//---------------Check if exam is allocated------------------------
 				$cnt = CandTest::where('paper_id',$paper_id)->where('stdid',$this->uid)->count();
 				if(!$cnt)
 				{
@@ -136,11 +138,12 @@ class Student
 						'status'						=>  'failure'
 					],400);
 				}
-					
+				//------------------------------------------------------------------	
 				$current_time 		= 	Carbon::now();
 				$res5 = null;
 				if(!$static_assign)
 				{
+					
 					//---------------------Get Questions from Question Set----------------------
 					$questions = TopicMaster::where('paper_id',$paper_id)->get();
 					if($questions)
@@ -152,17 +155,18 @@ class Student
 							$topic    = $record->topic;
 							$subtopic = $record->subtopic;
 							$quest    = $record->questions;
+							$questMode= $record->questMode;
 							$questType= $record->questType;
 							$mrk      = $record->marks;
 							$mmarks   = $mrk * $quest;
 				  
 							$actualMarks = $actualMarks + $mmarks;
 				  
-							$fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paper_id') AND  topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
+							$fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paper_id') AND  topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND quest_type='$questMode' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
 						}
 						
 						$fetchQuery = rtrim($fetchQuery," UNION ");
-							  
+						
 						try
 						{
 							$res5 = DB::select($fetchQuery);
@@ -170,7 +174,7 @@ class Student
 						catch(\Exception $e)
 					  	{
 							return response()->json([
-							  'status' 		=> 'failure000',
+							  'status' 		=> 'failure',
 							],400);
 						}
 					}
@@ -191,6 +195,7 @@ class Student
 								'qnid' 						=> $question->qnid,
 								'qtopic' 					=> $question->topic,
 								'qtype' 					=> $question->difficulty_level,
+								'questMode'					=> $question->quest_type,
 								'answered' 					=> 'unanswered',
 								'cans' 						=> $question->coption,
 								'marks' 					=> $question->marks,
@@ -356,7 +361,28 @@ class Student
 		$answers = CandQuestion::where('exam_id',$id)->get();
 		if($answers)
 		{
-			return new AnswerCollection($answers);
+			return json_encode([
+				'status' => 'success',
+				'data' => new AnswerCollection($answers)
+			],200);
+		}
+		else
+		{
+			return json_encode([
+				'status' => 'failure'
+			],400);
+		}
+	}
+
+	public function getAnswer($id)
+	{
+		$answers = CandQuestion::where('id',$id)->get();
+		if($answers)
+		{
+			return json_encode([
+				'status' => 'success',
+				'data' => new AnswerCollection($answers)
+			],200);
 		}
 		else
 		{
@@ -386,12 +412,14 @@ class Student
 		$results->save();
 
 		$result = DB::statement("insert into cand_questions_copy select * from cand_questions where id='$id'");
-		$res = CandQuestion::where('exam_id',$examId)->get();
+
+		//$res = CandQuestion::where('exam_id',$examId)->get(); //--because of count issue
+
 		if($rrr)
 		{
 			return json_encode([
 				'status'						=> 'success',
-				'questions'						=> new AnswerCollection($res),
+				//'questions'						=> new AnswerCollection($res),
 			],200);
 		}
 		else
@@ -640,4 +668,171 @@ class Student
 			],400);
 		}
 	}
+
+	public function updateCurQuestion($id,$request)
+	{
+		$examId = $id;
+		$curQuestion = $request->curQuestion;
+		
+
+		$result = CandTest::where('id',$examId)->update([
+			'curQuestion' => $curQuestion
+		]);
+
+		return response()->json([
+			'status' 				=> 'success'
+		],200);
+	}
+
+	public function updateSubjectiveAnswer($request,$id)
+	{
+		$answer 			= $request->stdanswer;
+		$answered 			= $request->answered;
+		$current_time 		= Carbon::now();
+		$answer_by 			= $request->answer_by;
+		$ip 				= request()->ip();
+
+
+		$result = CandQuestion::where('id',$id)->update([
+			'answered' 		=> $answered,
+			'stdanswer'		=> $answer,
+			'answer_by'		=> $answer_by,
+			'answer_on'		=> $current_time,
+			'ip'			=> $ip,
+		]);
+
+
+		$rrr = DB::statement("insert into cand_questions_copy select * from cand_questions where id='$id'");
+		if($rrr)
+		{
+			return json_encode([
+				'status'						=> 'success',
+			],200);
+		}
+		else
+		{
+			return json_encode([
+				'status'						=> 'failure',
+			],400);
+		}
+
+	}
+
+	public function uploadAnswerImage($id,$request)
+	{
+		if($request->file)
+		{
+				$part 			= rand(100000,999999);
+				$validation 	= Validator::make($request->all(), ['file' => 'required|mimes:jpeg,jpg,pdf,doc,docx,xls,xlsx,ppt,pptx']);
+				$path = $request->file('file')->getRealPath();
+			
+				if($validation->passes())
+				{
+					$image 		= $request->file('file');
+					$new_name 	= 'Answer_'.$id.'_'.$part.'.'.$image->getClientOriginalExtension();
+					$image->move(public_path('answers'), $new_name);
+					$path		=public_path('answers').'/'.$new_name;
+					$ansfilepath= $new_name;
+
+					$answer 			= 'answers/'.$new_name;
+					$answered 			= $request->answered;
+					$current_time 		= Carbon::now();
+					$answer_by 			= $request->answer_by;
+					$ip 				= request()->ip();
+
+					$url 				= Config::get('constants.PROJURL');
+					//--------------------------------------------------------------
+					$result 			= CandQuestion::where('id',$id)->first();
+					$answerImgStr 		= $result->answerImage;
+					$answerImg 			= explode(',',$result->answerImage);
+					if(sizeof($answerImg) >= 5)
+					{
+						return json_encode([
+							'status'						=> 'failure',
+						],400);
+					}
+					//--------------------------------------------------------------
+					$answerImgStr 		= trim($answerImgStr.','.$answer,',');
+
+					$result= CandQuestion::where('id',$id)->update([
+						//'answered' 		=> $request->newAnswered,
+						'answerImage'	=> $answerImgStr,
+						'answer_by'		=> $answer_by,
+						'answer_on'		=> $current_time,
+						'ip'			=> $ip,
+					]);
+
+					$answerImg 			= explode(',',$answerImgStr);
+
+					for($i=0;$i< sizeof($answerImg);$i++)
+					{
+						$answerImg[$i] = $url.'/'.$answerImg[$i];
+					} 
+
+					if($result)
+					{
+						return json_encode([
+							'status'						=> 'success',
+							'path'							=> implode(',',$answerImg),
+							'pathIcon'						=> $url.'/assets/images',
+						],200);
+					}
+					else
+					{
+						return json_encode([
+							'status'						=> 'failure',
+						],400);
+					}
+				}
+				else
+				{
+					return response()->json([
+						"status"            => "failure",
+						"message"           => 'Answer Document must be among jpeg,jpg,doc,docx,xls,xlsx,pdf',
+					], 400);
+				}
+		}
+	}
+
+	public function removeAnswerImage($request,$id)
+	{
+		$filePath 		= substr($request->filePath, strrpos($request->filePath, '/') + 1);
+		$index    		= null;
+		$result 		= CandQuestion::find($id);
+		$url 			= Config::get('constants.PROJURL');
+
+		$answerImage 	= explode(',',$result->answerImage!==null ? $result->answerImage : '');
+
+
+		for($i = 0;$i< sizeof($answerImage);$i++)
+		{
+			if (strpos($answerImage[$i], $filePath) !== false)
+			{
+				$index = $i;
+			}
+		}
+
+		if($index >= 0)
+		{
+			array_splice($answerImage,$index,1);
+		}
+
+		if(sizeof($answerImage) > 0 )
+		{
+			$result->answerImage = implode(',',$answerImage);
+		}
+		else
+		{
+			$result->answerImage = '';
+		}
+
+		$result->save();
+
+		return json_encode([
+			'status'						=> 'success',
+			'path'							=> implode(',',$answerImage),
+			'pathIcon'						=> $url.'/assets/images',
+		],200);
+	}
 }
+?>

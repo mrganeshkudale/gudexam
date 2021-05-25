@@ -5,11 +5,12 @@ use Illuminate\Support\Facades\Config;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Admin\Admin;
+use App\Admin\Admin1;
 use Illuminate\Http\Request;
 
 class UsersController extends Controller
 {
-    public function index(Request $request,Admin $a)
+    public function index(Request $request,Admin $a,Admin1 $a1)
     {
         if(Auth::user())
         {
@@ -26,6 +27,16 @@ class UsersController extends Controller
                 else
                 {
                     return $a->getAllUsers($request->role);
+                }
+            }
+            else
+            {
+                if($request->username != '')
+                {
+                    if(Auth::user()->role == 'EADMIN')
+                    {
+                        return $a1->getUser($request->username,Auth::user()->username);
+                    }
                 }
             }
         }

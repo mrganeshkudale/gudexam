@@ -43,6 +43,8 @@ class AnswerCopyCollection extends ResourceCollection
              'stdanswer'    =>  $single->stdanswer,
              'qnid_sr'      =>  $single->qnid_sr,
              'marks'        =>  $single->marks,
+             'questMode'    =>  $single->questMode,
+             'answerImage'  =>  $single->answerImage,
              
              'entry_on'     =>  $single->entry_on != '' ? Carbon::createFromFormat('Y-m-d H:i:s.u', $single->entry_on, 'UTC')->getPreciseTimestamp(3) : '',
 

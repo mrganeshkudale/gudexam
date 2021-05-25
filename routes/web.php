@@ -83,13 +83,20 @@ Route::get('/specification', function () {
 Route::get('/forceClearDB', function () 
 {
   DB::table('cand_questions')->truncate();
+  DB::table('cand_questions_reset')->truncate();
   DB::table('cand_questions_copy')->truncate();
+  DB::table('cand_questions_copy_reset')->truncate();
   DB::table('cand_test')->truncate();
+  DB::table('cand_test_reset')->truncate();
   DB::table('exam_session')->truncate();
+  DB::table('exam_session_reset')->truncate();
   DB::table('global_to_cluster_maps')->truncate();
   DB::table('inst_programs')->truncate();
   DB::table('proctor_snaps')->truncate();
+  DB::table('proctor_snaps_reset')->truncate();
   DB::table('proctor_snap_details')->truncate();
+  DB::table('oauth_access_tokens')->truncate();
+  DB::table('proctor_snap_details_reset')->truncate();
   DB::table('program_master')->truncate();
   DB::table('otp_verify')->truncate();
   DB::table('question_set')->truncate();

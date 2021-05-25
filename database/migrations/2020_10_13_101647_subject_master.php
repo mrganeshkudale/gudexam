@@ -21,6 +21,7 @@ class SubjectMaster extends Migration
             $table->integer('inst_uid')->nullable();
             $table->integer('semester');
             $table->string('exam_name',200)->nullable();
+            $table->string('exam_mode',20)->nullable();
             $table->integer('marks')->default('0');
             $table->integer('questions')->default('0');
             
@@ -52,6 +53,7 @@ class SubjectMaster extends Migration
             $table->index('secperquest');
 
             $table->index('id');
+            $table->index('exam_mode');
             $table->index('inst_uid');
             $table->index('questions');
             $table->index('marks');

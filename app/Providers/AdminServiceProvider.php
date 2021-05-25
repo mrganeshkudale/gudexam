@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Auth;
 use App\Admin\Admin;
+use App\Admin\Admin1;
 class AdminServiceProvider extends ServiceProvider
 {
     /**
@@ -27,6 +28,11 @@ class AdminServiceProvider extends ServiceProvider
       $this->app->singleton(Admin::class, function ($app)
       {
           return new Admin(Auth::user());
+      });
+
+      $this->app->singleton(Admin1::class, function ($app)
+      {
+          return new Admin1(Auth::user());
       });
     }
 }

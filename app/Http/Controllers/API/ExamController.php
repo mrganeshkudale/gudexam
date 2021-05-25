@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Student\Student;
 use App\Admin\Admin;
+use App\Admin\Admin1;
 use Illuminate\Http\Request;
 
 class ExamController extends Controller
@@ -32,7 +33,7 @@ class ExamController extends Controller
       }
       else if(Auth::user()->role == 'EADMIN' && $request->type == 'StudentSubAllocReport')
       {
-        return $a->studSubAlloc();
+        return $a->studSubAlloc($request);
       }
     }
     else
@@ -61,6 +62,23 @@ class ExamController extends Controller
       ], 200);
     }
   }
+  public function update2(Student $s,Admin1 $a1,Request $request)
+  {
+    if(Auth::user())
+    {
+      if($request->status === 'reset')
+      {
+        return $a1->resetExam($request);
+      }
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 401);
+    }
+  }
 
   public function update(Student $s,Admin $a,Request $request,$id)
   {
@@ -81,6 +99,10 @@ class ExamController extends Controller
       else if($request->status==='preview')
       {
         return $a->previewExam(true);
+      }
+      else if($request->status == 'saveCurQuestion')
+      {
+        return $s->updateCurQuestion($id,$request);
       }
       else
       {

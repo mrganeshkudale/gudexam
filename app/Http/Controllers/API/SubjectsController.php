@@ -4,6 +4,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Admin\Admin;
+use App\Admin\Admin1;
 
 class SubjectsController extends Controller
 {
@@ -237,11 +238,18 @@ class SubjectsController extends Controller
     }
  }
 
- public function storeQuestion(Request $request, Admin $a)
+ public function storeQuestion(Request $request, Admin $a,Admin1 $a1)
  {
     if(Auth::user())
     {
-      return $a->storeQuestion($request);
+      if($request->questType == 'S')
+      {
+        return $a1->storeSubjectiveQuestion($request);
+      }
+      else
+      {
+        return $a->storeQuestion($request);
+      }
     }
     else
     {
@@ -257,6 +265,21 @@ class SubjectsController extends Controller
     if(Auth::user())
     {
       return $a->uploadQuestion($request);
+    }
+    else
+    {
+        return response()->json([
+            "status"          =>  "failure",
+            "message"         =>  "Unauthorized User...",
+        ], 200);
+    }
+ }
+
+ public function uploadSubjectiveQuestion(Request $request , Admin1 $a1)
+ {
+    if(Auth::user())
+    {
+      return $a1->uploadSubjectiveQuestion($request);
     }
     else
     {

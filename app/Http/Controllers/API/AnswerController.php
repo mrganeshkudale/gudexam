@@ -26,6 +26,36 @@ class AnswerController extends Controller
       }
     }
 
+    public function show(Student $s,$id)
+    {
+      if(Auth::user())
+      {
+        return $s->getAnswer($id);
+      }
+      else
+      {
+        return response()->json([
+          "status"          =>  "failure",
+          "message"         =>  "Unauthorized User...",
+        ], 401);
+      }
+    }
+
+    public function upload(Student $s,$id,Request $request)
+    {
+      if(Auth::user())
+      {
+        return $s->uploadAnswerImage($id,$request);
+      }
+      else
+      {
+        return response()->json([
+          "status"          =>  "failure",
+          "message"         =>  "Unauthorized User...",
+        ], 401);
+      }
+    }
+
     public function update(Student $s,Request $request,$id)
     {
       if(Auth::user())
@@ -34,9 +64,17 @@ class AnswerController extends Controller
         {
           return $s->updateAnswer($request,$id);
         }
+        else if($request->type == 'savesubjectiveanswer')
+        {
+          return $s->updateSubjectiveAnswer($request,$id);
+        }
         else if($request->type == 'savereview')
         {
           return $s->updateReview($request,$id);
+        }
+        else if($request->type == 'removeAnswerImage')
+        {
+          return $s->removeAnswerImage($request,$id);
         }
       }
       else

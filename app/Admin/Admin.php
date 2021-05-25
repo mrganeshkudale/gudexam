@@ -383,13 +383,10 @@ class Admin
 
   public function getFilteredUsersByInstCode($role,$inst_id)
   {
-    $result = User::where('role',$role)->where('inst_id',$inst_id)->get();
+    $result = User::where('role',$role)->where('inst_id',$inst_id)->paginate(50);
     if($result)
     {
-      return response()->json([
-        "status"        => "success",
-        "data"          =>  $result
-      ], 200);
+      return response($result, 200);
     }
     else
     {
@@ -576,8 +573,7 @@ class Admin
               'mobile'              => $mobile,
               'email'               => $email,
               'origpass'            => $origpassword,
-              'password'            => $password,
-              'status'              => 'ON',
+              'password'            => $password,  
               'college_name'        => $orgName,
               'name'                => $username,
               'regi_type'           => $role,
@@ -613,7 +609,7 @@ class Admin
   public function deleteUser($id)
   {
     $result = User::find($id)->delete();
-
+    DB::commit();
     return response()->json([
       "status"          => "success",
       "message"         => "User Deleted Successfully.",
@@ -1216,14 +1212,14 @@ class Admin
               $topic    = $record->topic;
               $subtopic = $record->subtopic;
               $questType= $record->questType;
-              
+              $questMode= $record->questMode;
               $quest    = $record->questions;
               $mrk      = $record->marks;
               $mmarks   = $mrk * $quest;
 
               $actualMarks = $actualMarks + $mmarks;
 
-              $fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paperId') AND topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
+              $fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paperId') AND topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND quest_type='$questMode' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
             }
             
             $fetchQuery = rtrim($fetchQuery," UNION ");
@@ -1302,6 +1298,7 @@ class Admin
                       'qnid' 							=> $question->qnid,
                       'qtopic' 						=> $question->topic,
                       'qtype' 						=> $question->difficulty_level,
+                      'questMode'					=> $question->quest_type,
                       'answered' 					=> 'unanswered',
                       'cans' 							=> $question->coption,
                       'marks' 						=> $question->marks,
@@ -1389,7 +1386,7 @@ class Admin
 
   public function getFilteredExams($instId)
   {
-    $exams 	= CandTest::where('inst',$instId)->get();
+    $exams 	= CandTest::where('inst',$instId)->paginate(50);
 		if($exams)
 		{
 			return new ExamCollection($exams);
@@ -1420,6 +1417,7 @@ class Admin
     $questType      = $request->questType;
     $questions      = $request->questions;
     $marks          = $request->marks;
+    $questMode      = $request->questMode;
 
     if($subTopic == '' || $subTopic == NULL)
     {
@@ -1432,6 +1430,7 @@ class Admin
       'paper_id'    => $paperId,
       'topic'       => $topic,
       'subtopic'    => $subTopic,
+      'questMode'   => $questMode,
       'questType'   => $questType,
       'questions'   => $questions,
       'marks'       => $marks,
@@ -1471,17 +1470,56 @@ class Admin
       $spreadsheet        = $reader->load(public_path('assets/tempfiles/').$fileName);
       $current_time 			= Carbon::now();
       $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+      //--------------Get Topic Sub Topic Array and check with excel topic subtopic--------------
+      $topicArray         = array();
+      $subtopicArray      = array();
+
+      $paperCodeOld       = '';
+           
+      //-----------------------------------------------------------------------------------------
 
       for($i=2;$i<=$highestRow;$i++)
       {
-        $paperCode      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
-        $instCode       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
-        $instId         = User::where('username',$instCode)->where('role','EADMIN')->first()->uid;
-        $topic          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
-        $subTopic       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
-        $questType      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
-        $questions      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
-        $marks          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue();
+        $paperCode        = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+
+        if($paperCodeOld != $paperCode)
+        {
+          $rrr            = QuestionSet::select(DB::raw('group_concat(distinct topic) as topic, group_concat(distinct subtopic) as subtopic'))->where('paper_id',$paperCode)->groupBy('paper_id')->first();
+
+          $topicArray     = explode(',',$rrr->topic);
+          $subtopicArray  = explode(',',$rrr->subtopic);
+
+          $paperCodeOld   = $paperCode;
+        }
+
+        $instCode         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $instId           = User::where('username',$instCode)->where('role','EADMIN')->first()->uid;
+        $topic            = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+
+        if (!in_array($topic, $topicArray))
+        {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Invalid Topic Number on row'.$i,
+            'row'       =>  $i
+          ],400);
+        }
+
+        $subTopic         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+
+        if (!in_array($subTopic, $subtopicArray))
+        {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Invalid Subotopic Number on row'.$i,
+            'row'       =>  $i
+          ],400);
+        }
+
+        $questMode        = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $questType        = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
+        $questions        = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue();
+        $marks            = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(8, $i)->getValue();
 
         if($subTopic == '' || $subTopic == NULL)
         {
@@ -1500,6 +1538,7 @@ class Admin
               'paper_id'    => $paperId,
               'topic'       => $topic,
               'subtopic'    => $subTopic,
+              'questMode'   => $questMode,
               'questType'   => $questType,
               'questions'   => $questions,
               'marks'       => $marks,
@@ -1579,6 +1618,7 @@ class Admin
       'slot'      => $request->slot,
       'from_date' => $fromDate->format('Y-m-d H:i:s.u'),
       'to_date'   => $toDate->format('Y-m-d H:i:s.u'),
+      'exam_mode' => $request->testMode
     ]);
     if($result)
     {
@@ -1700,7 +1740,8 @@ class Admin
     $result->negative_marking   =   $request->negative_marking ? $request->negative_marking : '0';
     $result->negative_marks     =   $request->negative_marks ? $request->negative_marks : '0';
     $result->time_remaining_reminder  =   $request->time_remaining_reminder;
-    $result->exam_switch_alerts =   $request->exam_switch_alerts;
+    $result->exam_switch        =   $request->exam_switch;
+    $result->exam_switch_alerts =   $request->exam_switch_alerts ? $request->exam_switch_alerts : '99999';
     $result->option_shuffle     =   $request->option_shuffle ? $request->option_shuffle : '0';
     $result->question_marks     =   $request->question_marks ? $request->question_marks :  '0';
     $result->ph_time            =   $request->ph_time ? $request->ph_time : '0';
@@ -1847,19 +1888,20 @@ class Admin
     }
 
     $result = DB::select("SELECT * FROM
-    (SELECT topic_data.topic, topic_data.paper_uid,topic_data.paper_code, topic_data.questType, topic_data.marks, CASE WHEN topic_data.expected IS NULL THEN 0 ELSE topic_data.expected END AS expected, CASE WHEN question_data.actual IS NULL THEN 0 ELSE question_data.actual END AS actual  FROM
+    (SELECT topic_data.topic, topic_data.paper_uid,topic_data.paper_code,topic_data.questMode ,topic_data.questType, topic_data.marks, CASE WHEN topic_data.expected IS NULL THEN 0 ELSE topic_data.expected END AS expected, CASE WHEN question_data.actual IS NULL THEN 0 ELSE question_data.actual END AS actual  FROM
     
-    (SELECT topic_master.topic, topic_master.paper_uid,topic_master.paper_code, topic_master.questType, topic_master.marks, SUM(topic_master.questions) as expected
+    (SELECT topic_master.topic, topic_master.paper_uid,topic_master.paper_code, topic_master.questMode,topic_master.questType, topic_master.marks, SUM(topic_master.questions) as expected
     FROM
     (SELECT subject_master.paper_code, subject_master.id as paper_uid,topic_master.* FROM subject_master INNER JOIN topic_master on subject_master.id = topic_master.paper_id) topic_master
     GROUP BY
-    topic_master.topic, topic_master.paper_uid,topic_master.paper_code, topic_master.questType, topic_master.marks) topic_data
+    topic_master.topic, topic_master.paper_uid,topic_master.paper_code,topic_master.questMode ,topic_master.questType, topic_master.marks) topic_data
     
     LEFT JOIN 
     
-    (SELECT question_set.topic, question_set.paper_uid,question_set.paper_id, question_set.difficulty_level, question_set.marks, COUNT(*) as actual FROM question_set GROUP BY question_set.topic, question_set.paper_uid,question_set.paper_id, question_set.difficulty_level, question_set.marks) question_data
+    (SELECT question_set.topic, question_set.paper_uid,question_set.paper_id, question_set.quest_type,question_set.difficulty_level, question_set.marks, COUNT(*) as actual FROM question_set GROUP BY question_set.topic, question_set.paper_uid,question_set.paper_id,question_set.quest_type ,question_set.difficulty_level,question_set.marks) question_data
     
-    ON topic_data.topic = question_data.topic AND topic_data.paper_uid=question_data.paper_uid AND topic_data.paper_code = question_data.paper_id AND topic_data.questType = question_data.difficulty_level AND topic_data.marks = question_data.marks) final
+    ON topic_data.topic = question_data.topic AND topic_data.paper_uid=question_data.paper_uid AND topic_data.paper_code = question_data.paper_id AND topic_data.questMode = question_data.quest_type AND topic_data.questType = question_data.difficulty_level AND topic_data.marks = question_data.marks) final
+
     WHERE final.expected > final.actual $add
     ORDER BY final.paper_uid");
 
@@ -2006,19 +2048,19 @@ class Admin
     }
 
     $result = DB::select("SELECT * FROM
-    (SELECT topic_data.topic, topic_data.paper_uid,topic_data.paper_code, topic_data.questType, topic_data.marks, CASE WHEN topic_data.expected IS NULL THEN 0 ELSE topic_data.expected END AS expected, CASE WHEN question_data.actual IS NULL THEN 0 ELSE question_data.actual END AS actual  FROM
+    (SELECT topic_data.topic, topic_data.paper_uid,topic_data.paper_code,topic_data.questMode ,topic_data.questType, topic_data.marks, CASE WHEN topic_data.expected IS NULL THEN 0 ELSE topic_data.expected END AS expected, CASE WHEN question_data.actual IS NULL THEN 0 ELSE question_data.actual END AS actual  FROM
     
-    (SELECT topic_master.topic, topic_master.paper_uid,topic_master.paper_code, topic_master.questType, topic_master.marks, SUM(topic_master.questions) as expected
+    (SELECT topic_master.topic, topic_master.paper_uid,topic_master.paper_code, topic_master.questMode,topic_master.questType, topic_master.marks, SUM(topic_master.questions) as expected
     FROM
     (SELECT subject_master.paper_code, subject_master.id as paper_uid,topic_master.* FROM subject_master INNER JOIN topic_master on subject_master.id = topic_master.paper_id) topic_master
     GROUP BY
-    topic_master.topic, topic_master.paper_uid,topic_master.paper_code, topic_master.questType, topic_master.marks) topic_data
+    topic_master.topic, topic_master.paper_uid,topic_master.paper_code,topic_master.questMode ,topic_master.questType, topic_master.marks) topic_data
     
     LEFT JOIN 
     
-    (SELECT question_set.topic, question_set.paper_uid,question_set.paper_id, question_set.difficulty_level, question_set.marks, COUNT(*) as actual FROM question_set GROUP BY question_set.topic, question_set.paper_uid,question_set.paper_id, question_set.difficulty_level, question_set.marks) question_data
+    (SELECT question_set.topic, question_set.paper_uid,question_set.paper_id, question_set.quest_type,question_set.difficulty_level, question_set.marks, COUNT(*) as actual FROM question_set GROUP BY question_set.topic, question_set.paper_uid,question_set.paper_id,question_set.quest_type ,question_set.difficulty_level,question_set.marks) question_data
     
-    ON topic_data.topic = question_data.topic AND topic_data.paper_uid=question_data.paper_uid AND topic_data.paper_code = question_data.paper_id AND topic_data.questType = question_data.difficulty_level AND topic_data.marks = question_data.marks) final
+    ON topic_data.topic = question_data.topic AND topic_data.paper_uid=question_data.paper_uid AND topic_data.paper_code = question_data.paper_id AND topic_data.questMode = question_data.quest_type AND topic_data.questType = question_data.difficulty_level AND topic_data.marks = question_data.marks) final
     WHERE final.expected <= final.actual $add
     ORDER BY final.paper_uid");
 
@@ -2391,14 +2433,15 @@ class Admin
     $subArray = rtrim($subArray,",");
     $array = explode(",",$subArray);
   
-    $result = QuestionSet::whereIn('paper_uid',$array)->get();
+    $result = QuestionSet::whereIn('paper_uid',$array)->where('quest_type','O')->orderBy('created_at')->paginate(50);
 
     if($result)
     {
-      return response()->json([
+      return new QuestionCollection($result);
+      /*return response()->json([
         "status"            => "success",
         "data"              => new QuestionCollection($result),
-      ], 200);
+      ], 200);*/
     }
     else
     {
@@ -2840,7 +2883,8 @@ class Admin
     $negative_marking   =   $request->negative_marking ? $request->negative_marking : '0';
     $negative_marks     =   $request->negative_marks;
     $time_remaining_reminder  =   $request->time_remaining_reminder ? $request->time_remaining_reminder : '0';
-    $exam_switch_alerts =   $request->exam_switch_alerts ? $request->exam_switch_alerts : '0';
+    $exam_switch        =   $request->exam_switch ? $request->exam_switch : '0';
+    $exam_switch_alerts =   $request->exam_switch_alerts ? $request->exam_switch_alerts : '99999';
     $option_shuffle     =   $request->option_shuffle ? $request->option_shuffle : '0';
     $question_marks     =   $request->question_marks ? $request->question_marks : '0';
     $ph_time            =   $request->ph_time;
@@ -2857,6 +2901,7 @@ class Admin
       'negative_marking'    => $negative_marking, 
       'negative_marks'      => $negative_marks ? $negative_marks : '0',
       'time_remaining_reminder' => $time_remaining_reminder,
+      'exam_switch'         => $exam_switch,
       'exam_switch_alerts'  => $exam_switch_alerts,
       'option_shuffle'      => $option_shuffle,
       'question_marks'      => $question_marks,
@@ -3082,7 +3127,7 @@ class Admin
       {
         $data[$i++] = [
           'id'                  =>  $res->id,
-          'from_date'           =>  $res->from_date,
+          'from_date'           =>  $res->from_date ? Carbon::createFromFormat('Y-m-d H:i:s.u', $res->from_date, 'UTC')->getPreciseTimestamp(3) : '',
           'paper_code'          =>  $res->paper_code,
           'paper_name'          =>  $res->paper_name,
           'marks'               =>  $res->marks,
@@ -3102,9 +3147,16 @@ class Admin
       ], 200);
   }
 
-  public function studSubAlloc()
+  public function studSubAlloc($request)
   {
-    $exams 	= DB::table("cand_test")->select(DB::raw("stdid,inst,GROUP_CONCAT(paper_id) as paper_id,program_id"))->where('inst',Auth::user()->username)->groupBy('stdid')->get();
+    $paperId = $request->paperId;
+    $instUid = $request->instUid;
+
+    $result = User::where('uid',$instUid)->where('role','EADMIN')->first();
+    $inst   = $result->username;
+
+
+    $exams 	= DB::table("cand_test")->select(DB::raw("stdid,inst,paper_id,program_id"))->where('inst',$inst)->where('paper_id',$paperId)->get();
 
 		if($exams)
 		{
@@ -3328,7 +3380,7 @@ class Admin
               ]);
               //------------------------------------------------------------------------
           }
-
+          DB::commit();
           return response()->json([
             "status"  => "success",
           ], 200);
@@ -3340,7 +3392,7 @@ class Admin
             "status"  => "failure",
           ], 200);
         }
-        DB::commit();
+        
       //-------------------------------------------------------------------
     }
     else if($slot == 'all' && $paperId != 'all')
@@ -3710,11 +3762,17 @@ class Admin
 
   public function storeStudSubjectMapping($request)
   {
+    
     $enrollno         = $request->enrollno;
     $paperId          = $request->paperId;
     $instId           = $request->instId;
     $current_time 			= Carbon::now();
 
+    if($instId == null && Auth::user()->role=='EADMIN')
+    {
+      $instId = Auth::user()->username;
+    }
+  
     $result           = User::where('username',$enrollno)->where('inst_id',$instId)->first();
     $stdid            = $result->uid;
 
@@ -3748,14 +3806,14 @@ class Admin
                   $topic    = $record->topic;
                   $subtopic = $record->subtopic;
                   $questType= $record->questType;
-                  
+                  $questMode= $record->questMode;
                   $quest    = $record->questions;
                   $mrk      = $record->marks;
                   $mmarks   = $mrk * $quest;
 
                   $actualMarks = $actualMarks + $mmarks;
 
-                  $fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paperId') AND topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
+                  $fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paperId') AND topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND quest_type='$questMode' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
                 }
         }
                 
@@ -3779,6 +3837,7 @@ class Admin
               'qnid' 							=> $question->qnid,
               'qtopic' 						=> $question->topic,
               'qtype' 						=> $question->difficulty_level,
+              'questMode'					=> $question->quest_type,
               'answered' 					=> 'unanswered',
               'cans' 							=> $question->coption,
               'marks' 						=> $question->marks,
@@ -3795,7 +3854,7 @@ class Admin
           }
           catch(\Exception $e)
           {
-            dd('1');
+            
             DB::rollback();
             return response()->json([
               "status"  => "failure"
@@ -3814,7 +3873,7 @@ class Admin
     }
     catch(\Exception $e)
     {
-      dd('2');
+
       DB::rollback();
       return response()->json([
         "status"  => "failure"
@@ -3825,10 +3884,16 @@ class Admin
 
   public function clearResponse($qnidSr,$examId)
   {
-    $result = CandQuestion::where('qnid_sr',$qnidSr)->where('exam_id',$examId)->update([
+    $result = CandQuestion::where('qnid_sr',$qnidSr)->where('exam_id',$examId)->first();
+
+    $id  = $result->id;
+
+    $res   = $result->update([
       'answered' => 'unanswered',
       'stdanswer'=> ''
     ]);
+
+    $result = DB::statement("insert into cand_questions_copy select * from cand_questions where id='$id'");
 
     $result2 = CandQuestion::where('exam_id',$examId)->get();
     if($result2)

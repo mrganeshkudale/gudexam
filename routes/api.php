@@ -61,7 +61,9 @@ Route::middleware(['auth:api'])->group(function()
     Route::get('headerImage', [HeaderImageController::class, 'index'])->name('headerImage');
 
     Route::get('answer', [AnswerController::class, 'index'])->name('getAnswer');
+    Route::get('answer/{id}', [AnswerController::class, 'show'])->name('getAnswer1');
     Route::put('answer/{id}', [AnswerController::class, 'update'])->name('updateAnswer');
+    Route::post('answer/upload/{id}', [AnswerController::class, 'upload'])->name('uploadAnswer');
     Route::put('answer/{qnidSr}/{examId}', [AnswerController::class, 'updateByExamId'])->name('updateByExamId');
 
     Route::post('proctor/{id}', [ProctorController::class, 'store'])->name('PostProctor');
@@ -75,6 +77,8 @@ Route::middleware(['auth:api'])->group(function()
 //--------------------------Specific ADMIN Roles API----------------------------s
 Route::middleware(['auth:api','admin'])->group(function()
 {
+    Route::post('loginLink/{stdid}',[AuthController::class, 'loginLink'])->name('postLoginfLink');
+    
     Route::get('user', [UsersController::class, 'index'])->name('getUser');
     Route::post('user', [UsersController::class, 'store'])->name('postUser');
     Route::delete('user/{id}', [UsersController::class, 'del'])->name('delUser');
@@ -105,6 +109,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('questions/specification/compare', [QuestionSetController::class, 'specificationCompare'])->name('getQuestSpecificationCompare');
     Route::delete('questions/{qnid}', [QuestionSetController::class, 'delete'])->name('delQuestions');
     Route::get('question/{qnid}', [QuestionSetController::class, 'getQuestion'])->name('getQuestion');
+    Route::get('question',[QuestionSetController::class, 'index'])->name('searchQuestion');
     Route::post('question/moderate/{qnid}', [QuestionSetController::class, 'updateQuestion'])->name('updateQuestion');
 
     Route::post('subject', [SubjectsController::class, 'store'])->name('postSubject');
@@ -132,8 +137,11 @@ Route::middleware(['auth:api','admin'])->group(function()
    
     Route::post('subject/question/upload', [SubjectsController::class, 'uploadQuestion'])->name('uploadQuestion');
 
+    Route::post('subject/question/uploadSubjective', [SubjectsController::class, 'uploadSubjectiveQuestion'])->name('uploadSubjectiveQuestion');
+
     Route::post('exam/upload', [ExamController::class, 'upload'])->name('uploadExam');
     Route::post('exam/', [ExamController::class, 'store'])->name('postExam');
+    Route::put('exam', [ExamController::class, 'update2'])->name('putExam2');
     Route::delete('exam/{id}', [ExamController::class, 'del'])->name('delExam');
 
     Route::get('exam/report/count', [ExamController::class, 'examReportCount'])->name('examReportCount');

@@ -30,6 +30,8 @@ class TopicCollection extends ResourceCollection
             'paper'         =>  new PaperResource(SubjectMaster::find($single->paper_id)),
             'topic'         =>  $single->topic,
             'subtopic'      =>  $single->subtopic,
+            'questMode'     =>  $single->questMode,
+            'questType'     =>  $single->questType,
             'questions'     =>  $single->questions,
             'marks'         =>  $single->marks,
           ];

@@ -221,14 +221,14 @@ class CustomLogin
 					return response()->json([
 						'status' 		=> 'failure',
 						'message'		=> 'Invalid Username or Password or Institute Id',
-					],200);
+					],400);
 				}
 				else
 				{
 					return response()->json([
 								'status' 		=> 'failure',
 								'message'		=> 'Invalid Username or Password',
-							],200);
+							],400);
 				}
 			}
     }

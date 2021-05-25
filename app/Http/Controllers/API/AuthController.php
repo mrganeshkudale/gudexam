@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Models\User;
+use App\Admin\Admin1;
 use App\CustomLogin\CustomLogin;
 use App\Registration\Registration;
 use Validator;
@@ -136,7 +137,7 @@ class AuthController extends Controller
       return json_encode([
         'status' => 'failure',
         'message'  => 'Please use Recaptcha for logging in...',
-      ],200);
+      ],400);
     }
   }
 
@@ -154,7 +155,22 @@ class AuthController extends Controller
       return response()->json([
         "status" => "failure",
         "message"=>"Unauthorized User"
-      ], 200);
+      ], 400);
+    }
+  }
+
+  public function loginLink($stdid,Request $request,Admin1 $a1)
+  {
+    if(Auth::user())
+    {
+      return $a1->loginLink($stdid,$request);
+    }
+    else
+    {
+      return response()->json([
+        "status" => "failure",
+        "message"=>"Unauthorized User"
+      ], 401);
     }
   }
 }

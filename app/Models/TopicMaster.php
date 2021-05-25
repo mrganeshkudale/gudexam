@@ -9,7 +9,7 @@ class TopicMaster extends Model
 {
     use HasFactory;
     protected $table = 'topic_master';
-    protected $fillable = ['id','paper_id','topic','subtopic','questions','marks','created_at','updated_at','questType'];
+    protected $fillable = ['id','paper_id','topic','subtopic','questions','marks','created_at','updated_at','questType','questMode'];
 
     public function getSubject()
     {

@@ -46,6 +46,7 @@ class PaperCollection extends ResourceCollection
             'negative_marking'  =>  $single->negative_marking,
             'negative_marks'    =>  $single->negative_marks,
             'time_remaining_reminder' => $single->time_remaining_reminder,
+            'exam_switch'       => $single->exam_switch,
             'exam_switch_alerts'=> $single->exam_switch_alerts,
             'option_shuffle'    =>  $single->option_shuffle,
             'question_marks'    =>  $single->question_marks,
@@ -55,7 +56,8 @@ class PaperCollection extends ResourceCollection
             'questwisetimer'    =>  $single->questwisetimer,
           'secperquest'         =>  $single->secperquest, 
             'created_at'        => $single->created_at,
-            'updated_at'        => $single->updated_at
+            'updated_at'        => $single->updated_at,
+            'exam_mode'         => $single->exam_mode
           ];
         }
         return $arr;

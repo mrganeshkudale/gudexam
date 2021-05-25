@@ -38,7 +38,12 @@ class QuestionSet extends Migration
             $table->string('moderator',30)->nullable();
             $table->integer('updated_status')->nullable();
             $table->integer('difficulty_level')->nullable();
+            $table->string('quest_type',5)->default('O');
+            $table->text('modelAnswer')->nullable();
+            $table->text('modelAnswerImage')->nullable();
+            $table->string('allowImgUpload',5)->nullable();
 
+            $table->index('allowImgUpload');
             $table->index('qnid');
             $table->index('paper_uid');
             $table->index('paper_id');
@@ -48,6 +53,7 @@ class QuestionSet extends Migration
             $table->index('ambiguity');
             $table->index('marks');
             $table->index('difficulty_level');
+            $table->index('quest_type');
             $table->unique(['qnid']);
             $table->timestamps();
         });

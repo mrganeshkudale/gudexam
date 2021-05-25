@@ -42,6 +42,10 @@ class QuestionCollection extends ResourceCollection
             'difficulty_level'      =>  $single->difficulty_level,
             'created_at'            =>  $single->created_at,
             'updated_at'            =>  $single->updated_at,
+            'quest_type'            =>  $single->quest_type,
+            'modelAnswer'           =>  $single->modelAnswer,
+            'modelAnswerImage'      =>  $single->modelAnswerImage,
+            'allowImageUpload'      =>  $single->allowImageUpload
           ];
         }
         return $arr;

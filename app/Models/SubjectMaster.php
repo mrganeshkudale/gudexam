@@ -12,7 +12,7 @@ class SubjectMaster extends Model
     
     protected $fillable = ['id','paper_code','paper_name','program_id','semester','created_at','updated_at','paper_id','marks','exam_name','questions','from_date','from_time','to_date','to_time','created_at','updated_at','durations',
     'instructions','active','score_view','review_question','proctoring','photo_capture','capture_interval',
-    'negative_marking','time_remaining_reminder','exam_switch_alerts','option_shuffle','question_marks','ph_time','inst_uid','slot','questwisetimer','secperquest'];
+    'negative_marking','time_remaining_reminder','exam_switch_alerts','option_shuffle','question_marks','ph_time','inst_uid','slot','questwisetimer','secperquest','exam_mode'];
 
     protected $hidden = [
 
