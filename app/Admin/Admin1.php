@@ -3,6 +3,9 @@ namespace App\Admin;
 use App\Models\User;
 use App\Models\StudentExam;
 use App\Http\Resources\ExamCollection;
+use App\Http\Resources\CheckersCollection;
+use App\Http\Resources\CheckerStudentCollection;
+use App\Http\Resources\CheckerSubjectCollection;
 use App\Http\Resources\CustomExamReportCollection;
 use App\Http\Resources\InstProgramCollection;
 use App\Http\Resources\PaperCollection;
@@ -18,6 +21,7 @@ use App\Models\CandTestReset;
 use App\Models\LoginLink;
 use App\Models\TopicMaster;
 use App\Models\Elapsed;
+use App\Models\CheckerSubjectMaster;
 use App\Models\QuestionSet;
 use App\Models\CandQuestion;
 use App\Models\CandQuestionReset;
@@ -28,6 +32,7 @@ use App\Models\InstPrograms;
 use App\Models\ProgramMaster;
 use App\Models\SubjectMaster;
 use App\Models\HeaderFooterText;
+use App\Models\StudentCheckerAllocMaster;
 use App\Models\Session;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -442,6 +447,13 @@ class Admin1
             {
                 $image = $request->file('qufig');
                 $new_name = $origQustion->qu_fig;
+
+                if($new_name == '')
+                {
+                  $part = rand(100000,999999);
+                  $new_name = 'Q_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                }
+                
                 $image->move(public_path('files'), $new_name);
                 $path=public_path('files').'/'.$new_name;
                 $qfilepath = $new_name;
@@ -470,6 +482,13 @@ class Admin1
             {
                 $image = $request->file('modelAnswerImage');
                 $new_name1 = $origQustion->modelAnswerImage;
+
+                if($new_name1 == '')
+                {
+                  $part = rand(100000,999999);
+                  $new_name1 = 'ModelAnswer_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                }
+
                 $image->move(public_path('files'), $new_name1);
                 $path=public_path('files').'/'.$new_name1;
                 $modelAnswerImagePath = $new_name1;
@@ -549,6 +568,439 @@ class Admin1
         "message"           => "Data not Found...",
       ], 400);
     }
+  }
+
+  public function storeCheckerUsers($request)
+  {
+    $username       = $request->username;
+    $name           = $request->name;
+    $mobile         = $request->mobile;
+    $email          = $request->email;
+    $inst           = $request->instId;
+    $password       = Hash::make($request->password);
+    $checkerType    = $request->chekerType;
+    $subjects       = $request->subjects;
+
+    DB::beginTransaction();
+    try
+    {
+      $result = User::create([
+        'username' => $username,
+        'name'     => $name,
+        'mobile'   => $mobile,
+        'email'    => $email,
+        'inst_id'  => $inst,
+        'password' => $password,
+        'role'     => 'CHECKER',
+        'status'   => 'ON',
+        'regi_type'=> 'CHECKER',
+        'verified' => 'verified',
+        'origpass' => $request->password,
+        'type'     => $checkerType
+      ]);
+
+      if($result)
+      {
+        foreach($subjects as $subject)
+        {
+          try
+          {
+            $result1= CheckerSubjectMaster::create([
+              'uid' => $result->uid,
+              'paperId' => $subject
+            ]);
+          }
+          catch(\Exception $e)
+          {
+            DB::rollback();
+            return response()->json([
+              "status"  => "failure"
+            ], 400);
+          }
+        }
+        DB::commit();
+        return response()->json([
+          "status"  => "success"
+        ], 200);
+      }
+
+    }
+    catch(\Exception $e)
+    {
+      DB::rollback();
+      return response()->json([
+        "status"  => "failure"
+      ], 400);
+    }
+
+  }
+
+  public function deleteCheckerSubjects($id)
+  {
+    $result=CheckerSubjectMaster::where('uid',$id)->delete();
+  }
+
+  public function uploadCheckers($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'file'      => 'required|max:1024',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails())
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File for uploading is required with max file size 1 MB",
+      ], 400);
+    }
+
+    if ($extension == "xlsx") 
+    {
+      $fileName           = 'checkers.xlsx';  
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/').$fileName);
+      $current_time 			= Carbon::now();
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+
+      for($i=2;$i<=$highestRow;$i++)
+      {
+        $paperIdList    = [];
+        $checkerType    = '';
+        $instId         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+        $name           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $mobile         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $email          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+        $type           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+
+        if(strtolower($type) == 'checker')
+        {
+          $checkerType = 'QPC';
+        }
+        else if(strtolower($type) == 'moderator')
+        {
+          $checkerType = 'QPM';
+        }
+        else if(strtolower($type) == 'both')
+        {
+          $checkerType = 'QPCM';
+        }
+
+        $origpass       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
+        $list           = explode(',',$spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue());
+
+        if(sizeof($list) > 0)
+        {
+          DB::beginTransaction();
+          try
+          {
+            $result = User::create([
+              'username' => $email,
+              'name'     => $name,
+              'mobile'   => $mobile,
+              'email'    => $email,
+              'inst_id'  => $instId,
+              'password' => Hash::make($origpass),
+              'role'     => 'CHECKER',
+              'status'   => 'ON',
+              'regi_type'=> 'CHECKER',
+              'verified' => 'verified',
+              'origpass' => $origpass,
+              'type'     => $checkerType
+            ]);
+
+            $subjects= SubjectMaster::whereIn('paper_code',$list)->get();
+
+            foreach($subjects as $subject)
+            {
+              array_push($paperIdList,$subject->id);
+              $result1= CheckerSubjectMaster::create([
+                'uid' => $result->uid,
+                'paperId' => $subject->id
+              ]);
+            }
+            DB::commit();
+
+            return response()->json([
+              "status"  => "success",
+              "message" => "Data uploaded Successfully..."
+            ], 200);
+
+          }
+          catch(\Exception $e)
+          {
+            DB::rollback();
+            return response()->json([
+              "status"  => "failure",
+              "message" => "Problem Uploading Data on Row ".$i."..."
+            ], 400);
+          }
+        }
+      }
+    }
+    else 
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File must be .xlsx only with maximum 1 MB  of Size.",
+      ], 400);
+    }
+  }
+
+  public function getStudentsBySubject($id)
+  {
+    $result = DB::select("SELECT * FROM cand_test WHERE paper_id='$id' and stdid not in(select distinct studid from student_checker_alloc_master where paperId='$id')");
+
+    if($result)
+    {
+      return json_encode([
+				'status' => 'success',
+        'data' => new ExamCollection($result)
+			],200);
+    }
+    else
+    {
+      return json_encode([
+				'status' => 'failure',
+			],400);
+    }
+  }
+
+  public function getCheckersBySubject($id)
+  {
+    $result = SubjectMaster::find($id)->checkers;
+    if($result)
+    {
+      return json_encode([
+				'status' => 'success',
+        'data' => new CheckersCollection($result)
+			],200);
+    }
+    else
+    {
+      return json_encode([
+				'status' => 'failure',
+			],400);
+    }
+  }
+
+  public function allocateStudentToCheckers($request)
+  {
+    $students = $request->students;
+    $checkers = $request->checkers;
+    $paperId  = $request->paperId;
+    $instId   = $request->inst;
+    
+    $query    = [];
+    $now      = Carbon::now();
+
+    if(sizeof($students) > sizeof($checkers))
+    {
+      $k = 0;
+      for($j=1; $j <= ceil(sizeof($students)/sizeof($checkers)); $j++)
+      {
+        for($i=0;$i<sizeof($checkers);$i++)
+        {
+          if(sizeof($students) == $k)
+          {
+            break;
+          }
+          array_push($query,['instId' => $instId,'checkerid' => $checkers[$i],'paperId' => $paperId,'studid' => $students[$k],'created_at' => $now]);
+
+          $k++;
+        }
+        $i=0;
+
+      }
+    }
+    else if(sizeof($students) < sizeof($checkers))
+    {
+      for($i=0;$i<sizeof($students);$i++)
+      {
+        array_push($query,['instId' => $instId,'checkerid' => $checkers[$i],'paperId' => $paperId,'studid' => $students[$i],'created_at' => $now]);
+      }
+    }
+    else if(sizeof($students) == sizeof($checkers))
+    {
+      for($i=0;$i<sizeof($students);$i++)
+      {
+        array_push($query,['instId' => $instId,'checkerid' => $checkers[$i],'paperId' => $paperId,'studid' => $students[$i],'created_at' => $now]);
+      }
+    }
+
+    $result = DB::table('student_checker_alloc_master')->insert($query);
+
+    if($result)
+    {
+      return json_encode([
+				'status' => 'success',
+        'message'=> 'Student Checkers Allocation Successful...'
+			],200);
+    }
+    else
+    {
+      return json_encode([
+				'status' => 'failure'
+			],400);
+    }
+  }
+
+  public function getStudentToCheckers($request)
+  {
+    $paperId=$request->paperId;
+    $instId = $request->inst;
+
+    if($paperId == 'all')
+    {
+      $result = StudentCheckerAllocMaster::where('instId',$instId)->paginate(50);
+    }
+    else
+    {
+      $result = StudentCheckerAllocMaster::where('instId',$instId)->where('paperId',$paperId)->paginate(50);
+    }
+
+    if($result)
+		{
+			return new CheckerStudentCollection($result);
+		}
+		else
+		{
+			return json_encode([
+				'status' => 'failure'
+			],200);
+		}
+  }
+
+  public function deleteStudentToCheckers($id)
+  {
+    $result = StudentCheckerAllocMaster::find($id)->delete();
+
+    return json_encode([
+      'status' => 'success',
+      'message'=> 'Record Deleted Successfully...'
+    ],200);
+  }
+
+  public function deleteCheckerAllocationByCheckerId($checkerId)
+  {
+    $result = StudentCheckerAllocMaster::where('checkerid',$checkerId)->delete();
+  }
+
+  public function searchCheckerAllocation($request)
+  {
+    $username   = $request->username;
+    if(Auth::user()->role === 'EADMIN')
+    {
+      $inst       = Auth::user()->username;
+    }
+
+    $result = User::where('username',$username)->where('inst_id',$inst)->first();
+    if($result)
+    {
+      $id = $result->uid;
+      $res = StudentCheckerAllocMaster::where('checkerid',$id);
+      $res1 = StudentCheckerAllocMaster::where('studid',$id)->union($res)->get();
+      
+      if($res1->count() > 0)
+      {
+        return new CheckerStudentCollection($res1);
+      }
+      else
+      {
+        return json_encode([
+          'status' => 'failure',
+          'message'=> 'User Not Found...',
+          'data'  => []
+        ],400);
+      }
+    }
+    else
+    {
+      return json_encode([
+        'status' => 'failure',
+        'message'=> 'User Not Found...',
+        'data'  => []
+      ],400);
+    }
+  }
+
+  public function deleteBulkCheckerAllocation($request)
+  {
+    $paperId      = $request->paperId;
+    $students     = $request->students;
+    $instId       = $request->inst;
+
+    $result1      = User::select('uid')->whereIn('username',$students)->where('inst_id',$instId)->get();
+    $studentList  = [];
+
+    foreach($result1 as $res)
+    {
+      array_push($studentList,$res->uid);
+    }   
+
+    $result = StudentCheckerAllocMaster::where('instId',$instId)->where('paperId',$paperId)->whereIn('studid',$studentList)->delete();
+
+    return json_encode([
+      'status' => 'success',
+      'message'=> 'Record Deleted Successfully...'
+    ],200);
+  }
+
+  public function getSubjectByChecker($uid)
+  {
+    $result = CheckerSubjectMaster::where('uid',$uid)->get();
+
+    if($result)
+    {
+      return json_encode([
+        'status'  => 'success',
+        'data'    => new CheckerSubjectCollection($result)
+      ],200);
+    }
+  }
+
+  public function getCheckerStudExams($request)
+  {
+    $paperId      = $request->paperId;
+    $checkeruid   = $request->checkeruid;
+
+    $results = StudentCheckerAllocMaster::where('checkerId',$checkeruid)->where('paperId',$paperId)->get();
+    $studList = [];
+
+    if($results && $results->count() > 0)
+    {
+      foreach($results as $result)
+      {
+        array_push($studList, $result->studid);
+      }
+
+      $res = CandTest::where('paper_id',$paperId)->whereIn('stdid',$studList)->get();
+
+      if($res->count() > 0)
+      {
+        return json_encode([
+          'status'  => 'success',
+          'data'    => new ExamCollection($res)
+        ],200);
+      }
+      else
+      {
+        return json_encode([
+          'status'  => 'failure',
+          'message' => 'No Exam Data found...'
+        ],400);
+      }
+    }
+    else
+    {
+      return json_encode([
+        'status'  => 'failure',
+        'message' => 'No Exam Data found...'
+      ],400);
+    }
+    
   }
 
 }

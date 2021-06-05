@@ -141,6 +141,7 @@ class Student
 				//------------------------------------------------------------------	
 				$current_time 		= 	Carbon::now();
 				$res5 = null;
+				$totalQuest = 0;
 				if(!$static_assign)
 				{
 					
@@ -159,6 +160,8 @@ class Student
 							$questType= $record->questType;
 							$mrk      = $record->marks;
 							$mmarks   = $mrk * $quest;
+
+							$totalQuest = $totalQuest + $record->questions;
 				  
 							$actualMarks = $actualMarks + $mmarks;
 				  
@@ -170,6 +173,13 @@ class Student
 						try
 						{
 							$res5 = DB::select($fetchQuery);
+							
+							if(sizeof($res5) != $totalQuest)
+							{
+								return response()->json([
+									"status"  => "failure1".$e->getMessage()
+								], 400);
+							}
 						}
 						catch(\Exception $e)
 					  	{
@@ -691,16 +701,27 @@ class Student
 		$current_time 		= Carbon::now();
 		$answer_by 			= $request->answer_by;
 		$ip 				= request()->ip();
+		$allowImgUp			= $request->allowImgUp;
 
+		$result = CandQuestion::find($id);
 
-		$result = CandQuestion::where('id',$id)->update([
-			'answered' 		=> $answered,
-			'stdanswer'		=> $answer,
-			'answer_by'		=> $answer_by,
-			'answer_on'		=> $current_time,
-			'ip'			=> $ip,
-		]);
+		if($allowImgUp == 'Y')
+		{
+			if(($result->answerImage == '' || $result->answerImage == null) && (trim($answer) == '') && ($answer == ''))
+			{
+				return json_encode([
+					'status'						=> 'failure'
+				],400);
+			}
+		}
 
+		$result->answered 	= $answered;
+		$result->stdanswer	= $answer;
+		$result->answer_by	= $answer_by;
+		$result->answer_on	= $current_time;
+		$result->ip			= $ip;
+	
+		$result->save();
 
 		$rrr = DB::statement("insert into cand_questions_copy select * from cand_questions where id='$id'");
 		if($rrr)
@@ -720,6 +741,18 @@ class Student
 
 	public function uploadAnswerImage($id,$request)
 	{
+		//--------------------------------------------------------------
+		$result 			= CandQuestion::where('id',$id)->first();
+		$answerImgStr 		= $result->answerImage;
+		$answerImg 			= explode(',',$result->answerImage);
+
+		if(sizeof($answerImg) >= 5)
+		{
+			return json_encode([
+				'status'						=> 'failure',
+			],400);
+		}
+		//--------------------------------------------------------------
 		if($request->file)
 		{
 				$part 			= rand(100000,999999);
@@ -741,26 +774,15 @@ class Student
 					$ip 				= request()->ip();
 
 					$url 				= Config::get('constants.PROJURL');
-					//--------------------------------------------------------------
-					$result 			= CandQuestion::where('id',$id)->first();
-					$answerImgStr 		= $result->answerImage;
-					$answerImg 			= explode(',',$result->answerImage);
-					if(sizeof($answerImg) >= 5)
-					{
-						return json_encode([
-							'status'						=> 'failure',
-						],400);
-					}
-					//--------------------------------------------------------------
+					
 					$answerImgStr 		= trim($answerImgStr.','.$answer,',');
 
-					$result= CandQuestion::where('id',$id)->update([
-						//'answered' 		=> $request->newAnswered,
-						'answerImage'	=> $answerImgStr,
-						'answer_by'		=> $answer_by,
-						'answer_on'		=> $current_time,
-						'ip'			=> $ip,
-					]);
+					$result->answerImage = $answerImgStr;
+					$result->ip 		 = $ip;
+					$result->answer_by   = $answer_by;
+					$result->answer_on 	 = $current_time;
+
+					$result->save();
 
 					$answerImg 			= explode(',',$answerImgStr);
 
@@ -833,6 +855,25 @@ class Student
 			'path'							=> implode(',',$answerImage),
 			'pathIcon'						=> $url.'/assets/images',
 		],200);
+	}
+
+	public function getExamSwitchCount($id)
+	{
+		$result = CandTest::find($id);
+
+		if($result)
+		{
+			return json_encode([
+				'status'						=> 'success',
+				'count'							=> $result->switched
+			],200);
+		}
+		else
+		{
+			return json_encode([
+				'status'						=> 'failure',
+			],400);
+		}
 	}
 }
 ?>

@@ -16,6 +16,7 @@ class UsersController extends Controller
         {
             if($request->role!='')
             {
+                
                 if($request->instUid!='')
                 {
                     return $a->getFilteredUsers($request->role,$request->instUid);
@@ -67,13 +68,17 @@ class UsersController extends Controller
         }
     }
 
-    public function store(Request $request,Admin $a)
+    public function store(Request $request,Admin $a,Admin1 $a1)
     {
         if(Auth::user())
         {
             if($request->type=='student')
             {
                 return $a->storeStudentUsers($request);
+            }
+            else if($request->type=='checker')
+            {
+                return $a1->storeCheckerUsers($request);
             }
             else
             {
@@ -89,13 +94,17 @@ class UsersController extends Controller
         }
     }
 
-    public function upload(Request $request,Admin $a)
+    public function upload(Request $request,Admin $a,Admin1 $a1)
     {
         if(Auth::user())
         {
             if($request->type == 'student')
             {
                 return $a->uploadStudents($request);
+            }
+            else if($request->type == 'checker')
+            {
+                return $a1->uploadCheckers($request);
             }
             else
             {
@@ -111,11 +120,20 @@ class UsersController extends Controller
         }
     }
 
-    public function del(Request $request,Admin $a)
+    public function del(Request $request,Admin $a,Admin1 $a1)
     {
         if(Auth::user())
         {
-            return $a->deleteUser($request->id);
+            if($request->type == 'checker')
+            {
+                $a1->deleteCheckerSubjects($request->id);
+                $a1->deleteCheckerAllocationByCheckerId($request->id);
+                return $a->deleteUser($request->id);
+            }
+            else
+            {
+                return $a->deleteUser($request->id);
+            }
         }
         else
         {

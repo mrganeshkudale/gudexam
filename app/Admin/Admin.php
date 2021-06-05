@@ -384,6 +384,7 @@ class Admin
   public function getFilteredUsersByInstCode($role,$inst_id)
   {
     $result = User::where('role',$role)->where('inst_id',$inst_id)->paginate(50);
+
     if($result)
     {
       return response($result, 200);
@@ -400,7 +401,8 @@ class Admin
   {
     $result1= [];
     $result = QuestionSet::where('paper_id',$paper_id)->orderBy('qnid', 'ASC')->get();
-    if($result)
+    
+    if($result && $result->count() > 0)
     {
       for($i=0;$i<sizeof($result);$i++)
       {
@@ -951,9 +953,16 @@ class Admin
     ],200);
   }
 
-  public function getSubjectsByInstUid($instUid)
+  public function getSubjectsByInstUid($instUid,$mode)
   {
-    $result = SubjectMaster::where('inst_uid',$instUid)->get();
+    if($mode == '' || $mode == null)
+    {
+      $result = SubjectMaster::where('inst_uid',$instUid)->where('paper_code','not like','GENERICTEST')->get();
+    }
+    else
+    {
+      $result = SubjectMaster::where('inst_uid',$instUid)->whereIn('exam_mode',['subjective','both'])->where('paper_code','not like','GENERICTEST')->get();
+    }
 
     return response()->json([
       'status' 		=> 'success',
@@ -1403,6 +1412,8 @@ class Admin
   {
     $result = CandTest::find($id)->delete();
 
+    $result = CandQuestion::where('exam_id',$id)->delete();
+
     return response()->json([
       'status' 		=> 'success',
       'message'   => 'Student Subject Allocation Deleted Successfully...',
@@ -1683,6 +1694,7 @@ class Admin
         $to_date    = new \DateTime($spreadsheet->getActiveSheet()->getCellByColumnAndRow(9, $i)->getValue(), new \DateTimeZone($tz_from));
         $to_date->setTimezone(new \DateTimeZone($tz_to));
         //--------------------------------------------------------------------------------------------------
+        $mode       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(10, $i)->getValue();
         $current_time 	  = Carbon::now();
         
           $result = SubjectMaster::where('paper_code','like',$paperCode)->where('inst_uid',$instUid)->update([
@@ -1693,6 +1705,7 @@ class Admin
             'slot'      => $slot,
             'from_date' => $from_date->format("Y-m-d H:i:s.u"),
             'to_date'   => $to_date->format("Y-m-d H:i:s.u"),
+            'exam_mode' => $mode
           ]);
         
         
@@ -1730,9 +1743,16 @@ class Admin
 
   public function updateConfigSubject($id,$request)
   {
-    $result = SubjectMaster::find($id);
+    $result       = SubjectMaster::find($id);
+    $exam_mode    = $result->exam_mode;
+    $score_view   = $result->score_view;
 
-    $result->score_view         =   $request->score_view ? $request->score_view : '0';
+    if($exam_mode == 'subjective' || $exam_mode == 'both')
+    {
+      $score_view       =   0;
+    }
+
+    $result->score_view         =   $score_view ? $score_view : '0';
     $result->review_question    =   $request->review_question ? $request->review_question : '0';
     $result->proctoring         =   $request->proctoring ? $request->proctoring : '0';
     $result->photo_capture      =   $request->photo_capture ? $request->photo_capture : '0';
@@ -2529,6 +2549,11 @@ class Admin
             {
                 $image = $request->file('qufig');
                 $new_name = $origQustion->qu_fig;
+                if($new_name == '')
+                {
+                  $part = rand(100000,999999);
+                  $new_name = 'Q_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                }
                 $image->move(public_path('files'), $new_name);
                 $path=public_path('files').'/'.$new_name;
                 $qfilepath = $new_name;
@@ -2557,6 +2582,11 @@ class Admin
             {
                 $image = $request->file('a1');
                 $new_name = explode(':$:',$origQustion->a1)[0];
+                if($new_name == '')
+                {
+                  $part = rand(100000,999999);
+                  $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                }
                 $image->move(public_path('files'), $new_name);
                 $path=public_path('files').'/'.$new_name;
                 $a1filepath = $new_name;
@@ -2585,6 +2615,11 @@ class Admin
             {
                 $image = $request->file('a2');
                 $new_name = explode(':$:',$origQustion->a2)[0];
+                if($new_name == '')
+                {
+                  $part = rand(100000,999999);
+                  $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                }
                 $image->move(public_path('files'), $new_name);
                 $path=public_path('files').'/'.$new_name;
                 $a2filepath = $new_name;
@@ -2614,6 +2649,11 @@ class Admin
             {
                 $image = $request->file('a3');
                 $new_name = explode(':$:',$origQustion->a3)[0];
+                if($new_name == '')
+                {
+                  $part = rand(100000,999999);
+                  $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                }
                 $image->move(public_path('files'), $new_name);
                 $path=public_path('files').'/'.$new_name;
                 $a3filepath = $new_name;
@@ -2643,6 +2683,11 @@ class Admin
             {
                 $image = $request->file('a4');
                 $new_name = explode(':$:',$origQustion->a4)[0];
+                if($new_name == '')
+                {
+                  $part = rand(100000,999999);
+                  $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
+                }
                 $image->move(public_path('files'), $new_name);
                 $path=public_path('files').'/'.$new_name;
                 $a4filepath = $new_name;
@@ -2875,6 +2920,8 @@ class Admin
     $paperCode = $id;
     $result = SubjectMaster::where('paper_code',$paperCode)->where('inst_uid',Auth::user()->uid)->first();
 
+    $exam_mode          =   $result->exam_mode;
+
     $score_view         =   $request->score_view ? $request->score_view : '0';
     $review_question    =   $request->review_question ? $request->review_question : '0';
     $proctoring         =   $request->proctoring;
@@ -2909,6 +2956,10 @@ class Admin
       'static_assign'       => $static_assign,
       'questwisetimer'      => $questwisetimer,
       'secperquest'         => $secperquest
+    ]);
+
+    $res = SubjectMaster :: where('inst_uid',Auth::user()->uid)->whereIn('exam_mode',['subjective','both'])->update([
+      'score_view'          => '0',
     ]);
 
     return response()->json([
@@ -3768,6 +3819,8 @@ class Admin
     $instId           = $request->instId;
     $current_time 			= Carbon::now();
 
+    
+
     if($instId == null && Auth::user()->role=='EADMIN')
     {
       $instId = Auth::user()->username;
@@ -3792,7 +3845,7 @@ class Admin
                       'program_id'  =>  $programId,
                       'created_at'  =>  $current_time 
       ]);
-
+      $totalQuest = 0;
       if($static_assign)
       {
         $res4             = TopicMaster::where('paper_id',$paperId)->get();
@@ -3801,6 +3854,7 @@ class Admin
                 
                 $fetchQuery = '';
                 $actualMarks = 0;
+                $totalQuest = 0;
                 foreach($res4 as $record)
                 {
                   $topic    = $record->topic;
@@ -3811,6 +3865,8 @@ class Admin
                   $mrk      = $record->marks;
                   $mmarks   = $mrk * $quest;
 
+                  $totalQuest = $totalQuest + $record->questions;
+
                   $actualMarks = $actualMarks + $mmarks;
 
                   $fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paperId') AND topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND quest_type='$questMode' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
@@ -3819,6 +3875,14 @@ class Admin
                 
         $fetchQuery = rtrim($fetchQuery," UNION ");
         $res5 = DB::select($fetchQuery);
+        
+        if(sizeof($res5) != $totalQuest)
+        {
+          return response()->json([
+            "status"  => "failure1".$e->getMessage()
+          ], 400);
+        }
+
         $res5dummy = $res5;
         if($res5)
         {
@@ -3854,10 +3918,9 @@ class Admin
           }
           catch(\Exception $e)
           {
-            
             DB::rollback();
             return response()->json([
-              "status"  => "failure"
+              "status"  => "failure2".$e->getMessage()
             ], 400);
           }
         }
@@ -3876,7 +3939,7 @@ class Admin
 
       DB::rollback();
       return response()->json([
-        "status"  => "failure"
+        "status"  => "failure3".$e->getMessage()
       ], 400);
     }
   }

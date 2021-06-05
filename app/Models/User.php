@@ -23,7 +23,7 @@ class User extends Authenticatable
         'uid',
         'username',
         'ph',
-        'seatno',
+        'type',
         'inst_id',
         'region',
         'course_code',
@@ -48,7 +48,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $hidden = [
-        'password','seatno','verify_on','wallet_balance','docpath'
+        'password','verify_on','wallet_balance','docpath'
     ];
 
     protected $primaryKey = 'uid';

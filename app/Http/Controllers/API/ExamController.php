@@ -332,4 +332,19 @@ class ExamController extends Controller
       ], 400);
     }
   }
+
+  public function getExamSwitchCount($id,Student $s,Admin1 $a1)
+  {
+    if(Auth::user())
+    {
+      return $s->getExamSwitchCount($id);
+    }
+    else
+    {
+      return response()->json([
+        "status"          =>  "failure",
+        "message"         =>  "Unauthorized User...",
+      ], 401);
+    }
+  }
 }

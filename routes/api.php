@@ -22,6 +22,7 @@ use App\Http\Controllers\API\SessionsController;
 use App\Http\Controllers\API\UsersController;
 use App\Http\Controllers\API\ConfigurationsController;
 use App\Http\Controllers\API\ProgramController;
+use App\Http\Controllers\API\CheckerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,6 +53,7 @@ Route::middleware(['auth:api'])->group(function()
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('exam', [ExamController::class, 'index'])->name('getExam');
+    Route::get('exam/examswitch/count/{id}', [ExamController::class, 'getExamSwitchCount'])->name('getExamSwitchCount');
     Route::get('exam/{id}', [ExamController::class, 'show'])->name('showExam');
     Route::put('exam/{id}', [ExamController::class, 'update'])->name('putExam');
 
@@ -73,6 +75,8 @@ Route::middleware(['auth:api'])->group(function()
     Route::get('subject/topic', [SubjectsController::class, 'getTopic'])->name('getTopic');
 });
 //---------------------------------Student API End------------------------------
+
+
 
 //--------------------------Specific ADMIN Roles API----------------------------s
 Route::middleware(['auth:api','admin'])->group(function()
@@ -118,6 +122,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('subject/test/upload', [SubjectsController::class, 'uploadTest'])->name('uploadTestSubject');
     Route::put('subject/test/{id}', [SubjectsController::class, 'updateTest'])->name('updateTestSubject');
     Route::put('subject/config/{id}', [SubjectsController::class, 'updateConfig'])->name('updateConfigSubject');
+    Route::get('subject/byChecker/{uid}', [SubjectsController::class, 'getSubjectByChecker'])->name('getSubjectByChecker');
 
     Route::put('subject/config/generic/{id}', [SubjectsController::class, 'updateGenericConfig'])->name('updateGenericConfig');
     
@@ -125,6 +130,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('subject/byDate/{date}', [SubjectsController::class, 'getSubjectByDate'])->name('getSubjectByDate');
     Route::get('subject/byDateInst/{date}/{inst}', [SubjectsController::class, 'getSubjectByDateInst'])->name('getSubjectByDateInst');
     Route::get('subject/config/generic', [SubjectsController::class, 'getGenericConfig'])->name('getGenericConfig');
+    
 
     Route::delete('subject/{id}', [SubjectsController::class, 'del'])->name('delSubject');
 
@@ -138,6 +144,9 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('subject/question/upload', [SubjectsController::class, 'uploadQuestion'])->name('uploadQuestion');
 
     Route::post('subject/question/uploadSubjective', [SubjectsController::class, 'uploadSubjectiveQuestion'])->name('uploadSubjectiveQuestion');
+
+    Route::get('subject/getStudList/{id}', [SubjectsController::class, 'getStudBySubject'])->name('getStudBySubject');
+    Route::get('subject/getCheckerList/{id}', [SubjectsController::class, 'getCheckerBySubject'])->name('getCheckerBySubject');
 
     Route::post('exam/upload', [ExamController::class, 'upload'])->name('uploadExam');
     Route::post('exam/', [ExamController::class, 'store'])->name('postExam');
@@ -161,6 +170,12 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('exam/active/count', [ExamController::class, 'getActiveExamCount'])->name('getActiveExamCount');
 
     Route::put('exam/autoEnd/{date}', [ExamController::class, 'autoEndExam'])->name('putAutoEndExam');
+    Route::post('checker/allocate', [CheckerController::class, 'allocateChecker'])->name('allocateChecker');
+    Route::get('checker/allocation', [CheckerController::class, 'getCheckerAllocation'])->name('getCheckerAllocation');
+    Route::delete('checker/allocation/{id}', [CheckerController::class, 'deleteCheckerAllocation'])->name('deleteCheckerAllocation');
+    Route::delete('bulk/checker/allocation', [CheckerController::class, 'deleteBulkCheckerAllocation'])->name('deleteBulkCheckerAllocation');
+    Route::get('checker/search', [CheckerController::class, 'searchCheckerAllocation'])->name('searchCheckerAllocation');
+    Route::get('checker/student/exams', [CheckerController::class, 'getCheckerStudExams'])->name('getCheckerStudExams');
 });
 //------------------------------------------------------------------------------
 ?>

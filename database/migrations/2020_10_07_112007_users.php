@@ -17,8 +17,8 @@ class Users extends Migration
             $table->bigIncrements('uid');
             $table->string('username',200);
             $table->index('username');
-            $table->string('seatno',50)->nullable();
-            $table->index('seatno');
+            $table->string('type',50)->nullable();
+            $table->index('type');
             $table->string('inst_id',20)->default('0000');
             $table->index('inst_id');
             $table->integer('region')->nullable();

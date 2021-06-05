@@ -206,6 +206,14 @@ class CustomLogin
 								'data' 			=> Auth::user(),
 							],200);
 				}
+				else if(strtoupper($role)=='CHECKER')
+				{
+					return response()->json([
+								'status' 		=> 'success',
+                				'token' 		=> $token,
+								'data' 			=> Auth::user(),
+							],200);
+				}
 				else
 				{
 					return response()->json([

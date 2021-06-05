@@ -85,7 +85,7 @@ class SubjectsController extends Controller
       }
       if($request->type == 'byInstUid')
       {
-        return $a->getSubjectsByInstUid($request->instUid);
+        return $a->getSubjectsByInstUid($request->instUid,$request->mode);
       }
     }
     else
@@ -348,6 +348,51 @@ class SubjectsController extends Controller
             "message"         =>  "Unauthorized User...",
         ], 200);
     }
+ }
+
+ public function getStudBySubject($id,Admin1 $a1)
+ {
+  if(Auth::user())
+  {
+    return $a1->getStudentsBySubject($id);
+  }
+  else
+  {
+      return response()->json([
+          "status"          =>  "failure",
+          "message"         =>  "Unauthorized User...",
+      ], 200);
+  }
+ }
+
+ public function getCheckerBySubject($id,Admin1 $a1)
+ {
+  if(Auth::user())
+  {
+    return $a1->getCheckersBySubject($id);
+  }
+  else
+  {
+      return response()->json([
+          "status"          =>  "failure",
+          "message"         =>  "Unauthorized User...",
+      ], 200);
+  }
+ }
+
+ public function getSubjectByChecker($uid,Admin1 $a1)
+ {
+  if(Auth::user())
+  {
+    return $a1->getSubjectByChecker($uid);
+  }
+  else
+  {
+      return response()->json([
+          "status"          =>  "failure",
+          "message"         =>  "Unauthorized User...",
+      ], 200);
+  }
  }
 
 }

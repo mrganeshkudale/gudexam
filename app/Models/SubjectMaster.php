@@ -37,5 +37,10 @@ class SubjectMaster extends Model
     {
         return $this->belongsTo('App\Models\ProgramMaster','program_id');
     }
+
+    public function checkers()
+    {
+        return $this->hasMany('App\Models\CheckerSubjectMaster','paperId');
+    }
 }
 ?>

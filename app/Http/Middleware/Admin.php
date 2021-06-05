@@ -17,7 +17,7 @@ class Admin
      */
     public function handle(Request $request, Closure $next)
     {
-        if (Auth::user()->role !== 'ADMIN' && Auth::user()->role !== 'GADMIN' && Auth::user()->role !== 'CADMIN' && Auth::user()->role !== 'EADMIN')
+        if (Auth::user()->role !== 'ADMIN' && Auth::user()->role !== 'GADMIN' && Auth::user()->role !== 'CADMIN' && Auth::user()->role !== 'EADMIN' && Auth::user()->role !== 'CHECKER')
         {
             return response(json_encode(['error' => 'Unauthorised']), 401)
             ->header('Content-Type', 'text/json');
