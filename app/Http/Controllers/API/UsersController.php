@@ -80,6 +80,10 @@ class UsersController extends Controller
             {
                 return $a1->storeCheckerUsers($request);
             }
+            else if($request->type=='proctor')
+            {
+                return $a1->storeProctorUsers($request);
+            }
             else
             {
                 return $a->storeUsers($request);
@@ -106,6 +110,10 @@ class UsersController extends Controller
             {
                 return $a1->uploadCheckers($request);
             }
+            else if($request->type == 'proctor')
+            {
+                return $a1->uploadProctors($request);
+            }
             else
             {
                 return $a->uploadUsers($request);
@@ -124,14 +132,21 @@ class UsersController extends Controller
     {
         if(Auth::user())
         {
-            if($request->type == 'checker')
+            if($request->type == 'proctor')
+            {
+                $a1->deleteProctorSubjects($request->id);
+                $a1->deleteProctorAllocationByProctorId($request->id);
+                return $a->deleteUser($request->id);
+            }
+            else if($request->type == 'checker')
             {
                 $a1->deleteCheckerSubjects($request->id);
                 $a1->deleteCheckerAllocationByCheckerId($request->id);
                 return $a->deleteUser($request->id);
             }
-            else
+            else if($request->type == 'student')
             {
+                $a1->deleteStudentSubjectMapping($request->id);
                 return $a->deleteUser($request->id);
             }
         }
@@ -144,11 +159,22 @@ class UsersController extends Controller
         }
     }
 
-    public function update($id,Request $request, Admin $a)
+    public function update($id,Request $request, Admin $a,Admin1 $a1)
     {
         if(Auth::user())
         {
-            return $a->updateUser($id,$request);
+            if($request->type == 'checker')
+            {
+                return $a1->updateChecker($id,$request);
+            }
+            else if($request->type == 'proctor')
+            {
+                return $a1->updateProctor($id,$request);
+            }
+            else
+            {
+                return $a->updateUser($id,$request);
+            }
         }
         else
         {

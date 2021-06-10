@@ -9,7 +9,7 @@ class CandTest extends Model
 {
     use HasFactory;
     protected $table = 'cand_test';
-    protected $fillable = ['id','stdid','inst','paper_id','program_id','course_id','starttime','endtime','cqnid','wqnid','uqnid','status','entry_on','entry_by','examip','continueexam','pa','marksobt','switched'];
+    protected $fillable = ['id','stdid','inst','paper_id','program_id','course_id','starttime','endtime','cqnid','wqnid','uqnid','status','entry_on','entry_by','examip','continueexam','pa','marksobt','switched','paper_checking','result'];
 
     public function user()
     {

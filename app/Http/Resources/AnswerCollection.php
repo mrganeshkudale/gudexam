@@ -44,6 +44,7 @@ class AnswerCollection extends ResourceCollection
              'stdanswer'    =>  $single->stdanswer,
              'qnid_sr'      =>  $single->qnid_sr,
              'marks'        =>  $single->marks,
+             'obtmarks'        =>  $single->obtmarks,
              'questMode'    =>  $single->questMode,
              'answerImage'  =>  $single->answerImage,
              

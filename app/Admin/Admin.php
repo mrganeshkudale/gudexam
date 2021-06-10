@@ -383,7 +383,32 @@ class Admin
 
   public function getFilteredUsersByInstCode($role,$inst_id)
   {
-    $result = User::where('role',$role)->where('inst_id',$inst_id)->paginate(50);
+    if($role == 'CHECKER')
+    {
+      $result = DB::table('users')
+      ->join('checker_subject_master', 'users.uid', '=', 'checker_subject_master.uid')
+      ->join('subject_master', 'subject_master.id', '=', 'checker_subject_master.paperId')
+      ->select(DB::raw("users.uid,users.username,users.name,users.type,users.inst_id,users.mobile,users.email,group_concat(concat(subject_master.id,'-',subject_master.paper_code,'-',subject_master.paper_name)) as subjects,users.origpass"))
+      ->where('users.role', '=', $role)
+      ->where('users.inst_id','=',$inst_id)
+      ->groupBy('users.uid')
+      ->paginate(50);
+    }
+    else if($role == 'PROCTOR')
+    {
+      $result = DB::table('users')
+      ->join('proctor_subject_master', 'users.uid', '=', 'proctor_subject_master.uid')
+      ->join('subject_master', 'subject_master.id', '=', 'proctor_subject_master.paperId')
+      ->select(DB::raw("users.uid,users.username,users.name,users.type,users.inst_id,users.mobile,users.email,group_concat(concat(subject_master.id,'-',subject_master.paper_code,'-',subject_master.paper_name)) as subjects,users.origpass"))
+      ->where('users.role', '=', $role)
+      ->where('users.inst_id','=',$inst_id)
+      ->groupBy('users.uid')
+      ->paginate(50);
+    }
+    else
+    {
+      $result = User::where('role',$role)->where('inst_id',$inst_id)->paginate(50);
+    }
 
     if($result)
     {

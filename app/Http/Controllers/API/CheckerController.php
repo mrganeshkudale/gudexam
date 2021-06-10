@@ -100,4 +100,34 @@ class CheckerController extends Controller
             ], 401);
         }
     }
+
+    public function updateStudExamMarks($id,$marks, Admin1 $a1)
+    {
+        if(Auth::user())
+        {
+            return $a1->updateStudExamMarks($id,$marks);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 401);
+        }
+    }
+
+    public function finishExamChecking($examid,Request $request,Admin1 $a1)
+    {
+        if(Auth::user())
+        {
+            return $a1->finishExamChecking($examid,$request);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 401);
+        }
+    }
 }

@@ -37,6 +37,8 @@ class ExamResource extends JsonResource
             'now'                   =>  round(microtime(true) * 1000),
             'paper'                 =>  new PaperResource(SubjectMaster::find($this->paper_id)),
             'marksobt'              =>  $this->marksobt,
+            'paper_checking_status' =>  $this->paper_checking_status,
+            'result'                =>  $this->result,
         ];
     }
 

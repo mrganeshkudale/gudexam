@@ -33,6 +33,8 @@ use App\Models\ProgramMaster;
 use App\Models\SubjectMaster;
 use App\Models\HeaderFooterText;
 use App\Models\StudentCheckerAllocMaster;
+use App\Models\StudentProctorAllocMaster;
+use App\Models\ProctorSubjectMaster;
 use App\Models\Session;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -640,6 +642,11 @@ class Admin1
     $result=CheckerSubjectMaster::where('uid',$id)->delete();
   }
 
+  public function deleteProctorSubjects($id)
+  {
+    $result=ProctorSubjectMaster::where('uid',$id)->delete();
+  }
+
   public function uploadCheckers($request)
   {
     $validator = Validator::make($request->all(), [
@@ -670,6 +677,7 @@ class Admin1
         $paperIdList    = [];
         $checkerType    = '';
         $instId         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+        $instUid        = User::where('username',$instId)->where('role','EADMIN')->first()->uid;
         $name           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
         $mobile         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
         $email          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
@@ -711,7 +719,7 @@ class Admin1
               'type'     => $checkerType
             ]);
 
-            $subjects= SubjectMaster::whereIn('paper_code',$list)->get();
+            $subjects= SubjectMaster::whereIn('paper_code',$list)->where('inst_uid',$instUid)->get();
 
             foreach($subjects as $subject)
             {
@@ -888,6 +896,11 @@ class Admin1
     $result = StudentCheckerAllocMaster::where('checkerid',$checkerId)->delete();
   }
 
+  public function deleteProctorAllocationByProctorId($checkerId)
+  {
+    $result = StudentProctorAllocMaster::where('proctorid',$checkerId)->delete();
+  }
+
   public function searchCheckerAllocation($request)
   {
     $username   = $request->username;
@@ -1001,6 +1014,348 @@ class Admin1
       ],400);
     }
     
+  }
+
+  public function updateStudExamMarks($id,$marks)
+  {
+    $result = CandQuestion::find($id);
+
+    $result->obtmarks = $marks;
+    $result->save();
+
+    return json_encode([
+      'status'  => 'success',
+      'message' => 'Marks Saved Successfully...'
+    ],200);
+  }
+
+  public function finishExamChecking($examid,$request)
+  {
+    $totalScore = $request->score;
+    $result = CandTest::find($examid);
+
+    $result->paper_checking = '1';
+    $result->result = $totalScore;
+
+    $result->save();
+
+    return json_encode([
+      'status'  => 'success',
+    ],200);
+  }
+
+  public function deleteStudentSubjectMapping($id)
+  {
+    $result = CandTest::where('stdid',$id)->delete();
+  }
+
+  public function updateChecker($id,$request)
+  {
+    $username       = $request->username;
+    $name           = $request->name;
+    $mobile         = $request->mobile;
+    $email          = $request->email;
+    $inst           = $request->instId;
+    $password       = Hash::make($request->password);
+    $checkerType    = $request->chekerType;
+    $subjects       = $request->subjects;
+
+    DB::beginTransaction();
+    //try
+    //{
+      $result = User::find($id);
+
+      if($result)
+      {
+        $result->username = $username;
+        $result->name     = $name;
+        $result->mobile   = $mobile;
+        $result->email    = $email;
+        $result->inst_id  = $inst;
+        $result->password = $password;
+        $result->origpass = $request->password;
+        $result->type     = $checkerType;
+
+        $result->save();
+      }
+      
+      if($result)
+      {
+        $res = CheckerSubjectMaster::where('uid',$id)->delete();
+
+        foreach($subjects as $subject)
+        {
+          try
+          {
+            $result1= CheckerSubjectMaster::create([
+              'uid' => $result->uid,
+              'paperId' => $subject
+            ]);
+          }
+          catch(\Exception $e)
+          {
+            DB::rollback();
+            return response()->json([
+              "status"  => "failure"
+            ], 400);
+          }
+        }
+        DB::commit();
+        return response()->json([
+          "status"  => "success"
+        ], 200);
+      }
+
+    /*}
+    catch(\Exception $e)
+    {
+      DB::rollback();
+      return response()->json([
+        "status"  => "failure"
+      ], 400);
+    }*/
+
+  }
+
+  public function getSubjectiveAnswers($id)
+  {
+    $answers = CandQuestion::where('exam_id',$id)->where('questMode','S')->get();
+		if($answers)
+		{
+			return json_encode([
+				'status' => 'success',
+				'data' => new AnswerCollection($answers)
+			],200);
+		}
+		else
+		{
+			return json_encode([
+				'status' => 'failure'
+			],400);
+		}
+  }
+
+  public function storeProctorUsers($request)
+  {
+    $username       = $request->username;
+    $name           = $request->name;
+    $mobile         = $request->mobile;
+    $email          = $request->email;
+    $inst           = $request->instId;
+    $password       = Hash::make($request->password);
+    $subjects       = $request->subjects;
+
+    DB::beginTransaction();
+    try
+    {
+      $result = User::create([
+        'username' => $username,
+        'name'     => $name,
+        'mobile'   => $mobile,
+        'email'    => $email,
+        'inst_id'  => $inst,
+        'password' => $password,
+        'role'     => 'PROCTOR',
+        'status'   => 'ON',
+        'regi_type'=> 'PROCTOR',
+        'verified' => 'verified',
+        'origpass' => $request->password,
+      ]);
+
+      if($result)
+      {
+        foreach($subjects as $subject)
+        {
+          try
+          {
+            $result1= ProctorSubjectMaster::create([
+              'uid' => $result->uid,
+              'paperId' => $subject
+            ]);
+          }
+          catch(\Exception $e)
+          {
+            DB::rollback();
+            return response()->json([
+              "status"  => "failure"
+            ], 400);
+          }
+        }
+        DB::commit();
+        return response()->json([
+          "status"  => "success"
+        ], 200);
+      }
+
+    }
+    catch(\Exception $e)
+    {
+      DB::rollback();
+      return response()->json([
+        "status"  => "failure"
+      ], 400);
+    }
+  }
+
+  public function uploadProctors($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'file'      => 'required|max:1024',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails())
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File for uploading is required with max file size 1 MB",
+      ], 400);
+    }
+
+    if ($extension == "xlsx") 
+    {
+      $fileName           = 'proctors.xlsx';  
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/').$fileName);
+      $current_time 			= Carbon::now();
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+
+      for($i=2;$i<=$highestRow;$i++)
+      {
+        $paperIdList    = [];
+        $checkerType    = '';
+        $instId         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+        $instUid        = User::where('username',$instId)->where('role','EADMIN')->first()->uid;
+        $name           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $mobile         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $email          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+        
+        $origpass       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $list           = explode(',',$spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue());
+
+        if(sizeof($list) > 0)
+        {
+          DB::beginTransaction();
+          try
+          {
+            $result = User::create([
+              'username' => $email,
+              'name'     => $name,
+              'mobile'   => $mobile,
+              'email'    => $email,
+              'inst_id'  => $instId,
+              'password' => Hash::make($origpass),
+              'role'     => 'PROCTOR',
+              'status'   => 'ON',
+              'regi_type'=> 'PROCTOR',
+              'verified' => 'verified',
+              'origpass' => $origpass,
+            ]);
+
+            $subjects= SubjectMaster::whereIn('paper_code',$list)->where('inst_uid',$instUid)->get();
+
+            foreach($subjects as $subject)
+            {
+              array_push($paperIdList,$subject->id);
+              $result1= ProctorSubjectMaster::create([
+                'uid' => $result->uid,
+                'paperId' => $subject->id
+              ]);
+            }
+            DB::commit();
+
+            return response()->json([
+              "status"  => "success",
+              "message" => "Data uploaded Successfully..."
+            ], 200);
+
+          }
+          catch(\Exception $e)
+          {
+            DB::rollback();
+            return response()->json([
+              "status"  => "failure",
+              "message" => "Problem Uploading Data on Row ".$i."..."
+            ], 400);
+          }
+        }
+      }
+    }
+    else 
+    {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File must be .xlsx only with maximum 1 MB  of Size.",
+      ], 400);
+    }
+  }
+
+  public function updateProctor($id,$request)
+  {
+    $username       = $request->username;
+    $name           = $request->name;
+    $mobile         = $request->mobile;
+    $email          = $request->email;
+    $inst           = $request->instId;
+    $password       = Hash::make($request->password);
+    $subjects       = $request->subjects;
+
+    DB::beginTransaction();
+    try
+    {
+      $result = User::find($id);
+
+      if($result)
+      {
+        $result->username = $username;
+        $result->name     = $name;
+        $result->mobile   = $mobile;
+        $result->email    = $email;
+        $result->inst_id  = $inst;
+        $result->password = $password;
+        $result->origpass = $request->password;
+
+        $result->save();
+      }
+      
+      if($result)
+      {
+        $res = ProctorSubjectMaster::where('uid',$id)->delete();
+
+        foreach($subjects as $subject)
+        {
+          try
+          {
+            $result1= ProctorSubjectMaster::create([
+              'uid' => $result->uid,
+              'paperId' => $subject
+            ]);
+          }
+          catch(\Exception $e)
+          {
+            DB::rollback();
+            return response()->json([
+              "status"  => "failure"
+            ], 400);
+          }
+        }
+        DB::commit();
+        return response()->json([
+          "status"  => "success"
+        ], 200);
+      }
+
+    }
+    catch(\Exception $e)
+    {
+      DB::rollback();
+      return response()->json([
+        "status"  => "failure"
+      ], 400);
+    }
+
   }
 
 }

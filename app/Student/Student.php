@@ -756,7 +756,7 @@ class Student
 		if($request->file)
 		{
 				$part 			= rand(100000,999999);
-				$validation 	= Validator::make($request->all(), ['file' => 'required|mimes:jpeg,jpg,pdf,doc,docx,xls,xlsx,ppt,pptx']);
+				$validation 	= Validator::make($request->all(), ['file' => 'required|mimes:jpeg,jpg,pdf,doc,docx,xls,xlsx,ppt,pptx|max:5120']);
 				$path = $request->file('file')->getRealPath();
 			
 				if($validation->passes())
@@ -810,7 +810,7 @@ class Student
 				{
 					return response()->json([
 						"status"            => "failure",
-						"message"           => 'Answer Document must be among jpeg,jpg,doc,docx,xls,xlsx,pdf',
+						"message"           => 'Answer Document must be among jpeg,jpg,doc,docx,xls,xlsx,pdf,ppt,pptx with max 5MB size.',
 					], 400);
 				}
 		}

@@ -176,6 +176,8 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::delete('bulk/checker/allocation', [CheckerController::class, 'deleteBulkCheckerAllocation'])->name('deleteBulkCheckerAllocation');
     Route::get('checker/search', [CheckerController::class, 'searchCheckerAllocation'])->name('searchCheckerAllocation');
     Route::get('checker/student/exams', [CheckerController::class, 'getCheckerStudExams'])->name('getCheckerStudExams');
+    Route::put('checker/student/exams/marks/{id}/{marks}', [CheckerController::class, 'updateStudExamMarks'])->name('updateStudExamMarks');
+    Route::put('checker/student/exams/finishExamChecking/{examid}', [CheckerController::class, 'finishExamChecking'])->name('finishExamChecking');
 });
 //------------------------------------------------------------------------------
 ?>

@@ -6,16 +6,24 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Student\Student;
 use App\Admin\Admin;
+use App\Admin\Admin1;
 use Illuminate\Http\Request;
 
 
 class AnswerController extends Controller
 {
-    public function index(Student $s,Request $request)
+    public function index(Student $s,Request $request,Admin1 $a1)
     {
       if(Auth::user())
       {
-        return $s->getAnswers($request->exam_id);
+        if($request->type == 'subjective')
+        {
+          return $a1->getSubjectiveAnswers($request->exam_id);
+        }
+        else
+        {
+          return $s->getAnswers($request->exam_id);
+        }
       }
       else
       {
