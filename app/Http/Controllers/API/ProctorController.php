@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Student\Student;
 use App\Admin\Admin;
+use App\Admin\Admin1;
 use Illuminate\Http\Request;
 
 class ProctorController extends Controller
@@ -43,4 +44,80 @@ class ProctorController extends Controller
       ], 401);
     }
   }
+
+  public function allocateProctor(Request $request, Admin1 $a1)
+  {
+        if(Auth::user())
+        {
+            return $a1->allocateStudentToProctor($request);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 401);
+        }
+  }
+
+  public function getProctorAllocation(Request $request,Admin1 $a1)
+  {
+      if(Auth::user())
+      {
+          return $a1->getStudentToProctors($request);
+      }
+      else
+      {
+          return response()->json([
+              "status"          =>  "failure",
+              "message"         =>  "Unauthorized User...",
+          ], 401);
+      }
+  }
+
+  public function deleteProctorAllocation($id,Admin1 $a1)
+  {
+      if(Auth::user())
+      {
+          return $a1->deleteStudentToProctors($id);
+      }
+      else
+      {
+          return response()->json([
+              "status"          =>  "failure",
+              "message"         =>  "Unauthorized User...",
+          ], 401);
+      }
+  }
+
+
+  public function searchProctorAllocation(Request $request,Admin1 $a1)
+    {
+        if(Auth::user())
+        {
+            return $a1->searchProctorAllocation($request);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 401);
+        }
+    }
+
+    public function deleteBulkProctorAllocation(Request $request, Admin1 $a1)
+    {
+        if(Auth::user())
+        {
+            return $a1->deleteBulkProctorAllocation($request);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 401);
+        }
+    }
 }

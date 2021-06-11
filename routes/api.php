@@ -23,7 +23,6 @@ use App\Http\Controllers\API\UsersController;
 use App\Http\Controllers\API\ConfigurationsController;
 use App\Http\Controllers\API\ProgramController;
 use App\Http\Controllers\API\CheckerController;
-
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -146,7 +145,9 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('subject/question/uploadSubjective', [SubjectsController::class, 'uploadSubjectiveQuestion'])->name('uploadSubjectiveQuestion');
 
     Route::get('subject/getStudList/{id}', [SubjectsController::class, 'getStudBySubject'])->name('getStudBySubject');
+    Route::get('subject/getStudList1/{id}', [SubjectsController::class, 'getStudBySubject1'])->name('getStudBySubject1');
     Route::get('subject/getCheckerList/{id}', [SubjectsController::class, 'getCheckerBySubject'])->name('getCheckerBySubject');
+    Route::get('subject/getProctorList/{id}', [SubjectsController::class, 'getProctorBySubject'])->name('getProctorBySubject');
 
     Route::post('exam/upload', [ExamController::class, 'upload'])->name('uploadExam');
     Route::post('exam/', [ExamController::class, 'store'])->name('postExam');
@@ -171,6 +172,7 @@ Route::middleware(['auth:api','admin'])->group(function()
 
     Route::put('exam/autoEnd/{date}', [ExamController::class, 'autoEndExam'])->name('putAutoEndExam');
     Route::post('checker/allocate', [CheckerController::class, 'allocateChecker'])->name('allocateChecker');
+    
     Route::get('checker/allocation', [CheckerController::class, 'getCheckerAllocation'])->name('getCheckerAllocation');
     Route::delete('checker/allocation/{id}', [CheckerController::class, 'deleteCheckerAllocation'])->name('deleteCheckerAllocation');
     Route::delete('bulk/checker/allocation', [CheckerController::class, 'deleteBulkCheckerAllocation'])->name('deleteBulkCheckerAllocation');
@@ -178,6 +180,14 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('checker/student/exams', [CheckerController::class, 'getCheckerStudExams'])->name('getCheckerStudExams');
     Route::put('checker/student/exams/marks/{id}/{marks}', [CheckerController::class, 'updateStudExamMarks'])->name('updateStudExamMarks');
     Route::put('checker/student/exams/finishExamChecking/{examid}', [CheckerController::class, 'finishExamChecking'])->name('finishExamChecking');
+
+    Route::post('proctorAllocate', [ProctorController::class, 'allocateProctor'])->name('allocateProctor');
+    Route::get('proctorAllocation', [ProctorController::class, 'getProctorAllocation'])->name('getProctorAllocation');
+    Route::delete('proctorAllocation/{id}', [ProctorController::class, 'deleteProctorAllocation'])->name('deleteProctorAllocation');
+    Route::get('proctorSearch', [ProctorController::class, 'searchProctorAllocation'])->name('searchProctorAllocation');
+    Route::delete('bulkProctor/allocation', [ProctorController::class, 'deleteBulkProctorAllocation'])->name('deleteBulkProctorAllocation');
+
+    
 });
 //------------------------------------------------------------------------------
 ?>

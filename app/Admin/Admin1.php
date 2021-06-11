@@ -4,7 +4,9 @@ use App\Models\User;
 use App\Models\StudentExam;
 use App\Http\Resources\ExamCollection;
 use App\Http\Resources\CheckersCollection;
+use App\Http\Resources\ProctorsCollection;
 use App\Http\Resources\CheckerStudentCollection;
+use App\Http\Resources\ProctorStudentCollection;
 use App\Http\Resources\CheckerSubjectCollection;
 use App\Http\Resources\CustomExamReportCollection;
 use App\Http\Resources\InstProgramCollection;
@@ -579,6 +581,8 @@ class Admin1
     $mobile         = $request->mobile;
     $email          = $request->email;
     $inst           = $request->instId;
+    $rrr = User::where('username',$inst)->where('role','EADMIN')->first();
+    $college_name   = $rrr->college_name;
     $password       = Hash::make($request->password);
     $checkerType    = $request->chekerType;
     $subjects       = $request->subjects;
@@ -597,6 +601,7 @@ class Admin1
         'status'   => 'ON',
         'regi_type'=> 'CHECKER',
         'verified' => 'verified',
+        'college_name' => $college_name,
         'origpass' => $request->password,
         'type'     => $checkerType
       ]);
@@ -760,6 +765,25 @@ class Admin1
   public function getStudentsBySubject($id)
   {
     $result = DB::select("SELECT * FROM cand_test WHERE paper_id='$id' and stdid not in(select distinct studid from student_checker_alloc_master where paperId='$id')");
+
+    if($result)
+    {
+      return json_encode([
+				'status' => 'success',
+        'data' => new ExamCollection($result)
+			],200);
+    }
+    else
+    {
+      return json_encode([
+				'status' => 'failure',
+			],400);
+    }
+  }
+
+  public function getStudentsBySubject1($id)
+  {
+    $result = DB::select("SELECT * FROM cand_test WHERE paper_id='$id' and stdid not in(select distinct studid from student_proctor_alloc_master where paperId='$id')");
 
     if($result)
     {
@@ -1061,8 +1085,8 @@ class Admin1
     $subjects       = $request->subjects;
 
     DB::beginTransaction();
-    //try
-    //{
+    try
+    {
       $result = User::find($id);
 
       if($result)
@@ -1106,14 +1130,14 @@ class Admin1
         ], 200);
       }
 
-    /*}
+    }
     catch(\Exception $e)
     {
       DB::rollback();
       return response()->json([
         "status"  => "failure"
       ], 400);
-    }*/
+    }
 
   }
 
@@ -1142,6 +1166,8 @@ class Admin1
     $mobile         = $request->mobile;
     $email          = $request->email;
     $inst           = $request->instId;
+    $rrr = User::where('username',$inst)->where('role','EADMIN')->first();
+    $college_name   = $rrr->college_name;
     $password       = Hash::make($request->password);
     $subjects       = $request->subjects;
 
@@ -1157,6 +1183,7 @@ class Admin1
         'password' => $password,
         'role'     => 'PROCTOR',
         'status'   => 'ON',
+        'college_name'   => $college_name,
         'regi_type'=> 'PROCTOR',
         'verified' => 'verified',
         'origpass' => $request->password,
@@ -1358,5 +1385,191 @@ class Admin1
 
   }
 
+
+  public function getProctorBySubject($id)
+  {
+    $result = SubjectMaster::find($id)->proctors;
+    if($result)
+    {
+      return json_encode([
+				'status' => 'success',
+        'data' => new ProctorsCollection($result)
+			],200);
+    }
+    else
+    {
+      return json_encode([
+				'status' => 'failure',
+			],400);
+    }
+  }
+
+  public function allocateStudentToProctor($request)
+  {
+    $students = $request->students;
+    $proctors = $request->proctors;
+    $paperId  = $request->paperId;
+    $instId   = $request->inst;
+
+    
+    $query    = [];
+    $now      = Carbon::now();
+
+    if(sizeof($students) > sizeof($proctors))
+    {
+      $k = 0;
+      for($j=1; $j <= ceil(sizeof($students)/sizeof($proctors)); $j++)
+      {
+        for($i=0;$i<sizeof($proctors);$i++)
+        {
+          if(sizeof($students) == $k)
+          {
+            break;
+          }
+          array_push($query,['instId' => $instId,'proctorid' => $proctors[$i],'paperId' => $paperId,'studid' => $students[$k],'created_at' => $now]);
+
+          $k++;
+        }
+        $i=0;
+
+      }
+    }
+    else if(sizeof($students) < sizeof($proctors))
+    {
+      for($i=0;$i<sizeof($students);$i++)
+      {
+        array_push($query,['instId' => $instId,'proctorid' => $proctors[$i],'paperId' => $paperId,'studid' => $students[$i],'created_at' => $now]);
+      }
+    }
+    else if(sizeof($students) == sizeof($proctors))
+    {
+      for($i=0;$i<sizeof($students);$i++)
+      {
+        array_push($query,['instId' => $instId,'proctorid' => $proctors[$i],'paperId' => $paperId,'studid' => $students[$i],'created_at' => $now]);
+      }
+    }
+
+    $result = DB::table('student_proctor_alloc_master')->insert($query);
+
+    if($result)
+    {
+      return json_encode([
+				'status' => 'success',
+        'message'=> 'Student Proctors Allocation Successful...'
+			],200);
+    }
+    else
+    {
+      return json_encode([
+				'status' => 'failure'
+			],400);
+    }
+  }
+
+  public function getStudentToProctors($request)
+  {
+    $paperId=$request->paperId;
+    $instId = $request->inst;
+
+    if($paperId == 'all')
+    {
+      $result = StudentProctorAllocMaster::where('instId',$instId)->paginate(50);
+    }
+    else
+    {
+      $result = StudentProctorAllocMaster::where('instId',$instId)->where('paperId',$paperId)->paginate(50);
+    }
+
+    if($result)
+		{
+			return new ProctorStudentCollection($result);
+		}
+		else
+		{
+			return json_encode([
+				'status' => 'failure'
+			],200);
+		}
+  }
+
+  public function deleteStudentToProctors($id)
+  {
+    try
+    {
+      $result = StudentProctorAllocMaster::find($id)->delete();
+    }
+    catch(\Exception $e)
+    {
+      return response()->json([
+        "status"  => "failure"
+      ], 400);
+    }
+
+    return json_encode([
+      'status' => 'success',
+      'message'=> 'Record Deleted Successfully...'
+    ],200);
+  }
+
+
+  public function searchProctorAllocation($request)
+  {
+    $username   = $request->username;
+    if(Auth::user()->role === 'EADMIN')
+    {
+      $inst       = Auth::user()->username;
+    }
+
+    $result = User::where('username',$username)->where('inst_id',$inst)->first();
+    if($result)
+    {
+      $id = $result->uid;
+      $res = StudentProctorAllocMaster::where('proctorid',$id);
+      $res1 = StudentProctorAllocMaster::where('studid',$id)->union($res)->get();
+      
+      if($res1->count() > 0)
+      {
+        return new ProctorStudentCollection($res1);
+      }
+      else
+      {
+        return json_encode([
+          'status' => 'failure',
+          'message'=> 'User Not Found...',
+          'data'  => []
+        ],400);
+      }
+    }
+    else
+    {
+      return json_encode([
+        'status' => 'failure',
+        'message'=> 'User Not Found...',
+        'data'  => []
+      ],400);
+    }
+  }
+
+  public function deleteBulkProctorAllocation($request)
+  {
+    $paperId      = $request->paperId;
+    $students     = $request->students;
+    $instId       = $request->inst;
+
+    $result1      = User::select('uid')->whereIn('username',$students)->where('inst_id',$instId)->get();
+    $studentList  = [];
+
+    foreach($result1 as $res)
+    {
+      array_push($studentList,$res->uid);
+    }   
+
+    $result = StudentProctorAllocMaster::where('instId',$instId)->where('paperId',$paperId)->whereIn('studid',$studentList)->delete();
+
+    return json_encode([
+      'status' => 'success',
+      'message'=> 'Record Deleted Successfully...'
+    ],200);
+  }
 }
 ?>

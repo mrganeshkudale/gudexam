@@ -42,5 +42,10 @@ class SubjectMaster extends Model
     {
         return $this->hasMany('App\Models\CheckerSubjectMaster','paperId');
     }
+
+    public function proctors()
+    {
+        return $this->hasMany('App\Models\ProctorSubjectMaster','paperId');
+    }
 }
 ?>

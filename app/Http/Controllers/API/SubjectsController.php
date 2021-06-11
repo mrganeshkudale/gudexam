@@ -365,11 +365,41 @@ class SubjectsController extends Controller
   }
  }
 
+ public function getStudBySubject1($id,Admin1 $a1)
+ {
+  if(Auth::user())
+  {
+    return $a1->getStudentsBySubject1($id);
+  }
+  else
+  {
+      return response()->json([
+          "status"          =>  "failure",
+          "message"         =>  "Unauthorized User...",
+      ], 200);
+  }
+ }
+
  public function getCheckerBySubject($id,Admin1 $a1)
  {
   if(Auth::user())
   {
     return $a1->getCheckersBySubject($id);
+  }
+  else
+  {
+      return response()->json([
+          "status"          =>  "failure",
+          "message"         =>  "Unauthorized User...",
+      ], 200);
+  }
+ }
+
+ public function getProctorBySubject($id,Admin1 $a1)
+ {
+  if(Auth::user())
+  {
+    return $a1->getProctorBySubject($id);
   }
   else
   {
