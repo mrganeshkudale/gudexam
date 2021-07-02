@@ -19,6 +19,10 @@ class ExamController extends Controller
       {
         return $s->getExams();
       }
+      else if(Auth::user()->role != 'EADMIN' && $request->type == 'byEnrollno')
+      {
+        return $a->getExamsByEnrollnoInstId($request->enrollno,$request->instId);
+      }
       else if(Auth::user()->role == 'ADMIN')
       {
         return $a->getAllExams();
@@ -221,11 +225,12 @@ class ExamController extends Controller
     }
   }
 
-  public function examLog($enrollno,$paperId, Admin $a)
+  public function examLog($enrollno,$paperId, Admin $a,Request $request)
   {
+    $instId = $request->instId;
     if(Auth::user())
     {
-      return $a->getExamLog($enrollno,$paperId);
+      return $a->getExamLog($enrollno,$paperId,$instId);
     }
     else
     {

@@ -1,16 +1,12 @@
 <?php
 namespace App\Http\Controllers\API;
 
-use App\Models\User;
 use App\Admin\Admin1;
 use App\CustomLogin\CustomLogin;
 use App\Registration\Registration;
-use Validator;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpFoundation\Response;
 use GuzzleHttp\Client;
 
 

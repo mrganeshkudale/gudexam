@@ -95,16 +95,24 @@ Route::get('/forceClearDB', function ()
   DB::table('proctor_snaps')->truncate();
   DB::table('proctor_snaps_reset')->truncate();
   DB::table('proctor_snap_details')->truncate();
-  DB::table('oauth_access_tokens')->truncate();
   DB::table('proctor_snap_details_reset')->truncate();
+  DB::table('proctor_student_warning_master')->truncate();
+  DB::table('proctor_subject_master')->truncate();
   DB::table('program_master')->truncate();
   DB::table('otp_verify')->truncate();
   DB::table('question_set')->truncate();
   DB::table('sessions')->truncate();
+  DB::table('specification')->truncate();
   DB::table('subject_master')->truncate();
   DB::table('topic_master')->truncate();
   DB::table('users')->where('role', '!=', 'ADMIN')->delete();
-  DB::table('specification')->truncate();
+  DB::table('student_checker_alloc_master')->truncate();
+  DB::table('student_proctor_alloc_master')->truncate();
+  DB::table('cluster_to_inst_maps')->truncate();
+  DB::table('student_proctor_alloc_master')->truncate();
+  DB::table('checker_subject_master')->truncate();
+  DB::table('login_link')->truncate();
+
   echo '<br><br><center><font size=5>Database Force Cleared Successfully</font></center>';
 });
 

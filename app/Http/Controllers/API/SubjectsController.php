@@ -75,7 +75,7 @@ class SubjectsController extends Controller
     }
   }
 
-  public function index(Request $request,Admin $a)
+  public function index(Request $request,Admin $a,Admin1 $a1)
   {
     if(Auth::user())
     {
@@ -86,6 +86,14 @@ class SubjectsController extends Controller
       if($request->type == 'byInstUid')
       {
         return $a->getSubjectsByInstUid($request->instUid,$request->mode);
+      }
+      if($request->type == 'byProctorUid')
+      {
+        return $a1->getSubjectByProctor($request->proctorUid);
+      }
+      if($request->type == 'byProctorId')
+      {
+        return $a1->getSubjectByProctorId($request->proctorId);
       }
     }
     else
@@ -350,11 +358,19 @@ class SubjectsController extends Controller
     }
  }
 
- public function getStudBySubject($id,Admin1 $a1)
+ public function getStudBySubject($id,Admin1 $a1,Request $request)
  {
   if(Auth::user())
   {
-    return $a1->getStudentsBySubject($id);
+    if($request->type == 'allStudents')
+    {
+      $instId = $request->instId;
+      return $a1->getAllStudentsBySubject($id,$instId);
+    }
+    else
+    {
+      return $a1->getStudentsBySubject($id);
+    }
   }
   else
   {

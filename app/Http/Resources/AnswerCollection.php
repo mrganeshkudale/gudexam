@@ -1,9 +1,10 @@
 <?php
 
 namespace App\Http\Resources;
-use Auth;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use App\Models\QuestionSet;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\CandTest;
 use App\Models\SubjectMaster;
@@ -31,9 +32,9 @@ class AnswerCollection extends ResourceCollection
            $arr[$i++] = [
              'id'           =>  $single->id,
              'qnid'         =>  $single->qnid,
-             'question'     =>  QuestionSet::where('qnid',$single->qnid)->first(),
-             'student'      =>  User::find($single->stdid),
-             'institute'    =>  User::where('username',$single->inst)->first(),
+             'question'     =>  DB::table('question_set')->where('qnid',$single->qnid)->first(),
+             'student'      =>  DB::table('users')->where('uid',$single->stdid)->first(),
+             'institute'    =>  DB::table('users')->where('username',$single->inst)->first(),
              'exam_id'      =>  $single->exam_id,
              'examData'     =>  new ExamResource(CandTest::find($single->exam_id)),
              'paper_id'     =>  $single->paper_id,

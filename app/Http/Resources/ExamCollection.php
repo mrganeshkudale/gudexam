@@ -1,13 +1,11 @@
 <?php
 
 namespace App\Http\Resources;
-use Auth;
+use Illuminate\Support\Facades\Auth;
 use App\Models\SubjectMaster;
-use App\Models\ProgramMaster;
 use App\Models\User;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use App\Http\Resources\PaperResource;
-use App\Http\Resources\ProgramResource;
 use App\Http\Resources\UserResource;
 use Carbon\Carbon;
 

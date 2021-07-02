@@ -28,6 +28,7 @@ class UserResource extends JsonResource
             'name'                      =>  $this->name,
             'password'                  =>  $this->origpass,
             'college_name'              =>  $this->college_name,
+            'firebaseToken'             =>  $this->firebaseToken,
         ];
     }
 }

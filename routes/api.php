@@ -72,6 +72,8 @@ Route::middleware(['auth:api'])->group(function()
 
     Route::get('paper/{id}', [SubjectsController::class, 'showById'])->name('getSubjectsById');
     Route::get('subject/topic', [SubjectsController::class, 'getTopic'])->name('getTopic');
+
+    Route::put('proctor/notedWarning/{warningId}', [ProctorController::class, 'notedWarning'])->name('notedWarning');
 });
 //---------------------------------Student API End------------------------------
 
@@ -122,6 +124,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::put('subject/test/{id}', [SubjectsController::class, 'updateTest'])->name('updateTestSubject');
     Route::put('subject/config/{id}', [SubjectsController::class, 'updateConfig'])->name('updateConfigSubject');
     Route::get('subject/byChecker/{uid}', [SubjectsController::class, 'getSubjectByChecker'])->name('getSubjectByChecker');
+    //Route::get('subject/byProctor/{uid}', [SubjectsController::class, 'getSubjectByProctor'])->name('getSubjectByProctor');
 
     Route::put('subject/config/generic/{id}', [SubjectsController::class, 'updateGenericConfig'])->name('updateGenericConfig');
     
@@ -129,31 +132,21 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('subject/byDate/{date}', [SubjectsController::class, 'getSubjectByDate'])->name('getSubjectByDate');
     Route::get('subject/byDateInst/{date}/{inst}', [SubjectsController::class, 'getSubjectByDateInst'])->name('getSubjectByDateInst');
     Route::get('subject/config/generic', [SubjectsController::class, 'getGenericConfig'])->name('getGenericConfig');
-    
-
     Route::delete('subject/{id}', [SubjectsController::class, 'del'])->name('delSubject');
-
-    
     Route::post('subject/topic', [SubjectsController::class, 'storeTopic'])->name('storeTopic');
     Route::post('subject/topic/upload', [SubjectsController::class, 'storeTopicUpload'])->name('storeTopicUpload');
     Route::delete('subject/topic/{id}', [SubjectsController::class, 'delTopic'])->name('delTopic');
-
     Route::post('subject/question/add', [SubjectsController::class, 'storeQuestion'])->name('storeQuestion');
-   
     Route::post('subject/question/upload', [SubjectsController::class, 'uploadQuestion'])->name('uploadQuestion');
-
     Route::post('subject/question/uploadSubjective', [SubjectsController::class, 'uploadSubjectiveQuestion'])->name('uploadSubjectiveQuestion');
-
     Route::get('subject/getStudList/{id}', [SubjectsController::class, 'getStudBySubject'])->name('getStudBySubject');
     Route::get('subject/getStudList1/{id}', [SubjectsController::class, 'getStudBySubject1'])->name('getStudBySubject1');
     Route::get('subject/getCheckerList/{id}', [SubjectsController::class, 'getCheckerBySubject'])->name('getCheckerBySubject');
     Route::get('subject/getProctorList/{id}', [SubjectsController::class, 'getProctorBySubject'])->name('getProctorBySubject');
-
     Route::post('exam/upload', [ExamController::class, 'upload'])->name('uploadExam');
     Route::post('exam/', [ExamController::class, 'store'])->name('postExam');
     Route::put('exam', [ExamController::class, 'update2'])->name('putExam2');
     Route::delete('exam/{id}', [ExamController::class, 'del'])->name('delExam');
-
     Route::get('exam/report/count', [ExamController::class, 'examReportCount'])->name('examReportCount');
     Route::get('exam/report/countDatewise/{date}/{subject}/{slot}', [ExamController::class, 'examReportCountDatewise'])->name('examReportCountDatewise');
 
@@ -163,6 +156,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('exam/log/{enrollno}/{paperId}', [ExamController::class, 'examLog'])->name('getExamLog');
 
     Route::get('proctor/{enrollno}/{paperId}', [ProctorController::class, 'proctorByEnrollno'])->name('GetProctorByEnrollno');
+    Route::get('proctor', [ProctorController::class, 'index'])->name('getProctors');
 
     Route::get('exam/report/countByDate', [ExamController::class, 'examReportCountByDate'])->name('examReportCountByDate');
 
@@ -185,9 +179,12 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('proctorAllocation', [ProctorController::class, 'getProctorAllocation'])->name('getProctorAllocation');
     Route::delete('proctorAllocation/{id}', [ProctorController::class, 'deleteProctorAllocation'])->name('deleteProctorAllocation');
     Route::get('proctorSearch', [ProctorController::class, 'searchProctorAllocation'])->name('searchProctorAllocation');
+    Route::get('proctor/summary', [ProctorController::class, 'getProctorSummary'])->name('getProctorSummary');
     Route::delete('bulkProctor/allocation', [ProctorController::class, 'deleteBulkProctorAllocation'])->name('deleteBulkProctorAllocation');
 
-    
+    Route::post('proctor/sendWarning/{examid}', [ProctorController::class, 'sendWarning'])->name('sendWarning');
+   
+    Route::post('proctor/student/upload', [ProctorController::class, 'uploadStudProctor'])->name('uploadStudProctor');
 });
 //------------------------------------------------------------------------------
 ?>

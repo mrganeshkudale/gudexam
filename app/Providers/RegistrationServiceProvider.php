@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Registration\Registration;
-class RegistrationServiceProvider extends ServiceProvider
+use Illuminate\Contracts\Support\DeferrableProvider;
+
+class RegistrationServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     /**
      * Register services.
@@ -13,19 +15,24 @@ class RegistrationServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton(Registration::class, function ($app)
+        {
+            return new Registration($this->app->request);
+        });
     }
 
     /**
      * Bootstrap services.
      *
      * @return void
-     */
+     
     public function boot()
     {
-      $this->app->singleton(Registration::class, function ($app)
-      {
-          return new Registration($this->app->request);
-      });
+      
+    }*/
+
+    public function provides()
+    {
+        return [Registration::class];
     }
 }

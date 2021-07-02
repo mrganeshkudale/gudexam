@@ -91,14 +91,8 @@ class Admin
 
   public function getUserDetails($username,$instId,$flag)
   {
-    if($flag == '1')
-    {
-      $result   = User::where('username',$username)->first();
-    }
-    else
-    {
-      $result   = User::where('username',$username)->where('inst_id',$instId)->first();
-    }
+    
+    $result   = User::where('username',$username)->where('inst_id',$instId)->first();
 
     if($result)
     {
@@ -149,6 +143,7 @@ class Admin
       return response()->json([
         "status"        => "success",
         "message"        => "Footer Updated Successfully...",
+        "footer"        => $orgName,
       ], 200);
     }
     else
@@ -2064,6 +2059,10 @@ class Admin
     {
       $result = CandTest::where('paper_id',$paper_id)->whereNull('status')->get();
     }
+    else if($type == 'all')
+    {
+      $result = CandTest::where('paper_id',$paper_id)->get();
+    }
     else
     {
       $result = CandTest::where('paper_id',$paper_id)->where('status',$type)->get();
@@ -2414,7 +2413,18 @@ class Admin
         $diff_level       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(12, $i)->getValue();
         $inst_uid         = User::where('username',$instId)->first()->uid;
        
-        $paper_id         = SubjectMaster::where('paper_code',$paper_code)->where('inst_uid',$inst_uid)->first()->id;
+        try
+        {
+          $paper_id         = SubjectMaster::where('paper_code',$paper_code)->where('inst_uid',$inst_uid)->first()->id;
+        }
+        catch(\Exception $e)
+        {
+          DB::rollback();
+          return response()->json([
+            "status"  => "failure",
+            "message" => "All rows upto ".($i-1)." are uploaded Successfully. Problem finding Papaer code:".$paper_code
+          ], 400);
+        }
 
 
         $optiona = $optiona.':$:optiona';
@@ -2438,7 +2448,7 @@ class Admin
         {
             $correctAnswer = $optiond.':$:optiond';
         }
-
+        
         $values = [
           'paper_uid'       => $paper_id,
           'paper_id'        => $paper_code,
@@ -2455,8 +2465,20 @@ class Admin
           'marks'           => $marks,
           'difficulty_level'=> $diff_level
         ];
+        
+        try 
+        {
+          $result         = QuestionSet::create($values); 
+        }
+        catch(\Exception $e)
+        {
+          DB::rollback();
+          return response()->json([
+            "status"  => "failure",
+            "message" => "All rows upto ".($i-1)." are uploaded Successfully.Problem Uploading specified Row. Error:".$e->getMessage()
+          ], 400);
+        }
 
-        $result         = QuestionSet::create($values); 
 
         if(!$result)
         {
@@ -3010,14 +3032,30 @@ class Admin
 		}
   }
 
-  public function getExamLog($enrollno,$paperId)
+  public function getExamsByEnrollnoInstId($enrollno,$instId)
   {
-    $result = User::where('username',$enrollno)->where('inst_id',Auth::user()->username)->first();
+    $result = User::where('username',$enrollno)->where('role','STUDENT')->where('inst_id',$instId)->first();
+    $exams 	= User::find($result->uid)->exams;
+		if($exams)
+		{
+			return new ExamCollection($exams);
+		}
+		else
+		{
+			return json_encode([
+				'status' => 'failure'
+			],200);
+		}
+  }
+
+  public function getExamLog($enrollno,$paperId,$instId)
+  {
+    $result = User::where('username',$enrollno)->where('inst_id',$instId)->first();
     if($result)
     {
       $stdid = $result->uid;
        //----------Find Exam Id of this student---------------------------------------
-       $result1 = CandTest::where('stdid',$stdid)->where('paper_id',$paperId)->where('inst',Auth::user()->username)->first();
+       $result1 = CandTest::where('stdid',$stdid)->where('paper_id',$paperId)->where('inst',$instId)->first();
        //------------------------------------------------------------------------------
        if($result1)
        {

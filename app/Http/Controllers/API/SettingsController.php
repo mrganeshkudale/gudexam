@@ -24,14 +24,14 @@ class SettingsController extends Controller
         {
           return json_encode([
             'status' => 'failure'
-          ],200);
+          ],400);
         }
       }
       else
       {
         return json_encode([
           'status' => 'failure'
-        ],200);
+        ],400);
       }
     }
 }

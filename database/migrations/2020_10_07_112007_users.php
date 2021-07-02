@@ -53,6 +53,7 @@ class Users extends Migration
             $table->unique(['username','inst_id']);
             $table->unique(['mobile']);
             $table->string('ph',5)->nullable();
+            $table->string('firebaseToken',500)->nullable();
         });
     }
 

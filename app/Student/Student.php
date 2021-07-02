@@ -3,13 +3,10 @@ namespace App\Student;
 use App\Models\User;
 use App\Http\Resources\ExamCollection;
 use App\Http\Resources\AnswerCollection;
-use App\Models\QuestionSet;
 use App\Models\TopicMaster;
 use App\Models\CandQuestion;
-use App\Models\CandQuestionsCopy;
 use App\Models\CandTest;
 use App\Models\SubjectMaster;
-use App\Models\Session;
 use App\Models\ExamSession;
 use App\Models\ProctorSnaps;
 use App\Models\ProctorSnapDetails;
@@ -18,7 +15,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Validator;
-use Auth;
 
 class Student
 {
@@ -97,28 +93,20 @@ class Student
 	public function startExam($exam_id)
 	{
 		//-------------Get Data from Paper Resource (Subject Master)---------------
-		$elapsed =0 ;
 		$continueexam =0;
 		$exam = CandTest::find($exam_id);
-		
+
 		if($exam)
 		{
 			DB::beginTransaction();
 			$paper_id 	= $exam->paper_id;
-			$stdid 		= $exam->stdid;
-			if($stdid 	!= Auth::user()->uid)
-			{
-				return json_encode([
-					'status' => 'failure'
-				],401);
-			}
 			//-----------Validate Paper time with current time before exam start-------
 			$subject_master 	= SubjectMaster::find($paper_id);
 			$from_time 			= $subject_master->from_time;
 			$to_time 			= $subject_master->to_time;
 			$static_assign 		= $subject_master->static_assign;
-			$paper_codee 		= $subject_master->paper_code;
-				
+
+
 			$from_date 			= $subject_master->from_date.' '.$from_time;
 			$to_date 			= $subject_master->to_date.' '.$to_time;
 
@@ -130,25 +118,15 @@ class Student
 			{
 				//----------------------------Insert Answers in CandQuestion-------
 				$insertcount=0;
-				//---------------Check if exam is allocated------------------------
-				$cnt = CandTest::where('paper_id',$paper_id)->where('stdid',$this->uid)->count();
-				if(!$cnt)
-				{
-					return json_encode([
-						'status'						=>  'failure'
-					],400);
-				}
-				//------------------------------------------------------------------	
 				$current_time 		= 	Carbon::now();
 				$res5 = null;
 				$totalQuest = 0;
 				if(!$static_assign)
 				{
-					
 					//---------------------Get Questions from Question Set----------------------
 					$questions = TopicMaster::where('paper_id',$paper_id)->get();
 					if($questions)
-					{ 
+					{
 				  		$fetchQuery = '';
 					  	$actualMarks = 0;
 						foreach($questions as $record)
@@ -162,29 +140,29 @@ class Student
 							$mmarks   = $mrk * $quest;
 
 							$totalQuest = $totalQuest + $record->questions;
-				  
+
 							$actualMarks = $actualMarks + $mmarks;
-				  
+
 							$fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paper_id') AND  topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND quest_type='$questMode' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
 						}
-						
+
 						$fetchQuery = rtrim($fetchQuery," UNION ");
-						
+
 						try
 						{
 							$res5 = DB::select($fetchQuery);
-							
+
 							if(sizeof($res5) != $totalQuest)
 							{
 								return response()->json([
-									"status"  => "failure1".$e->getMessage()
+									"status"  => "failure1"
 								], 400);
 							}
 						}
 						catch(\Exception $e)
 					  	{
 							return response()->json([
-							  'status' 		=> 'failure',
+							  'status' 		=> 'failure'.$e->getMessage(),
 							],400);
 						}
 					}
@@ -194,9 +172,10 @@ class Student
 					if(!$insertcount)
 					{
 						$i=1;
+						$values = [];
 						foreach($res5 as $question)
 						{
-							$values = array(
+							array_push($values, array(
 								'exam_id' 					=> $exam_id,
 								'stdid' 					=> $this->uid,
 								'inst' 						=> $this->inst,
@@ -212,15 +191,15 @@ class Student
 								'ip' 						=> request()->ip(),
 								'entry_on' 					=> $current_time,
 								'qnid_sr' 					=> $i++
-							);
-							$inserted = DB::table('cand_questions')->insert($values);
-							DB::commit();
+							));
 						}
+						$inserted = DB::table('cand_questions')->insert($values);
+						DB::commit();
 						//-----------------------Update Exam status in CandTest-----------
 						$minutes = $this->getDuration($paper_id);
 						try
 						{
-							$result = CandTest::where('id',$exam_id)->update([
+							$exam->update([
 								'starttime' 		=> 	Carbon::now(),
 								'endtime'			=>	Carbon::now()->addMinutes((integer)$minutes),
 								'entry_on' 			=> 	Carbon::now(),
@@ -244,12 +223,11 @@ class Student
 					else
 					{
 						$candQuestionsExisting=1;
-						$result = CandTest::select(['continueexam'])->where('id',$exam_id)->first();
-						$continueexam = $result->continueexam;
+						$continueexam = $exam->continueexam;
 						$continueexam = $continueexam + 1;
 						try
 						{
-							$result = CandTest::where('id',$exam_id)->update([
+							$exam->update([
 								'continueexam'	=> 	$continueexam,
 								'updated_at'		=> 	Carbon::now()
 							]);
@@ -274,25 +252,24 @@ class Student
 					$minutes = $this->getDuration($paper_id);
 					try
 					{
-						$result 		= CandTest::where('id',$exam_id)->first();
-						$continueexam 	= $result->continueexam;
+						$continueexam 	= $exam->continueexam;
 						if($continueexam == 0)
 						{
-							$result->starttime  		= 	Carbon::now();
-							$result->endtime  			= 	Carbon::now()->addMinutes((integer)$minutes);
-							$result->entry_on  			= 	Carbon::now();
-							$result->examip				=	request()->ip();
-							$result->pa					=	'P';
-							$result->continueexam		= 	'1';
-							$result->status				=	'inprogress';
-							$result->updated_at			= 	Carbon::now();
+							$exam->starttime  			= 	Carbon::now();
+							$exam->endtime  			= 	Carbon::now()->addMinutes((integer)$minutes);
+							$exam->entry_on  			= 	Carbon::now();
+							$exam->examip				=	request()->ip();
+							$exam->pa					=	'P';
+							$exam->continueexam			= 	'1';
+							$exam->status				=	'inprogress';
+							$exam->updated_at			= 	Carbon::now();
 						}
 						else
 						{
-							$result->continueexam		= 	$result->continue_exam + 1;
-							$result->examip				=	request()->ip();
+							$exam->continueexam			= 	$exam->continue_exam + 1;
+							$exam->examip				=	request()->ip();
 						}
-						$result->save();
+						$exam->save();
 						DB::commit();
 						return json_encode([
 							'status' 				=> 'success',
@@ -306,7 +283,7 @@ class Student
 						],400);
 					}
 					//----------------------------------------------------------------
-				}		
+				}
 			}
 			else
 			{
@@ -368,7 +345,7 @@ class Student
 
 	public function getAnswers($id)
 	{
-		$answers = CandQuestion::where('exam_id',$id)->get();
+		$answers = DB::table('cand_questions')->where('exam_id',$id)->get();
 		if($answers)
 		{
 			return json_encode([
@@ -386,7 +363,7 @@ class Student
 
 	public function getAnswer($id)
 	{
-		$answers = CandQuestion::where('id',$id)->get();
+		$answers = DB::table('cand_questions')->where('id',$id)->get();
 		if($answers)
 		{
 			return json_encode([
@@ -423,13 +400,10 @@ class Student
 
 		$result = DB::statement("insert into cand_questions_copy select * from cand_questions where id='$id'");
 
-		//$res = CandQuestion::where('exam_id',$examId)->get(); //--because of count issue
-
 		if($rrr)
 		{
 			return json_encode([
 				'status'						=> 'success',
-				//'questions'						=> new AnswerCollection($res),
 			],200);
 		}
 		else
@@ -438,7 +412,7 @@ class Student
 				'status'						=> 'failure',
 			],200);
 		}
-		
+
 	}
 
 	public function updateReview(Request $request,$id)
@@ -478,7 +452,7 @@ class Student
 
 		//--------Search for entry in ExamSession with given exam_id----------------
 		$result = ExamSession::where('exam_id',$exam_id)->where('session_state','active')->first();
-		
+
 		$result1 = CandTest::select("status")->where('id',$exam_id)->first();
 
 
@@ -487,7 +461,7 @@ class Student
 		{
 			//-----check Time difference between now and last_update_time-------------
 			$heartbeatdiff = Carbon::now()->diffInSeconds($result->last_update_time);
-			
+
 			if($heartbeatdiff > $heartbeattime)
 			{
 				//-----------convert first active record to over state------------------
@@ -533,7 +507,6 @@ class Student
 						$cumulativeTime = $cumulativeResult[0]->elapsed_time;
 					}
 				//----------------------------------------------------------------------
-
 				//------------------Update Exam Session --------------------------------
 				$result->last_update_time = Carbon::now();
 				$diff = Carbon::now()->diffInSeconds($result->session_start_time);
@@ -582,9 +555,9 @@ class Student
 
 	public function getExamSession($exam_id)
 	{
-		$result = ExamSession::select("elapsed_time")->where('exam_id',$exam_id)->where('session_state','active')->orderBy('session_start_time', 'desc')->first();
+		$result = DB::table('exam_session')->select("elapsed_time")->where('exam_id',$exam_id)->where('session_state','active')->orderBy('session_start_time', 'desc')->first();
 
-		$result1 = CandTest::select("status")->where('id',$exam_id)->first();
+		$result1 = DB::table('cand_test')->select("status")->where('id',$exam_id)->first();
 
 		if($result)
 		{
@@ -632,12 +605,12 @@ class Student
 			'created_at'						=> Carbon::now()
 		);
 
-		$inserted = ProctorSnaps::create($values);
+		$inserted = DB::table('proctor_snaps')->insertGetId($values);
 		if($inserted)
 		{
 			return response()->json([
 				'status' 				=> 'success',
-				'snapid'				=>  $inserted->id
+				'snapid'				=>  $inserted
 			],200);
 		}
 		else
@@ -683,7 +656,7 @@ class Student
 	{
 		$examId = $id;
 		$curQuestion = $request->curQuestion;
-		
+
 
 		$result = CandTest::where('id',$examId)->update([
 			'curQuestion' => $curQuestion
@@ -720,7 +693,7 @@ class Student
 		$result->answer_by	= $answer_by;
 		$result->answer_on	= $current_time;
 		$result->ip			= $ip;
-	
+
 		$result->save();
 
 		$rrr = DB::statement("insert into cand_questions_copy select * from cand_questions where id='$id'");
@@ -758,7 +731,7 @@ class Student
 				$part 			= rand(100000,999999);
 				$validation 	= Validator::make($request->all(), ['file' => 'required|mimes:jpeg,jpg,pdf,doc,docx,xls,xlsx,ppt,pptx|max:5120']);
 				$path = $request->file('file')->getRealPath();
-			
+
 				if($validation->passes())
 				{
 					$image 		= $request->file('file');
@@ -774,7 +747,7 @@ class Student
 					$ip 				= request()->ip();
 
 					$url 				= Config::get('constants.PROJURL');
-					
+
 					$answerImgStr 		= trim($answerImgStr.','.$answer,',');
 
 					$result->answerImage = $answerImgStr;
@@ -789,7 +762,7 @@ class Student
 					for($i=0;$i< sizeof($answerImg);$i++)
 					{
 						$answerImg[$i] = $url.'/'.$answerImg[$i];
-					} 
+					}
 
 					if($result)
 					{

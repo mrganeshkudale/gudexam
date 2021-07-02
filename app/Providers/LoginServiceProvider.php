@@ -4,8 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\CustomLogin\CustomLogin;
+use Illuminate\Contracts\Support\DeferrableProvider;
 
-class LoginServiceProvider extends ServiceProvider
+class LoginServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     /**
      * Register services.
@@ -14,19 +15,24 @@ class LoginServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton(CustomLogin::class, function ($app)
+        {
+            return new CustomLogin($this->app->request);
+        });
     }
 
     /**
      * Bootstrap services.
      *
      * @return void
-     */
+     *
     public function boot()
     {
-        $this->app->singleton(CustomLogin::class, function ($app)
-        {
-            return new CustomLogin($this->app->request);
-        });
+       
+    }*/
+
+    public function provides()
+    {
+        return [CustomLogin::class];
     }
 }

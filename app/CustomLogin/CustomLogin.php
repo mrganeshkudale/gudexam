@@ -7,7 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Validator;
-use Auth;
+use Illuminate\Support\Facades\Auth;
 
 class CustomLogin
 {
@@ -47,8 +47,7 @@ class CustomLogin
 
 	public function customLoginAuthentication($request)
 	{
-		
-
+		$rrr = null;
 		$validator = Validator::make([
 		'username' => $this->username,
 		'password' => $this->password,
@@ -70,6 +69,7 @@ class CustomLogin
 		{
 				if($this->flag==0)
 				{
+					$rrr = User::where('username',$this->username)->where('inst_id',$this->inst_id)->first();
 					$user_data = array(
 						'username'  		=> $this->username,
 						'password' 			=> $this->password,
@@ -79,6 +79,7 @@ class CustomLogin
 				}
 				else
 				{
+					$rrr = User::where('username',$this->username)->first();
 					$user_data = array(
 						'username'  		=> $this->username,
 						'password' 			=> $this->password,
@@ -94,7 +95,6 @@ class CustomLogin
 				if($rrr)
 				{
 					$paass = $rrr->origpass;
-
 					$user_data = array(
 						'username'  				=> $this->username,
 						'password' 					=> $paass,
@@ -131,10 +131,10 @@ class CustomLogin
 				}
 			}
 		}
+		
 			if(Auth::attempt($user_data))
 			{
-
-				$sessionResult = User::find(Auth::user()->uid)->sessions()->orderBy('session_id','DESC')->first();
+				$sessionResult = Session::where('uid',Auth::user()->uid)->orderBy('session_id','DESC')->first();
 
 				//---------Condition to Check Already Logged in or proper Log Out-------
 				if($sessionResult)
@@ -142,9 +142,9 @@ class CustomLogin
 					if($sessionResult->endtime == '' && $sessionResult->role == 'STUDENT')
 					{
 						return response()->json([
-									'status' 		=> 'failure',
-									'message'   	=> 'You have already logged in using other device. Clear Your Session to Login.'
-								],200);
+							'status' 		=> 'failure',
+							'message'   	=> 'You have already logged in using other device. Clear Your Session to Login.'
+						],200);
 					}
 				}
 				//----------------------------------------------------------------------
@@ -161,6 +161,10 @@ class CustomLogin
 				$browser 				= $request->browser;
 				$os      				= $request->os;
 				$version 				= $request->version;
+				$firebaseToken 			= $request->firebaseToken;
+				
+				$rrr->firebaseToken 	= $firebaseToken;
+				$rrr->save();
 
 
 				$rres = DB::statement("INSERT INTO `sessions`(`uid`, `role`, `ip`, `browser`, `os`, `version`, `starttime`, `created_at`, `updated_at`) 
@@ -214,6 +218,14 @@ class CustomLogin
 								'data' 			=> Auth::user(),
 							],200);
 				}
+				else if(strtoupper($role)=='PROCTOR')
+				{
+					return response()->json([
+								'status' 		=> 'success',
+                				'token' 		=> $token,
+								'data' 			=> Auth::user(),
+							],200);
+				}
 				else
 				{
 					return response()->json([
@@ -246,6 +258,8 @@ class CustomLogin
 			$current_timestamp 				= Carbon::now()->timestamp;
 			$current_time 					= Carbon::now();
 			$result 						= Session::where('uid', Auth::user()->uid)->orderBy('session_id', 'DESC')->first()->update(['endtime' 	=> $current_time]);
+			
+			$result 						= User::where('uid',Auth::user()->uid)->update(['firebaseToken' => null]);
 		}
 }
 ?>

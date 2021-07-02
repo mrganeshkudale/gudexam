@@ -39,7 +39,7 @@ class User extends Authenticatable
         'password',
         'regi_type',
         'college_name',
-        'docpath','verified','verify_on','wallet_balance'
+        'docpath','verified','verify_on','wallet_balance','firebaseToken'
     ];
 
     /**
