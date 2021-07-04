@@ -146,6 +146,7 @@ class UsersController extends Controller
             }
             else if($request->type == 'student')
             {
+                $a1->deleteStudentQuestions($request->id);
                 $a1->deleteStudentSubjectMapping($request->id);
                 $a1->deleteStudentCheckerMapping($request->id);
                 $a1->deleteStudentProctorMapping($request->id);

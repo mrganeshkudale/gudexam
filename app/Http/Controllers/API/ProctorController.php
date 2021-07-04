@@ -86,9 +86,13 @@ class ProctorController extends Controller
             return response()->json([
                 "status"          =>  "failure",
                 "message"         =>  "Unauthorized User...",
-            ], 401);<Link  className="nav-link" to={{pathname: "/proctoringSummaryReport"}}>
-            Proctoring Summary Report
-        </Link>
+            ], 401);
+        }
+  }
+
+  public function getProctorAllocation(Request $request,Admin1 $a1)
+  {
+      if(Auth::user())
       {
           if($request->type == 'byPaperId')
           {

@@ -3696,7 +3696,8 @@ class Admin
   {
     $date = $request->date;
     $paperId = [];
-    $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%'");
+
+    $result = DB::select("select GROUP_CONCAT(id) as id from subject_master where from_date like '%$date%'");
 
     if($result)
     {
@@ -3844,11 +3845,10 @@ class Admin
       if($slot == '')
       {
         $result = DB::select("select group_concat(id) as subjectList from subject_master where inst_uid='$inst' and from_date like '%$date%'");
-
         if($result)
         {
           $array = explode(',',$result[0]->subjectList);
-          $count = CandTest::whereIn('paper_id',$array)->where('status','')->count();
+          $count = CandTest::whereIn('paper_id',$array)->where('status','')->orWhere('status',null)->count();
           return $count;
         }
         else
@@ -3863,7 +3863,7 @@ class Admin
         if($result)
         {
           $array = explode(',',$result[0]->subjectList);
-          $count = CandTest::whereIn('paper_id',$array)->where('status','')->count();
+          $count = CandTest::whereIn('paper_id',$array)->where('status','')->orWhere('status',null)->count();
           return $count;
         }
         else

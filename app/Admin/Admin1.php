@@ -1748,4 +1748,9 @@ class Admin1
     }
   }
 
+  public function deleteStudentQuestions($id)
+  {
+    $result = CandQuestion::where('stdid',$id)->delete();
+  }
+
 }
