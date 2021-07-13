@@ -82,20 +82,25 @@ class Admin1
     $stdid              = "'" . implode("','", $request->stdid) . "'";
     $paperId            = $request->paperId;
     $instId             = $request->instId;
-    $instUid            = $request->instUid;
 
-    $r   = DB::select("SELECT GROUP_CONCAT(uid) as uid FROM users where username in($stdid) and inst_id='$instId'");
+    $rrrr = User::where('username',$instId)->where('role','EADMIN')->first();
+    $instUid = $rrrr->uid;
+
+    $r   = DB::select("SELECT GROUP_CONCAT(uid) as uid FROM users where username in($stdid) and inst_id='$instId' and role='STUDENT'");
     $uid = $r[0]->uid; // uid list of users
 
     $res = DB::select("select group_concat(id) as examId from cand_test where stdid in ($uid) and inst='$instId' and paper_id='$paperId'");
     $examId = $res[0]->examId; // exam id list of students
 
+    $result = SubjectMaster::where('id',$paperId)->where('inst_uid',$instUid)->first();
+    $static_assign = $result->static_assign;
     if ($examId) {
       DB::beginTransaction();
-      try {
+      try 
+      {
         //-------Save questions in backup table---------------------------
         $result = DB::statement("insert into cand_questions_reset select * from cand_questions where exam_id in($examId)");
-        $result = DB::statement("update cand_questions set answered='unanswered',stdanswer=null,answer_by=null,answer_on=null where exam_id in($examId)");
+        $result = DB::statement("delete from cand_questions where exam_id in($examId)");
 
         $result1 = DB::statement("insert into cand_questions_copy_reset select * from cand_questions_copy where exam_id in($examId)");
         $result1 = DB::statement("delete from cand_questions_copy where exam_id in($examId)");
@@ -103,7 +108,14 @@ class Admin1
 
         //-------Save exam in backup table--------------------------------
         $result2 = DB::statement("insert into cand_test_reset select * from cand_test where id in($examId)");
-        $result2 = DB::statement("update cand_test set starttime=null,endtime=null,cqnid=null,wqnid=null,uqnid=null,status=null,entry_on=null,end_on=null,end_by=null,examip=null,continueexam=0,marksobt=null where id in($examId)");
+        if($static_assign != 1)
+        {
+          $result2 = DB::statement("update cand_test set starttime=null,endtime=null,cqnid=null,wqnid=null,uqnid=null,status=null,entry_on=null,end_on=null,end_by=null,examip=null,continueexam=0,marksobt=null where id in($examId)");
+        }
+        else
+        {
+          $result2 = DB::statement("delete from cand_test where id in($examId)");
+        }
         //----------------------------------------------------------------
 
         //-------Save Exam Session in backup table------------------------
@@ -118,17 +130,25 @@ class Admin1
         $result5 = DB::statement("insert into proctor_snap_details_reset select * from proctor_snap_details where examid in($examId)");
         $result5 = DB::statement("delete  from proctor_snap_details where examid in($examId)");
         //----------------------------------------------------------------
+        //-----------------------------Delete from Proctor Allocation-----------------------------
+       
+        $r1   = DB::select("Delete FROM student_proctor_alloc_master where studid in($uid) and instId='$instId' and  paperId='$paperId'");
+        //----------------------------------------------------------------------------------------
+
         DB::commit();
         return response()->json([
           'status'     => 'success',
         ], 200);
+
       } catch (\Exception $e) {
         DB::rollback();
         return response()->json([
           'status'     => 'failure',
         ], 400);
       }
-    } else {
+    } 
+    else 
+    {
       DB::rollback();
       return response()->json([
         'status'     => 'failure',
@@ -1441,9 +1461,11 @@ class Admin1
       } 
       else 
       {
+        $result = CandTest::where('id',$examId)->first();
         return json_encode([
           'status'  => 'failure',
           'message' => 'No Proctoring Data found for this Candidate...',
+          'examstatus' => $result->status
         ], 400);
       }
   }
@@ -1557,6 +1579,7 @@ class Admin1
           'warningNo'=>$warningNo,
           'created_at'=>$current_time
         ]);
+        
         $rrr= ProctorStudentWarningMaster::where('examId',$examid)->where('paperId',$paperId)->where('instId',$instId)->where('proctor',$from)->where('student',$to)->orderBy('created_at','DESC')->get();
 
         return response()->json([
@@ -1675,9 +1698,7 @@ class Admin1
 
   public function notedWarning($warningId)
   {
-    $result = ProctorStudentWarningMaster::find($warningId);
-    $result->noted = 1;
-    $result->save();
+    $result = ProctorStudentWarningMaster::where('id',$warningId)->update(['noted' => '1']);
     return response()->json([
       'status'     => 'success',
       'message'   => 'Student Noted...',
@@ -1751,6 +1772,49 @@ class Admin1
   public function deleteStudentQuestions($id)
   {
     $result = CandQuestion::where('stdid',$id)->delete();
+  }
+
+  public function endExamProctor($id,$reason)
+  {
+    $cqnid='';$wqnid='';$uqnid='';$marksobt=0;
+			//----------get value of cqnid,wqnid,uqnid--------------------------------
+				$result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)=trim(cans)");
+				if($result)
+				{
+					$cqnid 		= $result[0]->cqnid;
+					$marksobt 	= $result[0]->marksobt;
+				}
+
+				$result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)!=trim(cans)");
+				if($result1)
+				{
+					$wqnid = $result1[0]->wqnid;
+				}
+
+				$result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','unansweredandreview')");
+				if($result2)
+				{
+					$uqnid = $result2[0]->uqnid;
+				}
+			//------------------------------------------------------------------------
+
+			//-------------------Update Exam Resource with End Exam Records-----------
+			$results = DB::table('cand_test')->where('id',$id)->update([
+				'cqnid' 			=> 	$cqnid,
+				'wqnid' 			=> 	$wqnid,
+				'uqnid' 			=> 	$uqnid,
+				'end_on' 			=>	Carbon::now(),
+				'end_by'			=>	Auth::user()->uid,
+				'status'			=>	'over',
+				'marksobt'		=>	$marksobt,
+				'updated_at'	=>	Carbon::now(),
+        'endExamReason'=> $reason,
+			]);
+			//------------------------------------------------------------------------
+			return json_encode([
+				'status' => 'success'
+			],200);
+
   }
 
 }

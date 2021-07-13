@@ -3326,7 +3326,7 @@ class Admin
     if($slot == 'all' && $paperId == 'all')
     {
       //----------find all papersId of given institute on given date-----------------------------
-        $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and inst_uid like '$instUid' group by inst_uid");
+        $result = DB::select("select GROUP_CONCAT(id) as id from subject_master where from_date like '%$date%' and inst_uid like '$instUid' group by inst_uid");
 
         if($result)
         {
@@ -3373,7 +3373,7 @@ class Admin
     elseif($slot != 'all' && $paperId == 'all')
     {
       //----------find all papersId of given institute on given date and slot-----------------------------
-      $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and inst_uid like '$instUid' group by inst_uid");
+      $result = DB::select("select GROUP_CONCAT(id) as id from subject_master where from_date like '%$date%' and slot='$slot' and inst_uid like '$instUid' group by inst_uid");
 
       if($result)
       {
@@ -3396,7 +3396,7 @@ class Admin
     else if($slot != 'all' && $paperId != 'all')
     {
         //----------find all papersId of given institute on given date and slot-----------------------------
-        $result = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and id='$paperId' and inst_uid like '$instUid' group by inst_uid");
+        $result = DB::select("select GROUP_CONCAT(id) as id from subject_master where from_date like '%$date%' and slot='$slot' and id='$paperId' and inst_uid like '$instUid' group by inst_uid");
 
         if($result)
         {
@@ -3447,7 +3447,7 @@ class Admin
     if($slot == 'all' && $paperId == 'all')
     {
       //----------find all papersId of given institute on given date---------------
-        $results = DB::select("select group_concat(id) as id from gudexam.subject_master where from_date like '%$date%' and inst_uid like '$instUid' group by inst_uid");
+        $results = DB::select("select group_concat(id) as id from subject_master where from_date like '%$date%' and inst_uid like '$instUid' group by inst_uid");
 
         try
         {
@@ -3563,7 +3563,7 @@ class Admin
     elseif($slot != 'all' && $paperId == 'all')
     {
       //----------find all papersId of given institute on given date and slot-------
-      $results = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and inst_uid like '$instUid' group by inst_uid");
+      $results = DB::select("select GROUP_CONCAT(id) as id from subject_master where from_date like '%$date%' and slot='$slot' and inst_uid like '$instUid' group by inst_uid");
 
       try
         {
@@ -3629,7 +3629,7 @@ class Admin
     else if($slot != 'all' && $paperId != 'all')
     {
         //----------find all papersId of given institute on given date and slot------
-        $results = DB::select("select GROUP_CONCAT(id) as id from gudexam.subject_master where from_date like '%$date%' and slot='$slot' and id='$paperId' and inst_uid like '$instUid' group by inst_uid");
+        $results = DB::select("select GROUP_CONCAT(id) as id from subject_master where from_date like '%$date%' and slot='$slot' and id='$paperId' and inst_uid like '$instUid' group by inst_uid");
 
         try
         {
@@ -3847,8 +3847,9 @@ class Admin
         $result = DB::select("select group_concat(id) as subjectList from subject_master where inst_uid='$inst' and from_date like '%$date%'");
         if($result)
         {
-          $array = explode(',',$result[0]->subjectList);
-          $count = CandTest::whereIn('paper_id',$array)->where('status','')->orWhere('status',null)->count();
+          $list = (string) $result[0]->subjectList;
+          $rrr = DB::select("SELECT * FROM `cand_test` WHERE `paper_id` IN ($list) and (status='' or status is null)");
+          $count = count($rrr);
           return $count;
         }
         else
@@ -3862,8 +3863,9 @@ class Admin
 
         if($result)
         {
-          $array = explode(',',$result[0]->subjectList);
-          $count = CandTest::whereIn('paper_id',$array)->where('status','')->orWhere('status',null)->count();
+          $list = (string) $result[0]->subjectList;
+          $rrr = DB::select("SELECT * FROM `cand_test` WHERE `paper_id` IN ($list) and (status='' or status is null)");
+          $count = count($rrr);
           return $count;
         }
         else

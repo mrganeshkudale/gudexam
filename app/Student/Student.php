@@ -114,7 +114,7 @@ class Student
 			$fromDate			=	date('Y-m-d H:i:s', strtotime($from_date));
 			$toDate				=	date('Y-m-d H:i:s', strtotime($to_date));
 			$toDay 				=	date('Y-m-d H:i:s', strtotime($today));
-			if (($toDay >= $fromDate) && ($toDay <= $toDate))
+			if ((($toDay >= $fromDate) && ($toDay <= $toDate)) || ($exam->status == 'inprogress'))
 			{
 				//----------------------------Insert Answers in CandQuestion-------
 				$insertcount=0;

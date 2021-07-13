@@ -84,7 +84,7 @@ class ExamController extends Controller
     }
   }
 
-  public function update(Student $s,Admin $a,Request $request,$id)
+  public function update(Student $s,Admin $a,Request $request,$id, Admin1 $a1)
   {
     if(Auth::user())
     {
@@ -95,6 +95,10 @@ class ExamController extends Controller
       else if($request->status === 'end')
       {
         return $s->endExam($id);
+      }
+      else if($request->status === 'endExamProctor')
+      {
+        return $a1->endExamProctor($id,$request->reason);
       }
       else if($request->status === 'windowswitch')
       {
