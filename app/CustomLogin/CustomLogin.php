@@ -65,6 +65,8 @@ class CustomLogin
     	}
 
 		$spass = Config::get('constants.SPASS');
+		$multylogin = Config::get('constants.MULTYLOGIN');
+	
 		if(strcmp(trim($spass),trim($this->password))!=0)
 		{
 				if($this->flag==0)
@@ -134,7 +136,7 @@ class CustomLogin
 		
 			if(Auth::attempt($user_data))
 			{
-				if(Auth::user()->role =='STUDENT')
+				if($multylogin == 'N' && Auth::user()->role =='STUDENT')
 				{
 					$sessionResult = Session::where('uid',Auth::user()->uid)->orderBy('session_id','DESC')->first();
 

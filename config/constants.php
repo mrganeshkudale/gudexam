@@ -5,6 +5,7 @@ return array(
     'SPASS'         => 'gudexams@123',
     'HEARTBEATTIME' => 30,
     'OTPEXPIRY'     => 900,
+    'MULTYLOGIN'    => 'N',
 );
 
 ?>
