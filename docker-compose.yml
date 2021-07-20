@@ -3,6 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: 'laravelapp'
+    image: 'Gudexam'
     ports:
-      - 8080:80
+      - 80:80

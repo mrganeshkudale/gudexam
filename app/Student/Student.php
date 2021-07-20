@@ -8,7 +8,6 @@ use App\Models\CandQuestion;
 use App\Models\CandTest;
 use App\Models\SubjectMaster;
 use App\Models\ExamSession;
-use App\Models\ProctorSnaps;
 use App\Models\ProctorSnapDetails;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -440,6 +439,30 @@ class Student
 		else
 		{
 			return 0;
+		}
+	}
+
+	public function additionalExamSession($exam_id,$time)
+	{
+		$time = $time * 60 ;
+		$result = ExamSession::where('exam_id',$exam_id)->orderBy('created_at','DESC')->first();
+		$res = CandTest::find($exam_id);
+		$res->status='inprogress';
+		$res->save();
+		if($result)
+		{
+			$result->elapsed_time = $result->elapsed_time - $time;
+			$result->save();
+			return json_encode([
+				'status'						=> 'success',
+				'message'						=>	'Additional Time given Successfully...'
+			],200);
+		}
+		else
+		{
+			return json_encode([
+				'status'						=> 'failure',
+			],400);
 		}
 	}
 

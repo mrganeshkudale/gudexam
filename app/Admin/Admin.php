@@ -1,7 +1,6 @@
 <?php
 namespace App\Admin;
 use App\Models\User;
-use App\Models\StudentExam;
 use App\Http\Resources\ExamCollection;
 use App\Http\Resources\CustomExamReportCollection;
 use App\Http\Resources\InstProgramCollection;
@@ -15,12 +14,10 @@ use App\Http\Resources\PaperResource;
 use App\Http\Resources\ExamResource;
 use App\Models\CandTest;
 use App\Models\TopicMaster;
-use App\Models\Elapsed;
 use App\Models\QuestionSet;
 use App\Models\CandQuestion;
 use App\Models\OauthAccessToken;
 use App\Models\ProctorSnaps;
-use App\Models\ProctorSnapDetails;
 use App\Models\InstPrograms;
 use App\Models\ProgramMaster;
 use App\Models\SubjectMaster;
@@ -28,17 +25,14 @@ use App\Models\HeaderFooterText;
 use App\Models\Session;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Validator;
 use Auth;
 use File;
-use Illuminate\Http\Resources\Json\ResourceCollection;
 use App\Http\Resources\InstituteResource;
 use Illuminate\Support\Facades\Hash;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use QuestionCollection as GlobalQuestionCollection;
+
 
 class Admin
 {
@@ -2054,6 +2048,21 @@ class Admin
   {
     $paper_id     = $request->paper_id;
     $type         = $request->type;
+    $instId       = $request->instId;
+    $instName     = '';
+
+    if(Auth::user()->role !== 'EADMIN')
+    {
+      $res = User::where('username',$instId)->where('role','EADMIN')->first();
+      if($res)
+      {
+        $instName = $instId.'-'.$res->college_name;
+      }
+    }
+    else
+    {
+      $instName = $instId.'-'.Auth::user()->college_name;
+    }
   
     if($type == 'notattend')
     {
@@ -2071,6 +2080,7 @@ class Admin
     return response()->json([
       "status"        => "success",
       "data"          => new ExamCollection($result),
+      "instName"      => $instName,
     ], 200);
 
   }

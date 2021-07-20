@@ -78,8 +78,7 @@ Route::middleware(['auth:api'])->group(function()
 //---------------------------------Student API End------------------------------
 
 
-
-//--------------------------Specific ADMIN Roles API----------------------------s
+//--------------------------Specific ADMIN Roles API----------------------------
 Route::middleware(['auth:api','admin'])->group(function()
 {
     Route::post('loginLink/{stdid}',[AuthController::class, 'loginLink'])->name('postLoginfLink');
@@ -185,6 +184,8 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('proctor/sendWarning/{examid}', [ProctorController::class, 'sendWarning'])->name('sendWarning');
    
     Route::post('proctor/student/upload', [ProctorController::class, 'uploadStudProctor'])->name('uploadStudProctor');
+
+    Route::get('proctor/dashboard', [ProctorController::class, 'getProctorDashboard'])->name('getProctorDashboard');
 });
 //------------------------------------------------------------------------------
 ?>

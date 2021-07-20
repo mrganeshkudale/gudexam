@@ -224,4 +224,19 @@ class ProctorController extends Controller
             ], 401);
         }
     }
+
+    public function getProctorDashboard(Request $request,Admin1 $a1)
+    {
+        if(Auth::user())
+        {
+            return $a1->getProctorDashboard($request);
+        }
+        else
+        {
+            return response()->json([
+                "status"          =>  "failure",
+                "message"         =>  "Unauthorized User...",
+            ], 401);
+        }
+    }
 }

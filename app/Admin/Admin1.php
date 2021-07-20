@@ -13,50 +13,29 @@ use App\Http\Resources\ProctorStudentCollection;
 use App\Http\Resources\ProctorStudentExtendedCollection;
 use App\Http\Resources\CheckerSubjectCollection;
 use App\Http\Resources\ProctorSubjectCollection;
-use App\Http\Resources\CustomExamReportCollection;
-use App\Http\Resources\InstProgramCollection;
-use App\Http\Resources\PaperCollection;
 use App\Http\Resources\ProctorSnapCollection;
 use App\Http\Resources\ProctorSnapResource;
 use App\Http\Resources\AnswerCollection;
 use App\Http\Resources\QuestionCollection;
-use App\Http\Resources\ProgramCollection;
-use App\Http\Resources\TopicCollection;
-use App\Http\Resources\PaperResource;
-use App\Http\Resources\ExamResource;
 use App\Models\CandTest;
-use App\Models\CandTestReset;
 use App\Models\LoginLink;
-use App\Models\TopicMaster;
-use App\Models\Elapsed;
+use App\Http\Resources\ProctorSubjectStudCountCollection;
 use App\Models\CheckerSubjectMaster;
 use App\Models\QuestionSet;
 use App\Models\CandQuestion;
-use App\Models\CandQuestionReset;
-use App\Models\OauthAccessToken;
 use App\Models\ProctorSnaps;
-use App\Models\ProctorSnapDetails;
-use App\Models\InstPrograms;
-use App\Models\ProgramMaster;
 use App\Models\SubjectMaster;
-use App\Models\HeaderFooterText;
 use App\Models\StudentCheckerAllocMaster;
 use App\Models\StudentProctorAllocMaster;
 use App\Models\ProctorSubjectMaster;
-use App\Models\Session;
-use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Validator;
 use Auth;
 use File;
-use Illuminate\Http\Resources\Json\ResourceCollection;
-use App\Http\Resources\InstituteResource;
 use Illuminate\Support\Facades\Hash;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use QuestionCollection as GlobalQuestionCollection;
 
 class Admin1
 {
@@ -83,7 +62,7 @@ class Admin1
     $paperId            = $request->paperId;
     $instId             = $request->instId;
 
-    $rrrr = User::where('username',$instId)->where('role','EADMIN')->first();
+    $rrrr = User::where('username', $instId)->where('role', 'EADMIN')->first();
     $instUid = $rrrr->uid;
 
     $r   = DB::select("SELECT GROUP_CONCAT(uid) as uid FROM users where username in($stdid) and inst_id='$instId' and role='STUDENT'");
@@ -92,12 +71,11 @@ class Admin1
     $res = DB::select("select group_concat(id) as examId from cand_test where stdid in ($uid) and inst='$instId' and paper_id='$paperId'");
     $examId = $res[0]->examId; // exam id list of students
 
-    $result = SubjectMaster::where('id',$paperId)->where('inst_uid',$instUid)->first();
+    $result = SubjectMaster::where('id', $paperId)->where('inst_uid', $instUid)->first();
     $static_assign = $result->static_assign;
     if ($examId) {
       DB::beginTransaction();
-      try 
-      {
+      try {
         //-------Save questions in backup table---------------------------
         $result = DB::statement("insert into cand_questions_reset select * from cand_questions where exam_id in($examId)");
         $result = DB::statement("delete from cand_questions where exam_id in($examId)");
@@ -108,12 +86,9 @@ class Admin1
 
         //-------Save exam in backup table--------------------------------
         $result2 = DB::statement("insert into cand_test_reset select * from cand_test where id in($examId)");
-        if($static_assign != 1)
-        {
+        if ($static_assign != 1) {
           $result2 = DB::statement("update cand_test set starttime=null,endtime=null,cqnid=null,wqnid=null,uqnid=null,status=null,entry_on=null,end_on=null,end_by=null,examip=null,continueexam=0,marksobt=null where id in($examId)");
-        }
-        else
-        {
+        } else {
           $result2 = DB::statement("delete from cand_test where id in($examId)");
         }
         //----------------------------------------------------------------
@@ -131,7 +106,7 @@ class Admin1
         $result5 = DB::statement("delete  from proctor_snap_details where examid in($examId)");
         //----------------------------------------------------------------
         //-----------------------------Delete from Proctor Allocation-----------------------------
-       
+
         $r1   = DB::select("Delete FROM student_proctor_alloc_master where studid in($uid) and instId='$instId' and  paperId='$paperId'");
         //----------------------------------------------------------------------------------------
 
@@ -139,16 +114,13 @@ class Admin1
         return response()->json([
           'status'     => 'success',
         ], 200);
-
       } catch (\Exception $e) {
         DB::rollback();
         return response()->json([
           'status'     => 'failure',
         ], 400);
       }
-    } 
-    else 
-    {
+    } else {
       DB::rollback();
       return response()->json([
         'status'     => 'failure',
@@ -1449,25 +1421,22 @@ class Admin1
     }
   }
 
-  public function proctorLatestByEnrollno($enrollno, $paperId, $instId, $stdid,$examId)
-  {     
-      $result2 = ProctorSnaps::where('examid', $examId)->orderBy('created_at', 'DESC')->first();
-      if($result2) 
-      {
-        return json_encode([
-          'status'  => 'success',
-          'data'    => new ProctorSnapResource($result2),
-        ], 200);
-      } 
-      else 
-      {
-        $result = CandTest::where('id',$examId)->first();
-        return json_encode([
-          'status'  => 'failure',
-          'message' => 'No Proctoring Data found for this Candidate...',
-          'examstatus' => $result->status
-        ], 400);
-      }
+  public function proctorLatestByEnrollno($enrollno, $paperId, $instId, $stdid, $examId)
+  {
+    $result2 = ProctorSnaps::where('examid', $examId)->orderBy('created_at', 'DESC')->first();
+    if ($result2) {
+      return json_encode([
+        'status'  => 'success',
+        'data'    => new ProctorSnapResource($result2),
+      ], 200);
+    } else {
+      $result = CandTest::where('id', $examId)->first();
+      return json_encode([
+        'status'  => 'failure',
+        'message' => 'No Proctoring Data found for this Candidate...',
+        'examstatus' => $result->status
+      ], 400);
+    }
   }
 
   public function proctorByEnrollnoInstId($enrollno, $paperId, $instId)
@@ -1557,44 +1526,41 @@ class Admin1
 
   public function sendProctorWarning($examid, $request)
   {
-    
+
     $warning  = $request->warning;
     $to       = $request->to;
     $from     = $request->from;
     $paperId  = $request->paperId;
     $instId   = $request->instId;
-    $warningNo= $request->warningNo;
+    $warningNo = $request->warningNo;
 
     $current_time = Carbon::now();
 
-      try
-      {
-        $res = ProctorStudentWarningMaster::create([
-          'examId' => $examid,
-          'paperId'=> $paperId,
-          'instId' => $instId,
-          'proctor'=> $from,
-          'student'=> $to,
-          'warning'=>$warning,
-          'warningNo'=>$warningNo,
-          'created_at'=>$current_time
-        ]);
-        
-        $rrr= ProctorStudentWarningMaster::where('examId',$examid)->where('paperId',$paperId)->where('instId',$instId)->where('proctor',$from)->where('student',$to)->orderBy('created_at','DESC')->get();
+    try {
+      $res = ProctorStudentWarningMaster::create([
+        'examId' => $examid,
+        'paperId' => $paperId,
+        'instId' => $instId,
+        'proctor' => $from,
+        'student' => $to,
+        'warning' => $warning,
+        'warningNo' => $warningNo,
+        'created_at' => $current_time
+      ]);
 
-        return response()->json([
-          "status"          => "success",
-          "message"         => "Warning Saved...",
-          "data"            =>  $rrr,
-        ], 200);
-      }
-      catch(\Exception $e)
-      {
-        return response()->json([
-          "status"          => "failure",
-          "message"         => "Problem Saving Warning",
-        ], 400);
-      }
+      $rrr = ProctorStudentWarningMaster::where('examId', $examid)->where('paperId', $paperId)->where('instId', $instId)->where('proctor', $from)->where('student', $to)->orderBy('created_at', 'DESC')->get();
+
+      return response()->json([
+        "status"          => "success",
+        "message"         => "Warning Saved...",
+        "data"            =>  $rrr,
+      ], 200);
+    } catch (\Exception $e) {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "Problem Saving Warning",
+      ], 400);
+    }
   }
 
   public function uploadStudProctor($request)
@@ -1698,7 +1664,7 @@ class Admin1
 
   public function notedWarning($warningId)
   {
-    $result = ProctorStudentWarningMaster::where('id',$warningId)->update(['noted' => '1']);
+    $result = ProctorStudentWarningMaster::where('id', $warningId)->update(['noted' => '1']);
     return response()->json([
       'status'     => 'success',
       'message'   => 'Student Noted...',
@@ -1710,24 +1676,18 @@ class Admin1
     $role = $request->role;
     $instId = $request->instId;
 
-    if($role == 'ADMIN')
-    {
-      $result = User::where('role','PROCTOR')->get();
-    }
-    else if($role == 'EADMIN')
-    {
-      $result = User::where('role','PROCTOR')->where('inst_id',$instId)->get();
+    if ($role == 'ADMIN') {
+      $result = User::where('role', 'PROCTOR')->get();
+    } else if ($role == 'EADMIN') {
+      $result = User::where('role', 'PROCTOR')->where('inst_id', $instId)->get();
     }
 
-    if($result)
-    {
+    if ($result) {
       return response()->json([
         'status'     => 'success',
         'data'   => $result,
       ], 200);
-    }
-    else
-    {
+    } else {
       return response()->json([
         'status'     => 'failure',
         'message'   => 'Data not found',
@@ -1737,7 +1697,7 @@ class Admin1
 
   public function getSubjectByProctorId($id)
   {
-    $res = User::where('username',$id)->where('role','PROCTOR')->first();
+    $res = User::where('username', $id)->where('role', 'PROCTOR')->first();
     $result = ProctorSubjectMaster::where('uid', $res->uid)->get();
 
     if ($result) {
@@ -1753,16 +1713,14 @@ class Admin1
     $proctor = $request->proctor;
     $paperId = $request->paperId;
 
-    $result = ProctorStudentWarningMaster::where('proctor',$proctor)->where('paperId',$paperId)->get();
+    $result = ProctorStudentWarningMaster::where('proctor', $proctor)->where('paperId', $paperId)->get();
 
     if ($result) {
       return json_encode([
         'status'  => 'success',
         'data'    => new ProctorStudentWarningCollection($result)
       ], 200);
-    }
-    else
-    {
+    } else {
       return json_encode([
         'status'  => 'failure',
       ], 400);
@@ -1771,50 +1729,194 @@ class Admin1
 
   public function deleteStudentQuestions($id)
   {
-    $result = CandQuestion::where('stdid',$id)->delete();
+    $result = CandQuestion::where('stdid', $id)->delete();
   }
 
-  public function endExamProctor($id,$reason)
+  public function endExamProctor($id, $reason)
   {
-    $cqnid='';$wqnid='';$uqnid='';$marksobt=0;
-			//----------get value of cqnid,wqnid,uqnid--------------------------------
-				$result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)=trim(cans)");
-				if($result)
-				{
-					$cqnid 		= $result[0]->cqnid;
-					$marksobt 	= $result[0]->marksobt;
-				}
+    $cqnid = '';
+    $wqnid = '';
+    $uqnid = '';
+    $marksobt = 0;
+    //----------get value of cqnid,wqnid,uqnid--------------------------------
+    $result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)=trim(cans)");
+    if ($result) {
+      $cqnid     = $result[0]->cqnid;
+      $marksobt   = $result[0]->marksobt;
+    }
 
-				$result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)!=trim(cans)");
-				if($result1)
-				{
-					$wqnid = $result1[0]->wqnid;
-				}
+    $result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)!=trim(cans)");
+    if ($result1) {
+      $wqnid = $result1[0]->wqnid;
+    }
 
-				$result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','unansweredandreview')");
-				if($result2)
-				{
-					$uqnid = $result2[0]->uqnid;
-				}
-			//------------------------------------------------------------------------
+    $result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','unansweredandreview')");
+    if ($result2) {
+      $uqnid = $result2[0]->uqnid;
+    }
+    //------------------------------------------------------------------------
 
-			//-------------------Update Exam Resource with End Exam Records-----------
-			$results = DB::table('cand_test')->where('id',$id)->update([
-				'cqnid' 			=> 	$cqnid,
-				'wqnid' 			=> 	$wqnid,
-				'uqnid' 			=> 	$uqnid,
-				'end_on' 			=>	Carbon::now(),
-				'end_by'			=>	Auth::user()->uid,
-				'status'			=>	'over',
-				'marksobt'		=>	$marksobt,
-				'updated_at'	=>	Carbon::now(),
-        'endExamReason'=> $reason,
-			]);
-			//------------------------------------------------------------------------
-			return json_encode([
-				'status' => 'success'
-			],200);
-
+    //-------------------Update Exam Resource with End Exam Records-----------
+    $results = DB::table('cand_test')->where('id', $id)->update([
+      'cqnid'       =>   $cqnid,
+      'wqnid'       =>   $wqnid,
+      'uqnid'       =>   $uqnid,
+      'end_on'       =>  Carbon::now(),
+      'end_by'      =>  Auth::user()->uid,
+      'status'      =>  'over',
+      'marksobt'    =>  $marksobt,
+      'updated_at'  =>  Carbon::now(),
+      'endExamReason' => $reason,
+    ]);
+    //------------------------------------------------------------------------
+    return json_encode([
+      'status' => 'success'
+    ], 200);
   }
 
+  public function getProctorDashboard($request)
+  {
+    $date = $request->fromDate;
+    $slot = $request->slot;
+    $status = $request->status;
+    $inst  = $request->inst;
+
+    $total = 0;
+    $totalStud = 0;
+    $totalLoggedIn = 0;
+    $totalNotLoggedIn = 0;
+
+    $papercodes = '';
+    $uid = '';
+
+    $slotadd = '';
+    $statusadd = '';
+
+    if ($slot != '') {
+      $slotadd = " and slot='$slot'";
+    }
+
+    $result = DB::select("select group_concat(id) as id from subject_master where from_date like '%$date%' and inst_uid='$inst' $slotadd");
+
+    if ($result) {
+      if ($result[0]->id != null && $result[0]->id != '') {
+        $papercodes = $result[0]->id;
+      }
+    }
+
+    if ($papercodes != '') {
+      $result1 = DB::select("SELECT group_concat(uid) as uid FROM proctor_subject_master where paperId in($papercodes)");
+
+      if ($result1) {
+        if ($result1[0]->uid != null && $result1[0]->uid != '') {
+          $uid = $result1[0]->uid;
+          $total = sizeof(explode(',', $uid));
+
+          $result2 = DB::select("select count(distinct uid) as cnt,group_concat(uid) as loggedin from sessions where starttime like '%$date%' and uid in($uid)");
+          if ($result2) {
+            $totalLoggedIn = $result2[0]->cnt;
+            $totalNotLoggedIn = $total - $totalLoggedIn;
+            $result3 = null;
+
+            $result3 = DB::select("select count(*) as cnt from student_proctor_alloc_master where proctorid in($uid)");
+            $loggedinUid = $result2[0]->loggedin;
+
+            if ($result3) {
+              $totalStud = $result3[0]->cnt;
+              if ($status == 'all') {
+                $result4 = ProctorSubjectMaster::whereIn('paperId', explode(',', $papercodes))->whereIn('uid', explode(',', $uid))->get();
+              } else if ($status == 'loggedin') {
+                $result4 = ProctorSubjectMaster::whereIn('paperId', explode(',', $papercodes))->whereIn('uid', explode(',', $loggedinUid))->get();
+              } else if ($status == 'notloggedin') {
+                $uidArr = array_unique(explode(',', $uid));
+                $uidLoggedArr = array_unique(explode(',', $loggedinUid));
+
+                sort($uidArr);
+                sort($uidLoggedArr);
+                
+                $notLoggedinUid = $this->getUncommon($uidArr, $uidLoggedArr, sizeof($uidArr), sizeof($uidLoggedArr));
+
+                $result4 = ProctorSubjectMaster::whereIn('paperId', explode(',', $papercodes))->whereIn('uid', $notLoggedinUid)->get();
+              }
+
+              return json_encode([
+                'status' => 'success',
+                'total' => $total,
+                'totalLoggedIn' => $totalLoggedIn,
+                'totalNotLoggedIn' => $totalNotLoggedIn,
+                'totalStud' => $totalStud,
+                'reportData' => new ProctorSubjectStudCountCollection($result4),
+              ], 200);
+            }
+          }
+        } else {
+          return json_encode([
+            'status' => 'failure',
+            'message' => 'No Invigilator Data found for your selected filters',
+          ], 400);
+        }
+      }
+    } else {
+      return json_encode([
+        'status' => 'failure',
+        'message' => 'No Subjects found for your selected filters',
+      ], 400);
+    }
+  }
+
+
+  function getUncommon($arr1, $arr2, $n1, $n2)
+  {
+    $i = 0;
+    $j = 0;
+    $k = 0;
+    $tmp1 = [];
+    while ($i < $n1 && $j < $n2) {
+
+      // If not common, prsmaller
+      if ($arr1[$i] < $arr2[$j]) {
+        array_push($tmp1, $arr1[$i]);
+        $i++;
+        $k++;
+      } else if ($arr2[$j] < $arr1[$i]) {
+        array_push($tmp1, $arr2[$j]);
+        $k++;
+        $j++;
+      }
+
+      // Skip common element
+      else {
+        $i++;
+        $j++;
+      }
+    }
+
+    // get remaining elements
+    while ($i < $n1) {
+      array_push($tmp1, $arr1[$i]);
+      $i++;
+      $k++;
+    }
+    while ($j < $n2) {
+      array_push($tmp1, $arr2[$j]);
+      $j++;
+      $k++;
+    }
+
+    return $tmp1;
+  }
+
+  public function deleteStudentWarningMessages($id)
+  {
+    $result = DB::select("SELECT group_concat(id) as id FROM cand_test WHERE `stdid` ='$id'");
+  
+    if($result)
+    {
+      $examList = $result[0]->id;
+      if($examList!=null && $examList!='')
+      {
+        $res = DB::statement("Delete from proctor_student_warning_master WHERE examId in ($examList)");
+      }
+    }
+  }
 }

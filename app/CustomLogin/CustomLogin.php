@@ -134,7 +134,7 @@ class CustomLogin
 		
 			if(Auth::attempt($user_data))
 			{
-				/*if(Auth::user()->role =='STUDENT')
+				if(Auth::user()->role =='STUDENT')
 				{
 					$sessionResult = Session::where('uid',Auth::user()->uid)->orderBy('session_id','DESC')->first();
 
@@ -149,7 +149,7 @@ class CustomLogin
 							],200);
 						}
 					}
-				}*/
+				}
 				//----------------------------------------------------------------------
 
 				$current_timestamp 		= Carbon::now()->timestamp;

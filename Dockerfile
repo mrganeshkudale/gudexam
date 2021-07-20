@@ -1,4 +1,4 @@
-FROM php:7.4.1-apache
+FROM php:8.0-apache
 
 RUN apt-get update && apt-get install -y \
         libpng-dev \
@@ -34,4 +34,10 @@ RUN composer install
 RUN chown -R $USER:www-data storage \
 && chown -R $USER:www-data bootstrap/cache \
 && chmod -R 775 storage \
-&& chmod -R 775 bootstrap/cache
+&& chmod -R 775 bootstrap/cache \
+&& cd public \
+&& chmod -R 775 assets static index.html \
+&& chown www-data:$USER assets/ static/ index.html \
+&& chmod -R 777 snapshots files answers \
+&& cd .. \
+&& php artisan optimize

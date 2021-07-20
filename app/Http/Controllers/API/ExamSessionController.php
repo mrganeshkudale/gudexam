@@ -13,7 +13,14 @@ class ExamSessionController extends Controller
     {
       if(Auth::user())
       {
-        return $s->updateExamSession($request->exam_id);
+        if($request->type=='additionalTime')
+        {
+          return $s->additionalExamSession($request->exam_id,$request->time);
+        }
+        else
+        {
+          return $s->updateExamSession($request->exam_id);
+        }
       }
       else
       {
