@@ -1,21 +1,14 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
-use App\Http\Controllers\API\StudentController;
-use App\Http\Controllers\API\CandidateTestController;
 use App\Http\Controllers\API\HeaderImageController;
 use App\Http\Controllers\API\ExamController;
 use App\Http\Controllers\API\SettingsController;
 use App\Http\Controllers\API\ExamSessionController;
 use App\Http\Controllers\API\AnswerController;
 use App\Http\Controllers\API\SubjectsController;
-use App\Http\Controllers\API\AdminController;
 use App\Http\Controllers\API\QuestionSetController;
-use App\Http\Controllers\API\GAdminController;
-use App\Http\Controllers\API\CAdminController;
-use App\Http\Controllers\API\EAdminController;
 use App\Http\Controllers\API\ProctorController;
 use App\Http\Controllers\API\ProctorDetailsController;
 use App\Http\Controllers\API\SessionsController;

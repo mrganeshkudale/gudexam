@@ -615,7 +615,7 @@ class Student
 
 	public function storeSnapshot($examid,$image)
 	{
-		$path  = public_path().'/snapshots/'.$examid.'_'.Carbon::now()->timestamp.'.jpg';
+		$path  = public_path().'/data/snapshots/'.$examid.'_'.Carbon::now()->timestamp.'.jpg';
 		$image = str_replace('data:image/jpeg;base64,', '', $image);
     	$image = str_replace(' ', '+', $image);
 		$image = base64_decode($image);
@@ -759,11 +759,11 @@ class Student
 				{
 					$image 		= $request->file('file');
 					$new_name 	= 'Answer_'.$id.'_'.$part.'.'.$image->getClientOriginalExtension();
-					$image->move(public_path('answers'), $new_name);
-					$path		=public_path('answers').'/'.$new_name;
+					$image->move(public_path('data/answers'), $new_name);
+					$path		=public_path('data/answers').'/'.$new_name;
 					$ansfilepath= $new_name;
 
-					$answer 			= 'answers/'.$new_name;
+					$answer 			= 'data/answers/'.$new_name;
 					$answered 			= $request->answered;
 					$current_time 		= Carbon::now();
 					$answer_by 			= $request->answer_by;

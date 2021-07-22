@@ -222,8 +222,8 @@ class Admin1
       if ($validation->passes()) {
         $image = $request->file('qufig');
         $new_name = 'Q_' . $subjectId . '_' . $part . '.' . $image->getClientOriginalExtension();
-        $image->move(public_path('files'), $new_name);
-        $path = public_path('files') . '/' . $new_name;
+        $image->move(public_path('data/files'), $new_name);
+        $path = public_path('data/files') . '/' . $new_name;
         $qfilepath = $new_name;
       } else {
         return response()->json([
@@ -241,8 +241,8 @@ class Admin1
       if ($validation->passes()) {
         $image = $request->file('modelAnswerImage');
         $new_name = 'ModelAnswer_' . $subjectId . '_' . $part . '.' . $image->getClientOriginalExtension();
-        $image->move(public_path('files'), $new_name);
-        $path = public_path('files') . '/' . $new_name;
+        $image->move(public_path('data/files'), $new_name);
+        $path = public_path('data/files') . '/' . $new_name;
         $ansfilepath = $new_name;
       } else {
         return response()->json([
@@ -416,8 +416,8 @@ class Admin1
           $new_name = 'Q_' . $subjectId . '_' . $part . '.' . $image->getClientOriginalExtension();
         }
 
-        $image->move(public_path('files'), $new_name);
-        $path = public_path('files') . '/' . $new_name;
+        $image->move(public_path('data/files'), $new_name);
+        $path = public_path('data/files') . '/' . $new_name;
         $qfilepath = $new_name;
 
         $request->qufig = $qfilepath;
@@ -444,8 +444,8 @@ class Admin1
           $new_name1 = 'ModelAnswer_' . $subjectId . '_' . $part . '.' . $image->getClientOriginalExtension();
         }
 
-        $image->move(public_path('files'), $new_name1);
-        $path = public_path('files') . '/' . $new_name1;
+        $image->move(public_path('data/files'), $new_name1);
+        $path = public_path('data/files') . '/' . $new_name1;
         $modelAnswerImagePath = $new_name1;
 
         $request->modelAnswerImage = $modelAnswerImagePath;

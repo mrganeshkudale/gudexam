@@ -2172,8 +2172,8 @@ class Admin
             {
                 $image = $request->file('qufig');
                 $new_name = 'Q_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
-                $image->move(public_path('files'), $new_name);
-                $path=public_path('files').'/'.$new_name;
+                $image->move(public_path('data/files'), $new_name);
+                $path=public_path('data/files').'/'.$new_name;
                 $qfilepath = $new_name;
             }
             else
@@ -2195,8 +2195,8 @@ class Admin
             {
                 $image = $request->file('a1');
                 $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
-                $image->move(public_path('files'), $new_name);
-                $path=public_path('files').'/'.$new_name;
+                $image->move(public_path('data/files'), $new_name);
+                $path=public_path('data/files').'/'.$new_name;
                 $a1filepath = $new_name;
             }
             else
@@ -2218,8 +2218,8 @@ class Admin
             {
                 $image = $request->file('a2');
                 $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
-                $image->move(public_path('files'), $new_name);
-                $path=public_path('files').'/'.$new_name;
+                $image->move(public_path('data/files'), $new_name);
+                $path=public_path('data/files').'/'.$new_name;
                 $a2filepath = $new_name;
             }
             else
@@ -2241,8 +2241,8 @@ class Admin
             {
                 $image = $request->file('a3');
                 $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
-                $image->move(public_path('files'), $new_name);
-                $path=public_path('files').'/'.$new_name;
+                $image->move(public_path('data/files'), $new_name);
+                $path=public_path('data/files').'/'.$new_name;
                 $a3filepath = $new_name;
             }
             else
@@ -2264,8 +2264,8 @@ class Admin
             {
                 $image = $request->file('a4');
                 $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
-                $image->move(public_path('files'), $new_name);
-                $path=public_path('files').'/'.$new_name;
+                $image->move(public_path('data/files'), $new_name);
+                $path=public_path('data/files').'/'.$new_name;
                 $a4filepath = $new_name;
             }
             else
@@ -2611,8 +2611,8 @@ class Admin
                   $part = rand(100000,999999);
                   $new_name = 'Q_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
                 }
-                $image->move(public_path('files'), $new_name);
-                $path=public_path('files').'/'.$new_name;
+                $image->move(public_path('data/files'), $new_name);
+                $path=public_path('data/files').'/'.$new_name;
                 $qfilepath = $new_name;
 
                 $request->qufig = $qfilepath;
@@ -2644,8 +2644,8 @@ class Admin
                   $part = rand(100000,999999);
                   $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
                 }
-                $image->move(public_path('files'), $new_name);
-                $path=public_path('files').'/'.$new_name;
+                $image->move(public_path('data/files'), $new_name);
+                $path=public_path('data/files').'/'.$new_name;
                 $a1filepath = $new_name;
 
                 $request->a1 = $a1filepath;
@@ -2677,8 +2677,8 @@ class Admin
                   $part = rand(100000,999999);
                   $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
                 }
-                $image->move(public_path('files'), $new_name);
-                $path=public_path('files').'/'.$new_name;
+                $image->move(public_path('data/files'), $new_name);
+                $path=public_path('data/files').'/'.$new_name;
                 $a2filepath = $new_name;
 
                 $request->a2 = $a2filepath;
@@ -2711,8 +2711,8 @@ class Admin
                   $part = rand(100000,999999);
                   $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
                 }
-                $image->move(public_path('files'), $new_name);
-                $path=public_path('files').'/'.$new_name;
+                $image->move(public_path('data/files'), $new_name);
+                $path=public_path('data/files').'/'.$new_name;
                 $a3filepath = $new_name;
 
                 $request->a3 = $a3filepath;
@@ -2745,8 +2745,8 @@ class Admin
                   $part = rand(100000,999999);
                   $new_name = 'O_'.$subjectId.'_'.$part.'.' . $image->getClientOriginalExtension();
                 }
-                $image->move(public_path('files'), $new_name);
-                $path=public_path('files').'/'.$new_name;
+                $image->move(public_path('data/files'), $new_name);
+                $path=public_path('data/files').'/'.$new_name;
                 $a4filepath = $new_name;
 
                 $request->a4 = $a4filepath;

@@ -38,6 +38,6 @@ RUN chown -R $USER:www-data storage \
 && cd public \
 && chmod -R 775 assets static index.html \
 && chown www-data:$USER assets/ static/ index.html \
-&& chmod -R 777 snapshots files answers \
+&& chmod -R 777 data \
 && cd .. \
 && php artisan optimize

@@ -1,11 +1,10 @@
 <?php
 return array(
-    'PROJURL'       => 'http://127.0.0.1:8000',
-    'SNAPURL'       => 'http://127.0.0.1:8000/snapshots/',
+    'PROJURL'       => 'https://online.gudexams.in',
+    'SNAPURL'       => 'https://online.gudexams.in/data/snapshots/',
     'SPASS'         => 'gudexams@123',
     'HEARTBEATTIME' => 30,
     'OTPEXPIRY'     => 900,
     'MULTYLOGIN'    => 'N',
 );
-
 ?>
