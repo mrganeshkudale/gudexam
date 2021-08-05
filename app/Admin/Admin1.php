@@ -13,6 +13,7 @@ use App\Http\Resources\ProctorStudentCollection;
 use App\Http\Resources\ProctorStudentExtendedCollection;
 use App\Http\Resources\CheckerSubjectCollection;
 use App\Http\Resources\ProctorSubjectCollection;
+use App\Http\Resources\PaperCollection;
 use App\Http\Resources\ProctorSnapCollection;
 use App\Http\Resources\ProctorSnapResource;
 use App\Http\Resources\AnswerCollection;
@@ -28,34 +29,18 @@ use App\Models\SubjectMaster;
 use App\Models\StudentCheckerAllocMaster;
 use App\Models\StudentProctorAllocMaster;
 use App\Models\ProctorSubjectMaster;
+use App\Models\PaperSetterSubjectMaster;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Validator;
-use Auth;
+use Illuminate\Support\Facades\Auth;
 use File;
 use Illuminate\Support\Facades\Hash;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class Admin1
 {
-  private $uid;
-  private $username;
-  private $mobile;
-  private $email;
-  private $role;
-  private $name;
-
-  public function __construct($arr)
-  {
-    $this->uid           = $arr->uid;
-    $this->username     = $arr->username;
-    $this->mobile       = $arr->mobile;
-    $this->email        = $arr->email;
-    $this->role         = $arr->role;
-    $this->name         = $arr->name;
-  }
-
   public function resetExam($request)
   {
     $stdid              = "'" . implode("','", $request->stdid) . "'";
@@ -579,6 +564,11 @@ class Admin1
   public function deleteProctorSubjects($id)
   {
     $result = ProctorSubjectMaster::where('uid', $id)->delete();
+  }
+
+  public function deleteSetterSubjects($id)
+  {
+    $result = PaperSetterSubjectMaster::where('uid', $id)->delete();
   }
 
   public function uploadCheckers($request)
@@ -1158,6 +1148,61 @@ class Admin1
       return response()->json([
         "status"          => "failure",
         "message"         => "File must be .xlsx only with maximum 1 MB  of Size.",
+      ], 400);
+    }
+  }
+
+  public function updatePaperSetter($id,$request)
+  {
+    $username       = $request->username;
+    $name           = $request->name;
+    $mobile         = $request->mobile;
+    $email          = $request->email;
+    $inst           = $request->instId;
+    $password       = Hash::make($request->password);
+    $subjects       = $request->subjects;
+
+    DB::beginTransaction();
+    try {
+      $result = User::find($id);
+
+      if ($result) {
+        $result->username = $username;
+        $result->name     = $name;
+        $result->mobile   = $mobile;
+        $result->email    = $email;
+        $result->inst_id  = $inst;
+        $result->password = $password;
+        $result->origpass = $request->password;
+
+        $result->save();
+      }
+
+      if ($result) {
+        $res = PaperSetterSubjectMaster::where('uid', $id)->delete();
+
+        foreach ($subjects as $subject) {
+          try {
+            $result1 = PaperSetterSubjectMaster::create([
+              'uid' => $result->uid,
+              'paperId' => $subject
+            ]);
+          } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+              "status"  => "failure"
+            ], 400);
+          }
+        }
+        DB::commit();
+        return response()->json([
+          "status"  => "success"
+        ], 200);
+      }
+    } catch (\Exception $e) {
+      DB::rollback();
+      return response()->json([
+        "status"  => "failure"
       ], 400);
     }
   }
@@ -1918,5 +1963,206 @@ class Admin1
         $res = DB::statement("Delete from proctor_student_warning_master WHERE examId in ($examList)");
       }
     }
+  }
+
+  public function storeSetterUsers($request)
+  {
+    $username       = $request->username;
+    $name           = $request->name;
+    $mobile         = $request->mobile;
+    $email          = $request->email;
+    $inst           = $request->instId;
+    $rrr = User::where('username', $inst)->where('role', 'EADMIN')->first();
+    $college_name   = $rrr->college_name;
+    $password       = Hash::make($request->password);
+    $subjects       = $request->subjects;
+
+    DB::beginTransaction();
+    try {
+      $result = User::create([
+        'username' => $username,
+        'name'     => $name,
+        'mobile'   => $mobile,
+        'email'    => $email,
+        'inst_id'  => $inst,
+        'password' => $password,
+        'role'     => 'PAPERSETTER',
+        'status'   => 'ON',
+        'college_name'   => $college_name,
+        'regi_type' => 'PAPERSETTER',
+        'verified' => 'verified',
+        'origpass' => $request->password,
+      ]);
+
+      if ($result) {
+        foreach ($subjects as $subject) {
+          try {
+            $result1 = PaperSetterSubjectMaster::create([
+              'uid' => $result->uid,
+              'paperId' => $subject
+            ]);
+          } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+              "status"  => "failure"
+            ], 400);
+          }
+        }
+        DB::commit();
+        return response()->json([
+          "status"  => "success"
+        ], 200);
+      }
+    } catch (\Exception $e) {
+      DB::rollback();
+      return response()->json([
+        "status"  => "failure"
+      ], 400);
+    }
+  }
+
+  public function uploadPaperSetter($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'file'      => 'required|max:1024',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails()) {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File for uploading is required with max file size 1 MB",
+      ], 400);
+    }
+
+    if ($extension == "xlsx") {
+      $fileName           = 'papersetter.xlsx';
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/') . $fileName);
+      $current_time       = Carbon::now();
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+
+      for ($i = 2; $i <= $highestRow; $i++) {
+        $paperIdList    = [];
+        $instId         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+        $instUid        = User::where('username', $instId)->where('role', 'EADMIN')->first()->uid;
+        $name           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+        $mobile         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+        $email          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+
+        $origpass       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $list           = explode(',', $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue());
+
+        if (sizeof($list) > 0) {
+          DB::beginTransaction();
+          try {
+            $result = User::create([
+              'username' => $email,
+              'name'     => $name,
+              'mobile'   => $mobile,
+              'email'    => $email,
+              'inst_id'  => $instId,
+              'password' => Hash::make($origpass),
+              'role'     => 'PAPERSETTER',
+              'status'   => 'ON',
+              'regi_type' => 'PAPERSETTER',
+              'verified' => 'verified',
+              'origpass' => $origpass,
+            ]);
+
+            $subjects = SubjectMaster::whereIn('paper_code', $list)->where('inst_uid', $instUid)->get();
+
+            foreach ($subjects as $subject) {
+              array_push($paperIdList, $subject->id);
+              $result1 = PaperSetterSubjectMaster::create([
+                'uid' => $result->uid,
+                'paperId' => $subject->id
+              ]);
+            }
+            DB::commit();
+          } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+              "status"  => "failure",
+              "message" => "Problem Uploading Data on Row " . $i . "..."
+            ], 400);
+          }
+        }
+      }
+
+      return response()->json([
+        "status"  => "success",
+        "message" => "Data uploaded Successfully..."
+      ], 200);
+    } else {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File must be .xlsx only with maximum 1 MB  of Size.",
+      ], 400);
+    }
+  }
+
+  public function getSubjectByPaperSetter($paperSetterId,$instId,$mode)
+  {
+
+    if($mode == '' || $mode == null)
+    {
+      $result = PaperSetterSubjectMaster::select(DB::raw('group_concat(paperId) as paperId'))->where('uid', $paperSetterId)->groupBy('uid')->first();
+      $subArr = null;$result1=null;
+
+      if($result->paperId != '' && $result->paperId != null)
+      {
+        $subArr = explode(',',$result->paperId);
+        $result1= SubjectMaster::whereIn('id',$subArr)->where('exam_mode','!=','subjective')->get();
+      }
+
+      if ($result) {
+        return json_encode([
+          'status'  => 'success',
+          'data'    => new PaperCollection($result1)
+        ], 200);
+      }
+    }
+    else if($mode == 'subjective' || $mode =='both')
+    {
+      $result = PaperSetterSubjectMaster::select(DB::raw('group_concat(paperId) as paperId'))->where('uid', $paperSetterId)->groupBy('uid')->first();
+      $subArr = null;$result1=null;
+
+      if($result->paperId != '' && $result->paperId != null)
+      {
+        $subArr = explode(',',$result->paperId);
+        $result1= SubjectMaster::whereIn('id',$subArr)->whereIn('exam_mode',['subjective','both'])->get();
+      }
+
+      if ($result) 
+      {
+        return json_encode([
+          'status'  => 'success',
+          'data'    => new PaperCollection($result1)
+        ], 200);
+      }
+    }
+    else if($mode == 'objective' || $mode =='both')
+    {
+      $result = PaperSetterSubjectMaster::select(DB::raw('group_concat(paperId) as paperId'))->where('uid', $paperSetterId)->groupBy('uid')->first();
+      $subArr = null;$result1=null;
+
+      if($result->paperId != '' && $result->paperId != null)
+      {
+        $subArr = explode(',',$result->paperId);
+        $result1= SubjectMaster::whereIn('id',$subArr)->whereIn('exam_mode',['objective','both'])->get();
+      }
+
+      if ($result) 
+      {
+        return json_encode([
+          'status'  => 'success',
+          'data'    => new PaperCollection($result1)
+        ], 200);
+      }
+    }
+
   }
 }

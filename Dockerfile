@@ -37,6 +37,9 @@ RUN chown -R $USER:www-data storage \
 && chmod -R 775 bootstrap/cache \
 && cd public \
 && chmod -R 775 assets static index.html \
+&& cd assets \
+&& chmod -R 777 images \
+&& cd .. \
 && chown www-data:$USER assets/ static/ index.html \
 && chmod -R 777 data \
 && cd .. \

@@ -1,5 +1,7 @@
 <?php
+
 namespace App\Http\Controllers\API;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -8,437 +10,164 @@ use App\Admin\Admin1;
 
 class SubjectsController extends Controller
 {
-  public function show(Request $request,Admin $a)
+  public function show(Request $request, Admin $a)
   {
-    if(Auth::user())
-    {
-        return $a->getSubjects($request->program_id);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
+    return $a->getSubjects($request->program_id);
+  }
+
+  public function store(Request $request, Admin $a)
+  {
+    return $a->storeSubjects($request);
+  }
+
+  public function update($id, Request $request, Admin $a)
+  {
+    if ($request->type == 'test') {
+      return $a->updateTestSubjects($id, $request);
+    } else if ($request->type == 'form') {
+      return $a->updateSubjectMaster($id, $request);
     }
   }
 
-  public function store(Request $request,Admin $a)
+  public function upload(Request $request, Admin $a)
   {
-    if(Auth::user())
-    {
-        return $a->storeSubjects($request);
+    return $a->uploadSubjects($request);
+  }
+
+  public function index(Request $request, Admin $a, Admin1 $a1)
+  {
+    if ($request->type == 'all') {
+      return $a->getAllSubjects();
     }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
+    if ($request->type == 'byInstUid') {
+      return $a->getSubjectsByInstUid($request->instUid, $request->mode);
+    }
+    if ($request->type == 'byProctorUid') {
+      return $a1->getSubjectByProctor($request->proctorUid);
+    }
+    if ($request->type == 'byProctorId') {
+      return $a1->getSubjectByProctorId($request->proctorId);
+    }
+    if ($request->type == 'byPaperSetter') {
+      return $a1->getSubjectByPaperSetter($request->paperSetterId,$request->instId,$request->mode);
     }
   }
 
-  public function update($id,Request $request,Admin $a)
+  public function del($id, Admin $a)
   {
-    if(Auth::user())
-    {
-      if($request->type == 'test')
-      {
-        return $a->updateTestSubjects($id,$request);
-      }
-      else if($request->type == 'form')
-      {
-        return $a->updateSubjectMaster($id,$request);
-      }
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
+    return $a->delSubject($id);
+  }
+
+  public function storeTopic(Request $request, Admin $a)
+  {
+    return $a->storeTopic($request);
+  }
+
+  public function storeTopicUpload(Request $request, Admin $a)
+  {
+    return $a->storeTopicUpload($request);
+  }
+
+  public function getTopic(Request $request, Admin $a)
+  {
+    if ($request->type == 'single') {
+      return $a->getTopicDataSingle($request->paperId);
     }
   }
 
-  public function upload(Request $request,Admin $a)
+  public function delTopic($id, Admin $a)
   {
-    if(Auth::user())
-    {
-        return $a->uploadSubjects($request);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
+    return $a->delTopicData($id);
+  }
+
+  public function uploadTest(Request $request, Admin $a)
+  {
+    return $a->uploadTestsSubjects($request);
+  }
+
+  public function updateTest($id, Request $request, Admin $a)
+  {
+    if ($request->type == 'clearTest') {
+      return $a->clearTestsSubjects($id);
     }
   }
 
-  public function index(Request $request,Admin $a,Admin1 $a1)
+  public function updateConfig($id, Request $request, Admin $a)
   {
-    if(Auth::user())
-    {
-      if($request->type == 'all')
-      {
-        return $a->getAllSubjects();
-      }
-      if($request->type == 'byInstUid')
-      {
-        return $a->getSubjectsByInstUid($request->instUid,$request->mode);
-      }
-      if($request->type == 'byProctorUid')
-      {
-        return $a1->getSubjectByProctor($request->proctorUid);
-      }
-      if($request->type == 'byProctorId')
-      {
-        return $a1->getSubjectByProctorId($request->proctorId);
-      }
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
-  }  
+    return $a->updateConfigSubject($id, $request);
+  }
 
-  public function del($id,Admin $a)
+  public function showById($id, Admin $a)
   {
-    if(Auth::user())
-    {
-      return $a->delSubject($id);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
-  }  
+    return $a->getSubjectById($id);
+  }
 
-  public function storeTopic(Request $request,Admin $a)
+  public function storeQuestion(Request $request, Admin $a, Admin1 $a1)
   {
-    if(Auth::user())
-    {
-      return $a->storeTopic($request);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
-  }  
-
-  public function storeTopicUpload(Request $request,Admin $a)
-  {
-    if(Auth::user())
-    {
-      return $a->storeTopicUpload($request);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
-  }  
-
-  public function getTopic(Request $request,Admin $a)
-  {
-    if(Auth::user())
-    {
-      if($request->type == 'single')
-      {
-        return $a->getTopicDataSingle($request->paperId);
-      }
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
-  }  
-
-  public function delTopic($id,Admin $a)
-  {
-    if(Auth::user())
-    {
-        return $a->delTopicData($id);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
-  } 
-  
-  public function uploadTest(Request $request,Admin $a)
-  {
-    if(Auth::user())
-    {
-        return $a->uploadTestsSubjects($request);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
+    if ($request->questType == 'S') {
+      return $a1->storeSubjectiveQuestion($request);
+    } else {
+      return $a->storeQuestion($request);
     }
   }
 
-  public function updateTest($id,Request $request,Admin $a)
+  public function uploadQuestion(Request $request, Admin $a)
   {
-    if(Auth::user())
-    {
-      if($request->type == 'clearTest')
-      {
-        return $a->clearTestsSubjects($id);
-      }
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
+    return $a->uploadQuestion($request);
   }
 
-  public function updateConfig($id,Request $request,Admin $a)
+  public function uploadSubjectiveQuestion(Request $request, Admin1 $a1)
   {
-    if(Auth::user())
-    {
-      return $a->updateConfigSubject($id,$request);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
+    return $a1->uploadSubjectiveQuestion($request);
   }
 
- public function showById($id,Admin $a)
- {
-    if(Auth::user())
-    {
-      return $a->getSubjectById($id);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
- }
-
- public function storeQuestion(Request $request, Admin $a,Admin1 $a1)
- {
-    if(Auth::user())
-    {
-      if($request->questType == 'S')
-      {
-        return $a1->storeSubjectiveQuestion($request);
-      }
-      else
-      {
-        return $a->storeQuestion($request);
-      }
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
- }
-
- public function uploadQuestion(Request $request , Admin $a)
- {
-    if(Auth::user())
-    {
-      return $a->uploadQuestion($request);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
- }
-
- public function uploadSubjectiveQuestion(Request $request , Admin1 $a1)
- {
-    if(Auth::user())
-    {
-      return $a1->uploadSubjectiveQuestion($request);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
- }
-
- public function getGenericConfig(Request $request,Admin $a)
- {
-    if(Auth::user())
-    {
-      return $a->getGenericConfig($request);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
- }
-
- public function updateGenericConfig($id,Request $request,Admin $a)
- {
-    if(Auth::user())
-    {
-      return $a->updateGenericConfig($id,$request);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
- }
-
- public function getSubjectByDate($date,Admin $a)
- {
-    if(Auth::user())
-    {
-      return $a->getSubjectByDate($date);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
- }
-
- public function getSubjectByDateInst($date,$inst,Admin $a)
- {
-    if(Auth::user())
-    {
-      return $a->getSubjectByDateInst($date,$inst);
-    }
-    else
-    {
-        return response()->json([
-            "status"          =>  "failure",
-            "message"         =>  "Unauthorized User...",
-        ], 200);
-    }
- }
-
- public function getStudBySubject($id,Admin1 $a1,Request $request)
- {
-  if(Auth::user())
+  public function getGenericConfig(Request $request, Admin $a)
   {
-    if($request->type == 'allStudents')
-    {
+    return $a->getGenericConfig($request);
+  }
+
+  public function updateGenericConfig($id, Request $request, Admin $a)
+  {
+    return $a->updateGenericConfig($id, $request);
+  }
+
+  public function getSubjectByDate($date, Admin $a)
+  {
+    return $a->getSubjectByDate($date);
+  }
+
+  public function getSubjectByDateInst($date, $inst, Admin $a)
+  {
+    return $a->getSubjectByDateInst($date, $inst);
+  }
+
+  public function getStudBySubject($id, Admin1 $a1, Request $request)
+  {
+    if ($request->type == 'allStudents') {
       $instId = $request->instId;
-      return $a1->getAllStudentsBySubject($id,$instId);
-    }
-    else
-    {
+      return $a1->getAllStudentsBySubject($id, $instId);
+    } else {
       return $a1->getStudentsBySubject($id);
     }
   }
-  else
-  {
-      return response()->json([
-          "status"          =>  "failure",
-          "message"         =>  "Unauthorized User...",
-      ], 200);
-  }
- }
 
- public function getStudBySubject1($id,Admin1 $a1)
- {
-  if(Auth::user())
+  public function getStudBySubject1($id, Admin1 $a1)
   {
     return $a1->getStudentsBySubject1($id);
   }
-  else
-  {
-      return response()->json([
-          "status"          =>  "failure",
-          "message"         =>  "Unauthorized User...",
-      ], 200);
-  }
- }
 
- public function getCheckerBySubject($id,Admin1 $a1)
- {
-  if(Auth::user())
+  public function getCheckerBySubject($id, Admin1 $a1)
   {
     return $a1->getCheckersBySubject($id);
   }
-  else
-  {
-      return response()->json([
-          "status"          =>  "failure",
-          "message"         =>  "Unauthorized User...",
-      ], 200);
-  }
- }
 
- public function getProctorBySubject($id,Admin1 $a1)
- {
-  if(Auth::user())
+  public function getProctorBySubject($id, Admin1 $a1)
   {
     return $a1->getProctorBySubject($id);
   }
-  else
-  {
-      return response()->json([
-          "status"          =>  "failure",
-          "message"         =>  "Unauthorized User...",
-      ], 200);
-  }
- }
 
- public function getSubjectByChecker($uid,Admin1 $a1)
- {
-  if(Auth::user())
+  public function getSubjectByChecker($uid, Admin1 $a1)
   {
     return $a1->getSubjectByChecker($uid);
   }
-  else
-  {
-      return response()->json([
-          "status"          =>  "failure",
-          "message"         =>  "Unauthorized User...",
-      ], 200);
-  }
- }
-
 }

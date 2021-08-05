@@ -27,7 +27,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Validator;
-use Auth;
+use Illuminate\Support\Facades\Auth;
 use File;
 use App\Http\Resources\InstituteResource;
 use Illuminate\Support\Facades\Hash;
@@ -36,23 +36,6 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class Admin
 {
-  private $uid;
-	private $username;
-  private $mobile;
-  private $email;
-  private $role;
-  private $name;
-
-  public function __construct($arr)
-	{
-		$this->uid 					= $arr->uid;
-    $this->username     = $arr->username;
-    $this->mobile       = $arr->mobile;
-    $this->email        = $arr->email;
-    $this->role         = $arr->role;
-    $this->name         = $arr->name;
-	}
-
   public function clearSession($uid)
   {
       $date     = new Carbon('2001-01-01 01:01:01');
@@ -182,10 +165,10 @@ class Admin
 
   public function getPrograms()
   {
-    if($this->role == 'EADMIN')
+    if(Auth::user()->role == 'EADMIN')
     {
-      $inst_uid = $this->uid;
-      $inst_id  = $this->username;
+      $inst_uid = Auth::user()->uid;
+      $inst_id  = Auth::user()->username;
       $result = User::find($inst_uid)->programs;
       if($result)
       {
@@ -370,6 +353,45 @@ class Admin
     }
   }
 
+  public function getUserWithSubject($username, $inst_id,$role)
+  {
+    if($role == 'PAPERSETTER')
+    {
+      $result = DB::table('users')
+      ->join('paper_setter_subject_master', 'users.uid', '=', 'paper_setter_subject_master.uid')
+      ->join('subject_master', 'subject_master.id', '=', 'paper_setter_subject_master.paperId')
+      ->select(DB::raw("users.uid,users.username,users.name,users.type,users.inst_id,users.mobile,users.email,group_concat(concat(subject_master.id,'-',subject_master.paper_code,'-',subject_master.paper_name)) as subjects,users.origpass"))
+      ->where('users.role', '=', $role)
+      ->where('users.inst_id','=',$inst_id)
+      ->where('users.username','=',$username)
+      ->groupBy('users.uid')
+      ->paginate(50);
+    }
+    else if($role == 'PROCTOR')
+    {
+      $result = DB::table('users')
+      ->join('proctor_subject_master', 'users.uid', '=', 'proctor_subject_master.uid')
+      ->join('subject_master', 'subject_master.id', '=', 'proctor_subject_master.paperId')
+      ->select(DB::raw("users.uid,users.username,users.name,users.type,users.inst_id,users.mobile,users.email,group_concat(concat(subject_master.id,'-',subject_master.paper_code,'-',subject_master.paper_name)) as subjects,users.origpass"))
+      ->where('users.role', '=', $role)
+      ->where('users.inst_id','=',$inst_id)
+      ->where('users.username','=',$username)
+      ->groupBy('users.uid')
+      ->paginate(50);
+    }
+
+    if($result)
+    {
+      return response($result, 200);
+    }
+    else
+    {
+      return response()->json([
+        "status"        => "failure",
+      ], 400);
+    }
+  }
+
   public function getFilteredUsersByInstCode($role,$inst_id)
   {
     if($role == 'CHECKER')
@@ -388,6 +410,17 @@ class Admin
       $result = DB::table('users')
       ->join('proctor_subject_master', 'users.uid', '=', 'proctor_subject_master.uid')
       ->join('subject_master', 'subject_master.id', '=', 'proctor_subject_master.paperId')
+      ->select(DB::raw("users.uid,users.username,users.name,users.type,users.inst_id,users.mobile,users.email,group_concat(concat(subject_master.id,'-',subject_master.paper_code,'-',subject_master.paper_name)) as subjects,users.origpass"))
+      ->where('users.role', '=', $role)
+      ->where('users.inst_id','=',$inst_id)
+      ->groupBy('users.uid')
+      ->paginate(50);
+    }
+    else if($role == 'PAPERSETTER')
+    {
+      $result = DB::table('users')
+      ->join('paper_setter_subject_master', 'users.uid', '=', 'paper_setter_subject_master.uid')
+      ->join('subject_master', 'subject_master.id', '=', 'paper_setter_subject_master.paperId')
       ->select(DB::raw("users.uid,users.username,users.name,users.type,users.inst_id,users.mobile,users.email,group_concat(concat(subject_master.id,'-',subject_master.paper_code,'-',subject_master.paper_name)) as subjects,users.origpass"))
       ->where('users.role', '=', $role)
       ->where('users.inst_id','=',$inst_id)
@@ -778,7 +811,7 @@ class Admin
   public function getByInstPrograms($instUid)
   {
       $inst_uid = $instUid;
-      $inst_id  = $this->username;
+      $inst_id  = Auth::user()->username;
       $result = User::find($inst_uid)->programs;
       if($result)
       {
@@ -973,9 +1006,13 @@ class Admin
     {
       $result = SubjectMaster::where('inst_uid',$instUid)->where('paper_code','not like','GENERICTEST')->get();
     }
-    else
+    else if($mode =='subjective')
     {
       $result = SubjectMaster::where('inst_uid',$instUid)->whereIn('exam_mode',['subjective','both'])->where('paper_code','not like','GENERICTEST')->get();
+    }
+    else if($mode =='objective')
+    {
+      $result = SubjectMaster::where('inst_uid',$instUid)->whereIn('exam_mode',['objective','both'])->where('paper_code','not like','GENERICTEST')->get();
     }
 
     return response()->json([
@@ -3497,7 +3534,7 @@ class Admin
                 'wqnid' 			=> 	$wqnid,
                 'uqnid' 			=> 	$uqnid,
                 'end_on' 			=>	Carbon::now(),
-                'end_by'			=>	$this->uid,
+                'end_by'			=>	Auth::user()->uid,
                 'status'			=>	'over',
                 'marksobt'		=>	$marksobt,
                 'updated_at'	=>	Carbon::now(),
@@ -3556,7 +3593,7 @@ class Admin
             'wqnid' 			=> 	$wqnid,
             'uqnid' 			=> 	$uqnid,
             'end_on' 			=>	Carbon::now(),
-            'end_by'			=>	$this->uid,
+            'end_by'			=>	Auth::user()->uid,
             'status'			=>	'over',
             'marksobt'		=>	$marksobt,
             'updated_at'	=>	Carbon::now(),
@@ -3613,7 +3650,7 @@ class Admin
                 'wqnid' 			=> 	$wqnid,
                 'uqnid' 			=> 	$uqnid,
                 'end_on' 			=>	Carbon::now(),
-                'end_by'			=>	$this->uid,
+                'end_by'			=>	Auth::user()->uid,
                 'status'			=>	'over',
                 'marksobt'		=>	$marksobt,
                 'updated_at'	=>	Carbon::now(),
@@ -3679,7 +3716,7 @@ class Admin
                 'wqnid' 			=> 	$wqnid,
                 'uqnid' 			=> 	$uqnid,
                 'end_on' 			=>	Carbon::now(),
-                'end_by'			=>	$this->uid,
+                'end_by'			=>	Auth::user()->uid,
                 'status'			=>	'over',
                 'marksobt'		=>	$marksobt,
                 'updated_at'	=>	Carbon::now(),
@@ -3729,10 +3766,11 @@ class Admin
     $institutes = User::where('role','EADMIN')->get();
     $data = [];
     $i = 0;
-
+    
     foreach($institutes as $institute)
     {
       $data[$i++] = [
+        'date'                =>  $date,
         'instCode'            =>  $institute->username,
         'instName'            =>  $institute->college_name,
         'allStudents'         =>  $this->getInstStudentsCount($institute->uid,$date,$slot,'all'),
@@ -3746,6 +3784,49 @@ class Admin
       "status"  => "success",
       "data"    => $data,
     ], 200);
+  }
+
+  public function allExamReportCountDateInstWise()
+  {
+    $institutes = User::where('role','EADMIN')->get();
+    $data = [];
+    $dates= [];
+    $i = 0;
+    $j = 0;
+    foreach($institutes as $institute)
+    {
+      $dates = $this->getInstDates($institute->uid);
+      for($j=0;$j<sizeof($dates);$j++)
+      {
+        $date = $dates[$j];
+        $slot = '';
+        $data[$i++] = [
+          'date'                =>  $date,
+          'instCode'            =>  $institute->username,
+          'instName'            =>  $institute->college_name,
+          'allStudents'         =>  $this->getInstStudentsCount($institute->uid,$date,$slot,'all'),
+          'overStudents'        =>  $this->getInstStudentsCount($institute->uid,$date,$slot,'over'),
+          'inprogressStudents'  =>  $this->getInstStudentsCount($institute->uid,$date,$slot,'inprogress'),
+          'unattendStudents'    =>  $this->getInstStudentsCount($institute->uid,$date,$slot,'unattend'),
+        ];
+      }
+    }
+
+    return response()->json([
+      "status"  => "success",
+      "data"    => $data,
+    ], 200);
+  }
+
+  public function getInstDates($instUid)
+  {
+    $result = DB::select("select group_concat(distinct LEFT(trim(from_date) , 10)) as dates from subject_master where inst_uid='$instUid'");
+    $arr = [];
+    if($result[0])
+    {
+      $arr = explode(',',$result[0]->dates);
+      return $arr;
+    }
   }
 
   public function getInstStudentsCount($inst,$date,$slot,$str)
@@ -3858,9 +3939,16 @@ class Admin
         if($result)
         {
           $list = (string) $result[0]->subjectList;
-          $rrr = DB::select("SELECT * FROM `cand_test` WHERE `paper_id` IN ($list) and (status='' or status is null)");
-          $count = count($rrr);
-          return $count;
+          if(trim($list) != '')
+          {
+            $rrr = DB::select("SELECT * FROM `cand_test` WHERE `paper_id` IN ($list) and (status='' or status is null)");
+            $count = count($rrr);
+            return $count;
+          }
+          else
+          {
+            return 0;
+          }
         }
         else
         {
@@ -3874,9 +3962,16 @@ class Admin
         if($result)
         {
           $list = (string) $result[0]->subjectList;
-          $rrr = DB::select("SELECT * FROM `cand_test` WHERE `paper_id` IN ($list) and (status='' or status is null)");
-          $count = count($rrr);
-          return $count;
+          if(trim($list) != '')
+          {
+            $rrr = DB::select("SELECT * FROM `cand_test` WHERE `paper_id` IN ($list) and (status='' or status is null)");
+            $count = count($rrr);
+            return $count;
+          }
+          else
+          {
+            return 0;
+          }
         }
         else
         {
@@ -4044,4 +4139,3 @@ class Admin
   }
 
 }
-?>

@@ -1,5 +1,7 @@
 <?php
+
 namespace App\Student;
+
 use App\Models\User;
 use App\Http\Resources\ExamCollection;
 use App\Http\Resources\AnswerCollection;
@@ -14,89 +16,56 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Validator;
+use Illuminate\Support\Facades\Auth;
+use App\Models\ProctorStudentWarningMaster;
 
 class Student
 {
-	private $uid;
-	private $stdid;
-  private $region;
-	private $inst;
-  private $course;
-  private $semester;
-  private $paper_codes;
-  private $mobile;
-
-  public function __construct($arr)
-  {
-	$this->uid 			= $arr->uid;
-    $this->stdid        = $arr->username;
-    $this->region       = $arr->region;
-    $this->inst         = $arr->inst_id;
-    $this->course       = $arr->course_code;
-    $this->semester     = $arr->semester;
-    $this->mobile       = $arr->mobile;
-  }
-
 	public function getDuration($paper_id)
-  {
-    $result = DB::table("subject_master")->select("durations")->where('id',$paper_id)->first();
-		if($result)
-		{
+	{
+		$result = DB::table("subject_master")->select("durations")->where('id', $paper_id)->first();
+		if ($result) {
 			return $result->durations;
-		}
-		else
-		{
+		} else {
 			return 0;
 		}
-  }
-  public function getStudUsername()
-  {
-    return $this->stdid;
-  }
-  public function getStudRegion()
-  {
-    return $this->region;
-  }
-  public function getStudInst()
-  {
-    return $this->inst;
-  }
-  public function getStudCourse()
-  {
-    return $this->course;
-  }
-  public function getStudSemester()
-  {
-    return $this->semester;
-  }
-  public function getStudMobile()
-  {
-    return $this->mobile;
-  }
-
+	}
+	
 	public function getExams()
 	{
-		$exams 	= User::find($this->uid)->exams;
-		if($exams)
-		{
+		$AuthUser = Auth::user();
+		$exams 	= User::find($AuthUser->uid)->exams;
+		if ($exams) {
 			return new ExamCollection($exams);
-		}
-		else
-		{
+		} else {
 			return json_encode([
 				'status' => 'failure'
-			],200);
+			], 200);
 		}
+	}
+
+	public function getIp(){
+		foreach (array('HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR') as $key){
+			if (array_key_exists($key, $_SERVER) === true){
+				foreach (explode(',', $_SERVER[$key]) as $ip){
+					$ip = trim($ip); // just to be safe
+					if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false){
+						return $ip;
+					}
+				}
+			}
+		}
+		return request()->ip(); // it will return server ip when no client ip found
 	}
 
 	public function startExam($exam_id)
 	{
+		$AuthUser = Auth::user();
 		//-------------Get Data from Paper Resource (Subject Master)---------------
-		$continueexam =0;
+		$continueexam = 0;
 		$exam = CandTest::find($exam_id);
 
-		if($exam)
-		{
+		if ($exam) {
 			DB::beginTransaction();
 			$paper_id 	= $exam->paper_id;
 			//-----------Validate Paper time with current time before exam start-------
@@ -106,35 +75,31 @@ class Student
 			$static_assign 		= $subject_master->static_assign;
 
 
-			$from_date 			= $subject_master->from_date.' '.$from_time;
-			$to_date 			= $subject_master->to_date.' '.$to_time;
+			$from_date 			= $subject_master->from_date . ' ' . $from_time;
+			$to_date 			= $subject_master->to_date . ' ' . $to_time;
 
 			$today 				= 	date('Y-m-d H:i:s');
 			$fromDate			=	date('Y-m-d H:i:s', strtotime($from_date));
 			$toDate				=	date('Y-m-d H:i:s', strtotime($to_date));
 			$toDay 				=	date('Y-m-d H:i:s', strtotime($today));
-			if ((($toDay >= $fromDate) && ($toDay <= $toDate)) || ($exam->status == 'inprogress'))
-			{
+			if ((($toDay >= $fromDate) && ($toDay <= $toDate)) || ($exam->status == 'inprogress')) {
 				//----------------------------Insert Answers in CandQuestion-------
-				$insertcount=0;
+				$insertcount = 0;
 				$current_time 		= 	Carbon::now();
 				$res5 = null;
 				$totalQuest = 0;
-				if(!$static_assign)
-				{
+				if (!$static_assign) {
 					//---------------------Get Questions from Question Set----------------------
-					$questions = TopicMaster::where('paper_id',$paper_id)->get();
-					if($questions)
-					{
-				  		$fetchQuery = '';
-					  	$actualMarks = 0;
-						foreach($questions as $record)
-						{
+					$questions = TopicMaster::where('paper_id', $paper_id)->get();
+					if ($questions) {
+						$fetchQuery = '';
+						$actualMarks = 0;
+						foreach ($questions as $record) {
 							$topic    = $record->topic;
 							$subtopic = $record->subtopic;
 							$quest    = $record->questions;
-							$questMode= $record->questMode;
-							$questType= $record->questType;
+							$questMode = $record->questMode;
+							$questType = $record->questType;
 							$mrk      = $record->marks;
 							$mmarks   = $mrk * $quest;
 
@@ -142,42 +107,36 @@ class Student
 
 							$actualMarks = $actualMarks + $mmarks;
 
-							$fetchQuery = $fetchQuery."(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paper_id') AND  topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND quest_type='$questMode' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
+							$fetchQuery = $fetchQuery . "(SELECT * FROM  question_set WHERE trim(paper_uid)=trim('$paper_id') AND  topic = '$topic' AND  subtopic =  '$subtopic' AND difficulty_level = '$questType' AND quest_type='$questMode' AND marks = '$mrk' ORDER BY RAND( )  LIMIT $quest) UNION ";
 						}
 
-						$fetchQuery = rtrim($fetchQuery," UNION ");
+						$fetchQuery = rtrim($fetchQuery, " UNION ");
 
-						try
-						{
+						try {
 							$res5 = DB::select($fetchQuery);
 
-							if(sizeof($res5) != $totalQuest)
-							{
+							if (sizeof($res5) != $totalQuest) {
 								return response()->json([
 									"status"  => "failure1"
 								], 400);
 							}
-						}
-						catch(\Exception $e)
-					  	{
+						} catch (\Exception $e) {
 							return response()->json([
-							  'status' 		=> 'failure'.$e->getMessage(),
-							],400);
+								'status' 		=> 'failure' . $e->getMessage(),
+							], 400);
 						}
 					}
 					//-------------Insert Question in Cand Question Table--------------
-					$insertcount=DB::table('cand_questions')->where('stdid',$this->uid)->where('paper_id',$paper_id)->where('inst',$this->inst)->count();
-
-					if(!$insertcount)
-					{
-						$i=1;
+					$insertcount = DB::table('cand_questions')->where('stdid', $AuthUser->uid)->where('paper_id', $paper_id)->where('inst', $AuthUser->inst)->count();
+					$ip = $this->getIp();
+					if (!$insertcount) {
+						$i = 1;
 						$values = [];
-						foreach($res5 as $question)
-						{
+						foreach ($res5 as $question) {
 							array_push($values, array(
 								'exam_id' 					=> $exam_id,
-								'stdid' 					=> $this->uid,
-								'inst' 						=> $this->inst,
+								'stdid' 					=> $AuthUser->uid,
+								'inst' 						=> $AuthUser->inst,
 								'paper_id' 					=> $paper_id,
 								'program_id' 				=> $this->getProgramId($paper_id),
 								'qnid' 						=> $question->qnid,
@@ -187,7 +146,7 @@ class Student
 								'answered' 					=> 'unanswered',
 								'cans' 						=> $question->coption,
 								'marks' 					=> $question->marks,
-								'ip' 						=> request()->ip(),
+								'ip' 						=> $ip,
 								'entry_on' 					=> $current_time,
 								'qnid_sr' 					=> $i++
 							));
@@ -196,11 +155,10 @@ class Student
 						DB::commit();
 						//-----------------------Update Exam status in CandTest-----------
 						$minutes = $this->getDuration($paper_id);
-						try
-						{
+						try {
 							$exam->update([
 								'starttime' 		=> 	Carbon::now(),
-								'endtime'			=>	Carbon::now()->addMinutes((integer)$minutes),
+								'endtime'			=>	Carbon::now()->addMinutes((int)$minutes),
 								'entry_on' 			=> 	Carbon::now(),
 								'examip'			=>	request()->ip(),
 								'pa'				=>	'P',
@@ -209,62 +167,49 @@ class Student
 								'updated_at'		=> 	Carbon::now()
 							]);
 							DB::commit();
-						}
-						catch(\Exception $e)
-						{
+						} catch (\Exception $e) {
 							return response()->json([
 								'status' 		=> 'failure',
-							],400);
+							], 400);
 						}
 						//----------------------------------------------------------------
-							$elapsed = 0;
-					}
-					else
-					{
-						$candQuestionsExisting=1;
+						$elapsed = 0;
+					} else {
+						$candQuestionsExisting = 1;
 						$continueexam = $exam->continueexam;
 						$continueexam = $continueexam + 1;
-						try
-						{
+						try {
 							$exam->update([
 								'continueexam'	=> 	$continueexam,
 								'updated_at'		=> 	Carbon::now()
 							]);
-						}
-						catch(\Exception $e)
-						{
+						} catch (\Exception $e) {
 							DB::rollBack();
 							return response()->json([
 								'status' 		=> 'failure',
-							],400);
+							], 400);
 						}
 					}
 					DB::commit();
 					return json_encode([
 						'status' 				=> 'success',
-					],200);
+					], 200);
 					//-----------------------------------------------------------------
-				}
-				else
-				{
+				} else {
 					//-----------------------Update Exam status in CandTest-----------
 					$minutes = $this->getDuration($paper_id);
-					try
-					{
+					try {
 						$continueexam 	= $exam->continueexam;
-						if($continueexam == 0)
-						{
+						if ($continueexam == 0) {
 							$exam->starttime  			= 	Carbon::now();
-							$exam->endtime  			= 	Carbon::now()->addMinutes((integer)$minutes);
+							$exam->endtime  			= 	Carbon::now()->addMinutes((int)$minutes);
 							$exam->entry_on  			= 	Carbon::now();
 							$exam->examip				=	request()->ip();
 							$exam->pa					=	'P';
 							$exam->continueexam			= 	'1';
 							$exam->status				=	'inprogress';
 							$exam->updated_at			= 	Carbon::now();
-						}
-						else
-						{
+						} else {
 							$exam->continueexam			= 	$exam->continue_exam + 1;
 							$exam->examip				=	request()->ip();
 						}
@@ -272,115 +217,104 @@ class Student
 						DB::commit();
 						return json_encode([
 							'status' 				=> 'success',
-						],200);
-					}
-					catch(\Exception $e)
-					{
+						], 200);
+					} catch (\Exception $e) {
 						DB::rollBack();
 						return response()->json([
 							'status' 		=> 'failure',
-						],400);
+						], 400);
 					}
 					//----------------------------------------------------------------
 				}
-			}
-			else
-			{
+			} else {
 				return json_encode([
 					'status' => 'failure'
-				],401);
+				], 401);
 			}
 			//-------------------------------------------------------------------------
-		}
-		else
-		{
+		} else {
 			return json_encode([
 				'status' => 'failure'
-			],400);
+			], 400);
 		}
 		//-------------------------------------------------------------------------
 	}
 
 	public function endExam($id)
 	{
-			$cqnid='';$wqnid='';$uqnid='';$marksobt=0;
-			//----------get value of cqnid,wqnid,uqnid--------------------------------
-				$result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)=trim(cans)");
-				if($result)
-				{
-					$cqnid 		= $result[0]->cqnid;
-					$marksobt 	= $result[0]->marksobt;
-				}
+		$cqnid = '';
+		$wqnid = '';
+		$uqnid = '';
+		$marksobt = 0;
+		$AuthUser = Auth::user();
+		//----------get value of cqnid,wqnid,uqnid--------------------------------
+		$result = DB::select("SELECT GROUP_CONCAT(qnid) as cqnid,sum(marks) as marksobt FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)=trim(cans)");
+		if ($result) {
+			$cqnid 		= $result[0]->cqnid;
+			$marksobt 	= $result[0]->marksobt;
+		}
 
-				$result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)!=trim(cans)");
-				if($result1)
-				{
-					$wqnid = $result1[0]->wqnid;
-				}
+		$result1 = DB::select("SELECT GROUP_CONCAT(qnid) as wqnid FROM `cand_questions` where exam_id='$id' and answered in('answered','answeredandreview') and trim(stdanswer)!=trim(cans)");
+		if ($result1) {
+			$wqnid = $result1[0]->wqnid;
+		}
 
-				$result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','unansweredandreview')");
-				if($result2)
-				{
-					$uqnid = $result2[0]->uqnid;
-				}
-			//------------------------------------------------------------------------
+		$result2 = DB::select("SELECT GROUP_CONCAT(qnid) as uqnid FROM `cand_questions` where exam_id='$id' and answered in('unanswered','unansweredandreview')");
+		if ($result2) {
+			$uqnid = $result2[0]->uqnid;
+		}
+		//------------------------------------------------------------------------
 
-			//-------------------Update Exam Resource with End Exam Records-----------
-			$results = DB::table('cand_test')->where('id',$id)->update([
-				'cqnid' 			=> 	$cqnid,
-				'wqnid' 			=> 	$wqnid,
-				'uqnid' 			=> 	$uqnid,
-				'end_on' 			=>	Carbon::now(),
-				'end_by'			=>	$this->uid,
-				'status'			=>	'over',
-				'marksobt'		=>	$marksobt,
-				'updated_at'	=>	Carbon::now(),
-			]);
-			//------------------------------------------------------------------------
-			return json_encode([
-				'status' => 'success'
-			],200);
+		//-------------------Update Exam Resource with End Exam Records-----------
+		$results = DB::table('cand_test')->where('id', $id)->update([
+			'cqnid' 			=> 	$cqnid,
+			'wqnid' 			=> 	$wqnid,
+			'uqnid' 			=> 	$uqnid,
+			'end_on' 			=>	Carbon::now(),
+			'end_by'			=>	$AuthUser->uid,
+			'status'			=>	'over',
+			'marksobt'		=>	$marksobt,
+			'updated_at'	=>	Carbon::now(),
+		]);
+		//------------------------------------------------------------------------
+		return json_encode([
+			'status' => 'success'
+		], 200);
 	}
 
 	public function getAnswers($id)
 	{
-		$answers = DB::table('cand_questions')->where('exam_id',$id)->get();
-		if($answers)
-		{
+		$answers = DB::table('cand_questions')->where('exam_id', $id)->get();
+		if ($answers) {
 			return json_encode([
 				'status' => 'success',
 				'data' => new AnswerCollection($answers)
-			],200);
-		}
-		else
-		{
+			], 200);
+		} else {
 			return json_encode([
 				'status' => 'failure'
-			],400);
+			], 400);
 		}
 	}
 
 	public function getAnswer($id)
 	{
-		$answers = DB::table('cand_questions')->where('id',$id)->get();
-		if($answers)
-		{
+		$answers = DB::table('cand_questions')->where('id', $id)->get();
+		if ($answers) {
 			return json_encode([
 				'status' => 'success',
 				'data' => new AnswerCollection($answers)
-			],200);
-		}
-		else
-		{
+			], 200);
+		} else {
 			return json_encode([
 				'status' => 'failure'
-			],400);
+			], 400);
 		}
 	}
 
-	public function updateAnswer(Request $request,$id)
+	public function updateAnswer(Request $request, $id)
 	{
-		$results = CandQuestion::where('id',$id)->first();
+		$results = CandQuestion::where('id', $id)->first();
 		$results->answered = $request->answered;
 		$results->stdanswer = $request->stdanswer;
 		$results->answer_by = $request->answer_by;
@@ -391,7 +325,7 @@ class Student
 		$curQuestion = $request->curQuestion;
 
 
-		$rrr = CandTest::where('id',$examId)->update([
+		$rrr = CandTest::where('id', $examId)->update([
 			'curQuestion' => $curQuestion,
 		]);
 
@@ -399,24 +333,20 @@ class Student
 
 		$result = DB::statement("insert into cand_questions_copy select * from cand_questions where id='$id'");
 
-		if($rrr)
-		{
+		if ($rrr) {
 			return json_encode([
 				'status'						=> 'success',
-			],200);
-		}
-		else
-		{
+			], 200);
+		} else {
 			return json_encode([
 				'status'						=> 'failure',
-			],200);
+			], 200);
 		}
-
 	}
 
-	public function updateReview(Request $request,$id)
+	public function updateReview(Request $request, $id)
 	{
-		$results = CandQuestion::where('id',$id)->first();
+		$results = CandQuestion::where('id', $id)->first();
 		$results->answered = $request->answered;
 		$results->save();
 
@@ -424,45 +354,39 @@ class Student
 
 		return json_encode([
 			'status'						=> 'success',
-		],200);
+		], 200);
 	}
 
 
 
 	public function getProgramId($paper_id)
 	{
-		$programData = SubjectMaster::select("program_id")->where('id',$paper_id)->first();
-		if($programData)
-		{
+		$programData = SubjectMaster::select("program_id")->where('id', $paper_id)->first();
+		if ($programData) {
 			return $programData->program_id;
-		}
-		else
-		{
+		} else {
 			return 0;
 		}
 	}
 
-	public function additionalExamSession($exam_id,$time)
+	public function additionalExamSession($exam_id, $time)
 	{
-		$time = $time * 60 ;
-		$result = ExamSession::where('exam_id',$exam_id)->orderBy('created_at','DESC')->first();
+		$time = $time * 60;
+		$result = ExamSession::where('exam_id', $exam_id)->orderBy('created_at', 'DESC')->first();
 		$res = CandTest::find($exam_id);
-		$res->status='inprogress';
+		$res->status = 'inprogress';
 		$res->save();
-		if($result)
-		{
+		if ($result) {
 			$result->elapsed_time = $result->elapsed_time - $time;
 			$result->save();
 			return json_encode([
 				'status'						=> 'success',
 				'message'						=>	'Additional Time given Successfully...'
-			],200);
-		}
-		else
-		{
+			], 200);
+		} else {
 			return json_encode([
 				'status'						=> 'failure',
-			],400);
+			], 400);
 		}
 	}
 
@@ -474,61 +398,65 @@ class Student
 		//--------------------------------------------------------------------------
 
 		//--------Search for entry in ExamSession with given exam_id----------------
-		$result = ExamSession::where('exam_id',$exam_id)->where('session_state','active')->first();
+		$result = ExamSession::where('exam_id', $exam_id)->where('session_state', 'active')->first();
 
-		$result1 = CandTest::select("status")->where('id',$exam_id)->first();
+		$result1 = CandTest::select("status")->where('id', $exam_id)->first();
+		//----------------------Fetch Proctor Sent Warning Messages ------------------------------------
+		$warningMsg = '';
+		$warningId = '';
+		$result2 = ProctorStudentWarningMaster::where('examId',$exam_id)->orderBy('created_at','DESC')->first();
 
-
-		DB::beginTransaction();
-		if($result)
+		if($result2)
 		{
+			if($result2->noted == 0)
+			{
+				$warningMsg = $result2->warning;
+				$warningId = $result2->id;
+			}
+		}
+		//-----------------------------------------------------------------------------------------------
+		DB::beginTransaction();
+		if ($result) {
 			//-----check Time difference between now and last_update_time-------------
 			$heartbeatdiff = Carbon::now()->diffInSeconds($result->last_update_time);
 
-			if($heartbeatdiff > $heartbeattime)
-			{
+			if ($heartbeatdiff > $heartbeattime) {
 				//-----------convert first active record to over state------------------
-					$result->session_state = 'over';
-					$result->updated_at = Carbon::now();
-					$result->save();
+				$result->session_state = 'over';
+				$result->updated_at = Carbon::now();
+				$result->save();
 				//----------------------------------------------------------------------
 
 				//---------------Calculate New Elapsed Time-----------------------------
-					$actualElapsedTime = $result->elapsed_time + $heartbeattime;
+				$actualElapsedTime = $result->elapsed_time + $heartbeattime;
 				//----------------------------------------------------------------------
 
 				//-----------------Create new Exam Session Entry------------------------
 				$values = array(
 					'exam_id' 							=> $exam_id,
-					'session_start_time'		=> Carbon::now()->subSeconds($heartbeattime+2),
+					'session_start_time'		=> Carbon::now()->subSeconds($heartbeattime + 2),
 					'last_update_time'			=> Carbon::now(),
 					'session_state' 			=> 'active',
 					'elapsed_time' 				=> $actualElapsedTime,
 					'created_at'				=> Carbon::now()
 				);
-				try
-				{
+				try {
 					$inserted = DB::table('exam_session')->insert($values);
-				}
-				catch(\Exception $e)
-				{
+				} catch (\Exception $e) {
 					DB::rollBack();
 					return response()->json([
-								'status' 		=> 'failure',
-								'examStatus'			=> $result1->status,
-							],400);
+						'status' 		=> 'failure',
+						'examStatus'			=> $result1->status,
+					], 400);
 				}
 				//----------------------------------------------------------------------
-			}
-			else
-			{
-				$cumulativeTime=0;
+			} else {
+				$cumulativeTime = 0;
 				//---------------Calculate New Elapsed Time-----------------------------
-					$cumulativeResult = DB::select("select elapsed_time from exam_session where exam_id='$exam_id' and session_state='over' order by session_start_time DESC");
-					if($cumulativeResult)
-					{
-						$cumulativeTime = $cumulativeResult[0]->elapsed_time;
-					}
+				$cumulativeResult = DB::select("select elapsed_time from exam_session where exam_id='$exam_id' and session_state='over' order by session_start_time DESC");
+				if ($cumulativeResult) {
+					$cumulativeTime = $cumulativeResult[0]->elapsed_time;
+				}
 				//----------------------------------------------------------------------
 				//------------------Update Exam Session --------------------------------
 				$result->last_update_time = Carbon::now();
@@ -540,84 +468,78 @@ class Student
 				//----------------------------------------------------------------------
 			}
 			//------------------------------------------------------------------------
-		}
-		else
-		{
+		} else {
 			//---------------create ExamSession Entry---------------------------------
 			$values = array(
 				'exam_id' 							=> $exam_id,
-				'session_start_time'				=> Carbon::now()->subSeconds($heartbeattime+2),
+				'session_start_time'				=> Carbon::now()->subSeconds($heartbeattime + 2),
 				'last_update_time'					=> Carbon::now(),
 				'session_state' 					=> 'active',
-				'elapsed_time' 						=> $heartbeattime+2,
+				'elapsed_time' 						=> $heartbeattime + 2,
 				'created_at'						=> Carbon::now()
 			);
-			try
-			{
+			try {
 				$inserted = DB::table('exam_session')->insert($values);
-				$actualElapsedTime = $heartbeattime+2;
-			}
-			catch(\Exception $e)
-			{
+				$actualElapsedTime = $heartbeattime + 2;
+			} catch (\Exception $e) {
 				DB::rollBack();
 				return response()->json([
-							'status' 		=> 'failure',
-							'examStatus'			=> $result1->status,
-						],400);
+					'status' 		=> 'failure',
+					'examStatus'			=> $result1->status,
+				], 400);
 			}
 			//------------------------------------------------------------------------
 		}
 		DB::commit();
 		//--------------------------------------------------------------------------
 		return response()->json([
-					'status' 				=> 'success',
-					'elapsedTime'			=> $actualElapsedTime,
-					'examStatus'			=> $result1->status,
-				],200);
+			'status' 				=> 'success',
+			'elapsedTime'			=> $actualElapsedTime,
+			'examStatus'			=> $result1->status,
+			'warningMsg'			=> [$warningMsg],
+			'warningId'				=> $warningId
+		], 200);
 	}
 
 	public function getExamSession($exam_id)
 	{
-		$result = DB::table('exam_session')->select("elapsed_time")->where('exam_id',$exam_id)->where('session_state','active')->orderBy('session_start_time', 'desc')->first();
+		$result = DB::table('exam_session')->select("elapsed_time")->where('exam_id', $exam_id)->where('session_state', 'active')->orderBy('session_start_time', 'desc')->first();
 
-		$result1 = DB::table('cand_test')->select("status")->where('id',$exam_id)->first();
+		$result1 = DB::table('cand_test')->select("status")->where('id', $exam_id)->first();
 
-		if($result)
-		{
+		if ($result) {
 			return response()->json([
-						'status' 				=> 'success',
-						'elapsedTime'			=> $result->elapsed_time,
-						'examStatus'			=> $result1->status,
-					],200);
-		}
-		else
-		{
+				'status' 				=> 'success',
+				'elapsedTime'			=> $result->elapsed_time,
+				'examStatus'			=> $result1->status,
+			], 200);
+		} else {
 			return response()->json([
-						'status' 				=> 'success',
-						'elapsedTime'			=> 0,
-						'examStatus'			=> $result1->status,
-					],200);
+				'status' 				=> 'success',
+				'elapsedTime'			=> 0,
+				'examStatus'			=> $result1->status,
+			], 200);
 		}
 	}
 
 	public function windowSwitchExam($id)
 	{
-		$result = CandTest::where('id',$id)->first();
+		$result = CandTest::where('id', $id)->first();
 		$count = $result->switched + 1;
 		$result->switched = $count;
 		$result->save();
 
 		return response()->json([
-					'status' 				=> 'success',
-					'switchedcount' 		=> $count
-				],200);
+			'status' 				=> 'success',
+			'switchedcount' 		=> $count
+		], 200);
 	}
 
-	public function storeSnapshot($examid,$image)
+	public function storeSnapshot($examid, $image)
 	{
-		$path  = public_path().'/data/snapshots/'.$examid.'_'.Carbon::now()->timestamp.'.jpg';
+		$path  = public_path() . '/data/snapshots/' . $examid . '_' . Carbon::now()->timestamp . '.jpg';
 		$image = str_replace('data:image/jpeg;base64,', '', $image);
-    	$image = str_replace(' ', '+', $image);
+		$image = str_replace(' ', '+', $image);
 		$image = base64_decode($image);
 
 		\File::put($path, $image);
@@ -629,22 +551,19 @@ class Student
 		);
 
 		$inserted = DB::table('proctor_snaps')->insertGetId($values);
-		if($inserted)
-		{
+		if ($inserted) {
 			return response()->json([
 				'status' 				=> 'success',
 				'snapid'				=>  $inserted
-			],200);
-		}
-		else
-		{
+			], 200);
+		} else {
 			return response()->json([
 				'status' 				=> 'failure'
-			],400);
+			], 400);
 		}
 	}
 
-	public function storeSnapshotDetails($examid,$snapid,$agerange,$beard,$eyeglasses,$eyesopen,$gender,$mustache,$smile,$sunglasses)
+	public function storeSnapshotDetails($examid, $snapid, $agerange, $beard, $eyeglasses, $eyesopen, $gender, $mustache, $smile, $sunglasses)
 	{
 		$values = array(
 			'examid' 							=> $examid,
@@ -661,36 +580,33 @@ class Student
 		);
 
 		$inserted = ProctorSnapDetails::create($values);
-		if($inserted)
-		{
+		if ($inserted) {
 			return response()->json([
 				'status' 				=> 'success'
-			],200);
-		}
-		else
-		{
+			], 200);
+		} else {
 			return response()->json([
 				'status' 				=> 'failure'
-			],400);
+			], 400);
 		}
 	}
 
-	public function updateCurQuestion($id,$request)
+	public function updateCurQuestion($id, $request)
 	{
 		$examId = $id;
 		$curQuestion = $request->curQuestion;
 
 
-		$result = CandTest::where('id',$examId)->update([
+		$result = CandTest::where('id', $examId)->update([
 			'curQuestion' => $curQuestion
 		]);
 
 		return response()->json([
 			'status' 				=> 'success'
-		],200);
+		], 200);
 	}
 
-	public function updateSubjectiveAnswer($request,$id)
+	public function updateSubjectiveAnswer($request, $id)
 	{
 		$answer 			= $request->stdanswer;
 		$answered 			= $request->answered;
@@ -701,13 +617,11 @@ class Student
 
 		$result = CandQuestion::find($id);
 
-		if($allowImgUp == 'Y')
-		{
-			if(($result->answerImage == '' || $result->answerImage == null) && (trim($answer) == '') && ($answer == ''))
-			{
+		if ($allowImgUp == 'Y') {
+			if (($result->answerImage == '' || $result->answerImage == null) && (trim($answer) == '') && ($answer == '')) {
 				return json_encode([
 					'status'						=> 'failure'
-				],400);
+				], 400);
 			}
 		}
 
@@ -720,127 +634,108 @@ class Student
 		$result->save();
 
 		$rrr = DB::statement("insert into cand_questions_copy select * from cand_questions where id='$id'");
-		if($rrr)
-		{
+		if ($rrr) {
 			return json_encode([
 				'status'						=> 'success',
-			],200);
-		}
-		else
-		{
+			], 200);
+		} else {
 			return json_encode([
 				'status'						=> 'failure',
-			],400);
+			], 400);
 		}
-
 	}
 
-	public function uploadAnswerImage($id,$request)
+	public function uploadAnswerImage($id, $request)
 	{
 		//--------------------------------------------------------------
-		$result 			= CandQuestion::where('id',$id)->first();
+		$result 			= CandQuestion::where('id', $id)->first();
 		$answerImgStr 		= $result->answerImage;
-		$answerImg 			= explode(',',$result->answerImage);
+		$answerImg 			= explode(',', $result->answerImage);
 
-		if(sizeof($answerImg) >= 5)
-		{
+		if (sizeof($answerImg) >= 5) {
 			return json_encode([
 				'status'						=> 'failure',
-			],400);
+			], 400);
 		}
 		//--------------------------------------------------------------
-		if($request->file)
-		{
-				$part 			= rand(100000,999999);
-				$validation 	= Validator::make($request->all(), ['file' => 'required|mimes:jpeg,jpg,pdf,doc,docx,xls,xlsx,ppt,pptx|max:5120']);
-				$path = $request->file('file')->getRealPath();
+		if ($request->file) {
+			$part 			= rand(100000, 999999);
+			$validation 	= Validator::make($request->all(), ['file' => 'required|mimes:jpeg,jpg,pdf,doc,docx,xls,xlsx,ppt,pptx|max:5120']);
+			$path = $request->file('file')->getRealPath();
 
-				if($validation->passes())
-				{
-					$image 		= $request->file('file');
-					$new_name 	= 'Answer_'.$id.'_'.$part.'.'.$image->getClientOriginalExtension();
-					$image->move(public_path('data/answers'), $new_name);
-					$path		=public_path('data/answers').'/'.$new_name;
-					$ansfilepath= $new_name;
+			if ($validation->passes()) {
+				$image 		= $request->file('file');
+				$new_name 	= 'Answer_' . $id . '_' . $part . '.' . $image->getClientOriginalExtension();
+				$image->move(public_path('data/answers'), $new_name);
+				$path		= public_path('data/answers') . '/' . $new_name;
+				$ansfilepath = $new_name;
 
-					$answer 			= 'data/answers/'.$new_name;
-					$answered 			= $request->answered;
-					$current_time 		= Carbon::now();
-					$answer_by 			= $request->answer_by;
-					$ip 				= request()->ip();
+				$answer 			= 'data/answers/' . $new_name;
+				$answered 			= $request->answered;
+				$current_time 		= Carbon::now();
+				$answer_by 			= $request->answer_by;
+				$ip 				= request()->ip();
 
-					$url 				= Config::get('constants.PROJURL');
+				$url 				= Config::get('constants.PROJURL');
 
-					$answerImgStr 		= trim($answerImgStr.','.$answer,',');
+				$answerImgStr 		= trim($answerImgStr . ',' . $answer, ',');
 
-					$result->answerImage = $answerImgStr;
-					$result->ip 		 = $ip;
-					$result->answer_by   = $answer_by;
-					$result->answer_on 	 = $current_time;
+				$result->answerImage = $answerImgStr;
+				$result->ip 		 = $ip;
+				$result->answer_by   = $answer_by;
+				$result->answer_on 	 = $current_time;
 
-					$result->save();
+				$result->save();
 
-					$answerImg 			= explode(',',$answerImgStr);
+				$answerImg 			= explode(',', $answerImgStr);
 
-					for($i=0;$i< sizeof($answerImg);$i++)
-					{
-						$answerImg[$i] = $url.'/'.$answerImg[$i];
-					}
-
-					if($result)
-					{
-						return json_encode([
-							'status'						=> 'success',
-							'path'							=> implode(',',$answerImg),
-							'pathIcon'						=> $url.'/assets/images',
-						],200);
-					}
-					else
-					{
-						return json_encode([
-							'status'						=> 'failure',
-						],400);
-					}
+				for ($i = 0; $i < sizeof($answerImg); $i++) {
+					$answerImg[$i] = $url . '/' . $answerImg[$i];
 				}
-				else
-				{
-					return response()->json([
-						"status"            => "failure",
-						"message"           => 'Answer Document must be among jpeg,jpg,doc,docx,xls,xlsx,pdf,ppt,pptx with max 5MB size.',
+
+				if ($result) {
+					return json_encode([
+						'status'						=> 'success',
+						'path'							=> implode(',', $answerImg),
+						'pathIcon'						=> $url . '/assets/images',
+					], 200);
+				} else {
+					return json_encode([
+						'status'						=> 'failure',
 					], 400);
 				}
+			} else {
+				return response()->json([
+					"status"            => "failure",
+					"message"           => 'Answer Document must be among jpeg,jpg,doc,docx,xls,xlsx,pdf,ppt,pptx with max 5MB size.',
+				], 400);
+			}
 		}
 	}
 
-	public function removeAnswerImage($request,$id)
+	public function removeAnswerImage($request, $id)
 	{
 		$filePath 		= substr($request->filePath, strrpos($request->filePath, '/') + 1);
 		$index    		= null;
 		$result 		= CandQuestion::find($id);
 		$url 			= Config::get('constants.PROJURL');
 
-		$answerImage 	= explode(',',$result->answerImage!==null ? $result->answerImage : '');
+		$answerImage 	= explode(',', $result->answerImage !== null ? $result->answerImage : '');
 
 
-		for($i = 0;$i< sizeof($answerImage);$i++)
-		{
-			if (strpos($answerImage[$i], $filePath) !== false)
-			{
+		for ($i = 0; $i < sizeof($answerImage); $i++) {
+			if (strpos($answerImage[$i], $filePath) !== false) {
 				$index = $i;
 			}
 		}
 
-		if($index >= 0)
-		{
-			array_splice($answerImage,$index,1);
+		if ($index >= 0) {
+			array_splice($answerImage, $index, 1);
 		}
 
-		if(sizeof($answerImage) > 0 )
-		{
-			$result->answerImage = implode(',',$answerImage);
-		}
-		else
-		{
+		if (sizeof($answerImage) > 0) {
+			$result->answerImage = implode(',', $answerImage);
+		} else {
 			$result->answerImage = '';
 		}
 
@@ -848,28 +743,24 @@ class Student
 
 		return json_encode([
 			'status'						=> 'success',
-			'path'							=> implode(',',$answerImage),
-			'pathIcon'						=> $url.'/assets/images',
-		],200);
+			'path'							=> implode(',', $answerImage),
+			'pathIcon'						=> $url . '/assets/images',
+		], 200);
 	}
 
 	public function getExamSwitchCount($id)
 	{
 		$result = CandTest::find($id);
 
-		if($result)
-		{
+		if ($result) {
 			return json_encode([
 				'status'						=> 'success',
 				'count'							=> $result->switched
-			],200);
-		}
-		else
-		{
+			], 200);
+		} else {
 			return json_encode([
 				'status'						=> 'failure',
-			],400);
+			], 400);
 		}
 	}
 }
-?>

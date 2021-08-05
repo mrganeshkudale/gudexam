@@ -10,28 +10,17 @@ class EAdminController extends Controller
 {
   public function eadminhome()
   {
-    if(Auth::user())
-    {
-      if(Auth::user()->role != 'EADMIN')
-      {
-        return response()->json([
-          "status"    =>  "failure",
-          "message"   =>  "Unauthorized User...",
-        ], 401);
-      }
-
-      return response()->json([
-        "status"    =>  "success",
-        "message"   =>  "User logged in successfully...",
-        "data"      =>  Auth::user(),
-      ], 200);
-    }
-    else
-    {
+    if (Auth::user()->role != 'EADMIN') {
       return response()->json([
         "status"    =>  "failure",
         "message"   =>  "Unauthorized User...",
       ], 401);
     }
+
+    return response()->json([
+      "status"    =>  "success",
+      "message"   =>  "User logged in successfully...",
+      "data"      =>  Auth::user(),
+    ], 200);
   }
 }

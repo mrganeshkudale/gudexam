@@ -11,12 +11,12 @@ use Illuminate\Support\Facades\Auth;
 
 class CustomLogin
 {
-	private $username;
+	/*private $username;
   	private $password;
 	private $inst_id;
-	private $flag;
+	private $flag;*/
 
-	public function __construct(Request $request)
+	/*public function __construct(Request $request)
 	{
 		$this->username=$request->username;
 		$this->password=$request->password;
@@ -42,16 +42,16 @@ class CustomLogin
   	public function getFlag()
 	{
 		return $this->flag;
-	}
+	}*/
 
 
 	public function customLoginAuthentication($request)
 	{
 		$rrr = null;
 		$validator = Validator::make([
-		'username' => $this->username,
-		'password' => $this->password,
-		'flag' => $this->flag],
+		'username' => $request->username,
+		'password' => $request->password,
+		'flag' => $request->flag],
 
 		['username' => 'required',
 		'password' => 'required',
@@ -67,40 +67,40 @@ class CustomLogin
 		$spass = Config::get('constants.SPASS');
 		$multylogin = Config::get('constants.MULTYLOGIN');
 	
-		if(strcmp(trim($spass),trim($this->password))!=0)
+		if(strcmp(trim($spass),trim($request->password))!=0)
 		{
-				if($this->flag==0)
+				if($request->flag==0)
 				{
-					$rrr = User::where('username',$this->username)->where('inst_id',$this->inst_id)->first();
+					$rrr = User::where('username',$request->username)->where('inst_id',$request->inst_id)->first();
 					$user_data = array(
-						'username'  		=> $this->username,
-						'password' 			=> $this->password,
-						'inst_id' 			=> $this->inst_id,
+						'username'  		=> $request->username,
+						'password' 			=> $request->password,
+						'inst_id' 			=> $request->inst_id,
 						'status' 			=> 'ON'
 					);
 				}
 				else
 				{
-					$rrr = User::where('username',$this->username)->first();
+					$rrr = User::where('username',$request->username)->first();
 					$user_data = array(
-						'username'  		=> $this->username,
-						'password' 			=> $this->password,
+						'username'  		=> $request->username,
+						'password' 			=> $request->password,
 						'status' 			=> 'ON'
 					);
 				}
 		}
 		else
 		{
-			if($this->flag==0)
+			if($request->flag==0)
 			{
-				$rrr = User::where('username',$this->username)->where('inst_id',$this->inst_id)->first();
+				$rrr = User::where('username',$request->username)->where('inst_id',$request->inst_id)->first();
 				if($rrr)
 				{
 					$paass = $rrr->origpass;
 					$user_data = array(
-						'username'  				=> $this->username,
+						'username'  				=> $request->username,
 						'password' 					=> $paass,
-						'inst_id' 					=> $this->inst_id,
+						'inst_id' 					=> $request->inst_id,
 						'status' 					=> 'ON'
 					);
 				}
@@ -114,12 +114,12 @@ class CustomLogin
 			}
 			else
 			{
-				$rrr = User::where('username',$this->username)->first();
+				$rrr = User::where('username',$request->username)->first();
 				if($rrr)
 				{
 					$paass = $rrr->origpass;
 					$user_data = array(
-						'username'  				=> $this->username,
+						'username'  				=> $request->username,
 						'password' 					=> $paass,
 						'status' 					=> 'ON'
 					);
@@ -136,9 +136,10 @@ class CustomLogin
 		
 			if(Auth::attempt($user_data))
 			{
-				if($multylogin == 'N' && Auth::user()->role =='STUDENT')
+				$AuthUser = Auth::user();
+				if($multylogin == 'N' && $AuthUser->role =='STUDENT')
 				{
-					$sessionResult = Session::where('uid',Auth::user()->uid)->orderBy('session_id','DESC')->first();
+					$sessionResult = Session::where('uid',$AuthUser->uid)->orderBy('session_id','DESC')->first();
 
 					//---------Condition to Check Already Logged in or proper Log Out-------
 					if($sessionResult)
@@ -154,14 +155,15 @@ class CustomLogin
 				}
 				//----------------------------------------------------------------------
 
+				$ip = $this->getIp();
+
 				$current_timestamp 		= Carbon::now()->timestamp;
 				$current_time 			= Carbon::now();
 
-				$role					= Auth::user()->role;
-				$ip 					= request()->ip();
-				$user 					= Auth::user();
+				$role					= $AuthUser->role;
+				$user 					= $AuthUser;
 				$token 					= $user->createToken('GudExam')->accessToken;
-				$uid   				    = Auth::user()->uid;
+				$uid   				    = $AuthUser->uid;
 
 				$browser 				= $request->browser;
 				$os      				= $request->os;
@@ -180,7 +182,7 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 				'token' 		=> $token,
-								'data' 			=> Auth::user(),
+								'data' 			=> $AuthUser,
 							],200);
 				}
 				else if(strtoupper($role)=='EADMIN')
@@ -188,7 +190,7 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 				'token' 		=> $token,
-								'data' 			=> Auth::user(),
+								'data' 			=> $AuthUser,
 							],200);
 				}
 				else if(strtoupper($role)=='GADMIN')
@@ -196,7 +198,7 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 				'token' 		=> $token,
-								'data' 			=> Auth::user(),
+								'data' 			=> $AuthUser,
 							],200);
 				}
 				else if(strtoupper($role)=='CADMIN')
@@ -204,7 +206,7 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                					'token' 		=> $token,
-								'data' 			=> Auth::user(),
+								'data' 			=> $AuthUser,
 							],200);
 				}
 				else if(strtoupper($role)=='STUDENT')
@@ -212,7 +214,7 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 				'token' 		=> $token,
-								'data' 			=> Auth::user(),
+								'data' 			=> $AuthUser,
 							],200);
 				}
 				else if(strtoupper($role)=='CHECKER')
@@ -220,7 +222,7 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 				'token' 		=> $token,
-								'data' 			=> Auth::user(),
+								'data' 			=> $AuthUser,
 							],200);
 				}
 				else if(strtoupper($role)=='PROCTOR')
@@ -228,7 +230,15 @@ class CustomLogin
 					return response()->json([
 								'status' 		=> 'success',
                 				'token' 		=> $token,
-								'data' 			=> Auth::user(),
+								'data' 			=> $AuthUser,
+							],200);
+				}
+				else if(strtoupper($role)=='PAPERSETTER')
+				{
+					return response()->json([
+								'status' 		=> 'success',
+                				'token' 		=> $token,
+								'data' 			=> $AuthUser,
 							],200);
 				}
 				else
@@ -241,7 +251,7 @@ class CustomLogin
 			}
 			else
 			{
-				if($this->flag==0)
+				if($request->flag==0)
 				{
 					return response()->json([
 						'status' 		=> 'failure',
@@ -258,13 +268,28 @@ class CustomLogin
 			}
     }
 
+	public function getIp(){
+		foreach (array('HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR') as $key){
+			if (array_key_exists($key, $_SERVER) === true){
+				foreach (explode(',', $_SERVER[$key]) as $ip){
+					$ip = trim($ip); // just to be safe
+					if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false){
+						return $ip;
+					}
+				}
+			}
+		}
+		return request()->ip(); // it will return server ip when no client ip found
+	}
+
 		public function customLogout()
 		{
+			$AuthUser = Auth::user();
 			$current_timestamp 				= Carbon::now()->timestamp;
 			$current_time 					= Carbon::now();
-			$result 						= Session::where('uid', Auth::user()->uid)->orderBy('session_id', 'DESC')->first()->update(['endtime' 	=> $current_time]);
+			$result 						= Session::where('uid', $AuthUser->uid)->orderBy('session_id', 'DESC')->first()->update(['endtime' 	=> $current_time]);
 			
-			$result 						= User::where('uid',Auth::user()->uid)->update(['firebaseToken' => null]);
+			$result 						= User::where('uid',$AuthUser->uid)->update(['firebaseToken' => null]);
 		}
 }
 ?>

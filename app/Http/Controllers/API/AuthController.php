@@ -14,20 +14,10 @@ class AuthController extends Controller
 {
   public function index()
   {
-    if(Auth::user())
-    {
       return response()->json([
         "status"    =>  "Success",
         "data"      =>  Auth::user() 
       ], 200);
-    }
-    else
-    {
-      return response()->json([
-        "status"    =>  "failure",
-        "message"   =>  "Unauthorized User."
-      ], 401);
-    }
   }
 
   public function login(Request $request, CustomLogin $clogin)
@@ -76,22 +66,12 @@ class AuthController extends Controller
 
   public function logout(Request $request, CustomLogin $clogin)
   {
-    if(Auth::user())
-    {
       $clogin->customLogout();
       $request->user()->token()->revoke();
       return response()->json([
         "status" => "Success",
         "message"=>"User logged out successfully..."
       ], 200);
-    }
-    else
-    {
-      return response()->json([
-        "status","failure",
-        "message"=>"Unauthorized User."
-      ], 401);
-    }
   }
 
   public function sendOTP(Request $request,Registration $regi)
@@ -139,35 +119,14 @@ class AuthController extends Controller
 
   public function isLoggedIn()
   {
-    if(Auth::user())
-    {
       return response()->json([
         "status" => "success",
         "message"=>"Authenticated User"
       ], 200);
-    }
-    else
-    {
-      return response()->json([
-        "status" => "failure",
-        "message"=>"Unauthorized User"
-      ], 400);
-    }
   }
 
   public function loginLink($stdid,Request $request,Admin1 $a1)
   {
-    if(Auth::user())
-    {
       return $a1->loginLink($stdid,$request);
-    }
-    else
-    {
-      return response()->json([
-        "status" => "failure",
-        "message"=>"Unauthorized User"
-      ], 401);
-    }
   }
 }
-?>

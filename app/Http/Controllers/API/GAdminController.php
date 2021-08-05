@@ -10,28 +10,17 @@ class GAdminController extends Controller
 {
   public function gadminhome()
   {
-    if(Auth::user())
-    {
-      if(Auth::user()->role != 'GADMIN')
-      {
-        return response()->json([
-          "status"    =>  "failure",
-          "message"   =>  "Unauthorized User...",
-        ], 401);
-      }
-
-      return response()->json([
-        "status"    =>  "success",
-        "message"   =>  "User logged in successfully...",
-        "data"      =>  Auth::user(),
-      ], 200);
-    }
-    else
-    {
+    if (Auth::user()->role != 'GADMIN') {
       return response()->json([
         "status"    =>  "failure",
         "message"   =>  "Unauthorized User...",
       ], 401);
     }
+
+    return response()->json([
+      "status"    =>  "success",
+      "message"   =>  "User logged in successfully...",
+      "data"      =>  Auth::user(),
+    ], 200);
   }
 }

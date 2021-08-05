@@ -10,8 +10,6 @@ class AdminController extends Controller
 {
   public function adminhome()
   {
-    if(Auth::user())
-    {
       if(Auth::user()->role != 'ADMIN')
       {
         return response()->json([
@@ -25,13 +23,5 @@ class AdminController extends Controller
         "message"   =>  "User logged in successfully...",
         "data"      =>  Auth::user(),
       ], 200);
-    }
-    else
-    {
-      return response()->json([
-        "status"    =>  "failure",
-        "message"   =>  "Unauthorized User...",
-      ], 401);
-    }
   }
 }
