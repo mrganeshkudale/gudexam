@@ -40,6 +40,7 @@ class ExamCollection extends ResourceCollection
             'marksobt'    =>  $single->marksobt,
             'paper_checking_status' => $single->paper_checking,
             'result'      => $single->result,
+            'answerFile'    => $single->answerFile,
           ];
         }
         return $arr;

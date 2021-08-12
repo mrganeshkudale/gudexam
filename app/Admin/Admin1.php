@@ -21,6 +21,7 @@ use App\Http\Resources\QuestionCollection;
 use App\Models\CandTest;
 use App\Models\LoginLink;
 use App\Http\Resources\ProctorSubjectStudCountCollection;
+use App\Http\Resources\PaperSetterSubjectCollection;
 use App\Models\CheckerSubjectMaster;
 use App\Models\QuestionSet;
 use App\Models\CandQuestion;
@@ -38,6 +39,9 @@ use Illuminate\Support\Facades\Auth;
 use File;
 use Illuminate\Support\Facades\Hash;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use ZipArchive;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
 
 class Admin1
 {
@@ -187,18 +191,18 @@ class Admin1
     $difficultyLevel        = $request->difficultyLevel;
     $marks                  = $request->marks;
     $questType              = $request->questType;
-    $question               = str_replace('&lt;', '<', str_replace('&gt;', '>', str_replace('amp;', '', $request->question)));
+    $question               = $request->question;
     $modelAnswer            = $request->modelAnswer;
     $modelAnswerImage       = $request->modelAnswerImage;
     $allowImageUpload       = $request->allowImageUpload;
 
     $current_time           = Carbon::now();
 
-    $qfilepath              = '';
-    $ansfilepath            = '';
+    $qfilepath              = null;
+    $ansfilepath            = null;
 
     //------------------------Upload Question Image and  Model Answer Image if any----------------
-    $new_name = '';
+    $new_name = null;
     if ($request->qufig) {
       $part = rand(100000, 999999);
       $validation = Validator::make($request->all(), ['qufig' => 'required|mimes:jpeg,jpg']);
@@ -217,7 +221,7 @@ class Admin1
         ], 400);
       }
     }
-    $new_name = '';
+    $new_name = null;
     if ($request->modelAnswerImage) {
       $part = rand(100000, 999999);
       $validation = Validator::make($request->all(), ['modelAnswerImage' => 'required|mimes:jpeg,jpg']);
@@ -297,14 +301,20 @@ class Admin1
         $questionImage    = trim($spreadsheet->getActiveSheet()->getCellByColumnAndRow(10, $i)->getValue());
         $answerImage      = trim($spreadsheet->getActiveSheet()->getCellByColumnAndRow(11, $i)->getValue());
 
+        if($subtopic == '')
+        {
+          $subtopic = '0';
+        }
         //------------------------Upload Question Image and  Model Answer Image if any----------------
-        $new_name = '';
-        if ($questionImage != '') {
+        $new_name = null;
+        if ($questionImage != '') 
+        {
           $part     = rand(100000, 999999);
           $new_name = 'Q_' . $paper_code . '_' . $part . '.jpg';
           file_put_contents('files/' . $new_name, file_get_contents($questionImage));
         }
-        $new_name1 = '';
+
+        $new_name1 = null;
         if ($answerImage != '') {
           $part     = rand(100000, 999999);
           $new_name1 = 'Q_' . $paper_code . '_' . $part . '.jpg';
@@ -1160,9 +1170,7 @@ class Admin1
     $email          = $request->email;
     $inst           = $request->instId;
     $password       = Hash::make($request->password);
-    $subjects       = $request->subjects;
-
-    DB::beginTransaction();
+    
     try {
       $result = User::find($id);
 
@@ -1177,30 +1185,10 @@ class Admin1
 
         $result->save();
       }
-
-      if ($result) {
-        $res = PaperSetterSubjectMaster::where('uid', $id)->delete();
-
-        foreach ($subjects as $subject) {
-          try {
-            $result1 = PaperSetterSubjectMaster::create([
-              'uid' => $result->uid,
-              'paperId' => $subject
-            ]);
-          } catch (\Exception $e) {
-            DB::rollback();
-            return response()->json([
-              "status"  => "failure"
-            ], 400);
-          }
-        }
-        DB::commit();
         return response()->json([
           "status"  => "success"
         ], 200);
-      }
     } catch (\Exception $e) {
-      DB::rollback();
       return response()->json([
         "status"  => "failure"
       ], 400);
@@ -1289,11 +1277,21 @@ class Admin1
     $query    = [];
     $now      = Carbon::now();
 
-    if (sizeof($students) > sizeof($proctors)) {
+    if (sizeof($students) > sizeof($proctors)) 
+    {
       $k = 0;
-      for ($j = 1; $j <= ceil(sizeof($students) / sizeof($proctors)); $j++) {
-        for ($i = 0; $i < sizeof($proctors); $i++) {
-          if (sizeof($students) == $k) {
+      if(ceil(sizeof($students) / sizeof($proctors)) > 30)
+      {
+        return json_encode([
+          'status' => 'failure'
+        ], 400);
+      }
+
+      for ($j = 1; $j <= ceil(sizeof($students) / sizeof($proctors)); $j++) 
+      {
+        for ($i = 0; $i < sizeof($proctors); $i++) 
+        {
+          if ((sizeof($students) == $k)) {
             break;
           }
           array_push($query, ['instId' => $instId, 'proctorid' => $proctors[$i], 'paperId' => $paperId, 'studid' => $students[$k], 'created_at' => $now]);
@@ -1302,11 +1300,15 @@ class Admin1
         }
         $i = 0;
       }
-    } else if (sizeof($students) < sizeof($proctors)) {
+    } 
+    else if (sizeof($students) < sizeof($proctors)) 
+    {
       for ($i = 0; $i < sizeof($students); $i++) {
         array_push($query, ['instId' => $instId, 'proctorid' => $proctors[$i], 'paperId' => $paperId, 'studid' => $students[$i], 'created_at' => $now]);
       }
-    } else if (sizeof($students) == sizeof($proctors)) {
+    } 
+    else if (sizeof($students) == sizeof($proctors)) 
+    {
       for ($i = 0; $i < sizeof($students); $i++) {
         array_push($query, ['instId' => $instId, 'proctorid' => $proctors[$i], 'paperId' => $paperId, 'studid' => $students[$i], 'created_at' => $now]);
       }
@@ -1975,46 +1977,26 @@ class Admin1
     $rrr = User::where('username', $inst)->where('role', 'EADMIN')->first();
     $college_name   = $rrr->college_name;
     $password       = Hash::make($request->password);
-    $subjects       = $request->subjects;
-
-    DB::beginTransaction();
+    
     try {
-      $result = User::create([
-        'username' => $username,
-        'name'     => $name,
-        'mobile'   => $mobile,
-        'email'    => $email,
-        'inst_id'  => $inst,
-        'password' => $password,
-        'role'     => 'PAPERSETTER',
-        'status'   => 'ON',
-        'college_name'   => $college_name,
-        'regi_type' => 'PAPERSETTER',
-        'verified' => 'verified',
-        'origpass' => $request->password,
-      ]);
-
-      if ($result) {
-        foreach ($subjects as $subject) {
-          try {
-            $result1 = PaperSetterSubjectMaster::create([
-              'uid' => $result->uid,
-              'paperId' => $subject
-            ]);
-          } catch (\Exception $e) {
-            DB::rollback();
-            return response()->json([
-              "status"  => "failure"
-            ], 400);
-          }
-        }
-        DB::commit();
+          $result = User::create([
+          'username' => $username,
+          'name'     => $name,
+          'mobile'   => $mobile,
+          'email'    => $email,
+          'inst_id'  => $inst,
+          'password' => $password,
+          'role'     => 'PAPERSETTER',
+          'status'   => 'ON',
+          'college_name'   => $college_name,
+          'regi_type' => 'PAPERSETTER',
+          'verified' => 'verified',
+          'origpass' => $request->password,
+        ]);
         return response()->json([
-          "status"  => "success"
-        ], 200);
-      }
+            "status"  => "success"
+          ], 200);
     } catch (\Exception $e) {
-      DB::rollback();
       return response()->json([
         "status"  => "failure"
       ], 400);
@@ -2036,27 +2018,25 @@ class Admin1
       ], 400);
     }
 
-    if ($extension == "xlsx") {
+    if ($extension == "xlsx") 
+    {
       $fileName           = 'papersetter.xlsx';
       $request->file->move(public_path('assets/tempfiles/'), $fileName);
       $reader             = IOFactory::createReader("Xlsx");
       $spreadsheet        = $reader->load(public_path('assets/tempfiles/') . $fileName);
-      $current_time       = Carbon::now();
+      
       $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
 
-      for ($i = 2; $i <= $highestRow; $i++) {
-        $paperIdList    = [];
+      for ($i = 2; $i <= $highestRow; $i++) 
+      {
         $instId         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
-        $instUid        = User::where('username', $instId)->where('role', 'EADMIN')->first()->uid;
         $name           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
         $mobile         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
         $email          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
-
+        $rrr = User::where('username', $instId)->where('role', 'EADMIN')->first();
+        $college_name   = $rrr->college_name;
         $origpass       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
-        $list           = explode(',', $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue());
-
-        if (sizeof($list) > 0) {
-          DB::beginTransaction();
+      
           try {
             $result = User::create([
               'username' => $email,
@@ -2067,31 +2047,19 @@ class Admin1
               'password' => Hash::make($origpass),
               'role'     => 'PAPERSETTER',
               'status'   => 'ON',
+              'college_name'   => $college_name,
               'regi_type' => 'PAPERSETTER',
               'verified' => 'verified',
               'origpass' => $origpass,
             ]);
-
-            $subjects = SubjectMaster::whereIn('paper_code', $list)->where('inst_uid', $instUid)->get();
-
-            foreach ($subjects as $subject) {
-              array_push($paperIdList, $subject->id);
-              $result1 = PaperSetterSubjectMaster::create([
-                'uid' => $result->uid,
-                'paperId' => $subject->id
-              ]);
-            }
-            DB::commit();
-          } catch (\Exception $e) {
-            DB::rollback();
+          }
+          catch (\Exception $e) {
             return response()->json([
               "status"  => "failure",
               "message" => "Problem Uploading Data on Row " . $i . "..."
             ], 400);
           }
-        }
       }
-
       return response()->json([
         "status"  => "success",
         "message" => "Data uploaded Successfully..."
@@ -2164,5 +2132,309 @@ class Admin1
       }
     }
 
+  }
+
+  public function storeSubSetterAlloc($request)
+  {
+    $uid = $request->uid;
+    $paperId = $request->paperId;
+    $type = $request->type;
+    $instId = $request->instId;
+  
+
+    $res = PaperSetterSubjectMaster::create([
+      'instId' => $instId,
+      'uid' => $uid,
+      'paperId' => $paperId,
+      'type' => $type,
+      'created_at' => Carbon::now()
+    ]);  
+    
+    if($res)
+    {
+      return json_encode([
+        'status'  => 'success',
+        'message'  => 'Subject Allocated to Paper Setter Successfully...',
+      ], 201);
+    }
+    else
+    {
+      return json_encode([
+        'status'  => 'failure',
+        'message'  => 'Problem Allocating Subject to Paper Setter...',
+      ], 400);
+    }
+  }
+
+  public function uploadSetterSubjects($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'file'      => 'required|max:1024',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails()) {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File for uploading is required with max file size 1 MB",
+      ], 400);
+    }
+
+    if ($extension == "xlsx") 
+    {
+      $fileName           = 'setterSubjectAlloc.xlsx';
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/') . $fileName);
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+
+      for ($i = 2; $i <= $highestRow; $i++) 
+      {
+        try 
+        {
+          $instId         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+          $instUid        = User::where('username', $instId)->where('role', 'EADMIN')->first()->uid;
+
+          $username       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+          $uid            = User::where('username', $username)->where('inst_id',$instId)->where('role', 'PAPERSETTER')->first()->uid;
+
+          $paperCode      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+          $paperId        = SubjectMaster::where('paper_code',$paperCode)->where('inst_uid',$instUid)->first()->id;
+          $type           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+
+        
+          $result = PaperSetterSubjectMaster::create([
+            'instId' => $instUid,
+            'uid' => $uid,
+            'paperId' => $paperId,
+            'type' => $type,
+            'created_at' => Carbon::now()
+          ]);
+        }
+        catch(\Exception $e)
+        {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Problem Inserting Paper Setter Subject Allocation. All Users till row number '.$i.' in Excel file are Inserted Successfully. Error:'.$e->getMessage(),
+            'row'       =>  $i
+          ],400);
+        }
+      } 
+
+      return response()->json([
+        'status' 		=> 'success',
+        'message'   => 'Paper Setter and Subjects Allocation is Successfuly Uploaded.',
+      ],200);
+
+    }
+  }
+
+  public function getSubSetterAlloc($request)
+  {
+    if($request->type == 'search')
+    {
+      $username = $request->username;
+      $instId = $request->instId;
+      $instUid = $request->instUid;
+
+      $uid = '';
+      $res = User::where('username',$username)->where('inst_id',$instId)->where('role','PAPERSETTER')->first();
+      if($res)
+      {
+        $uid = $res->uid;
+      }
+
+      $result = PaperSetterSubjectMaster::where('uid',$uid)->where('instId',$instUid)->paginate(50);
+      if($result)
+      {
+        return new PaperSetterSubjectCollection($result);
+      }
+    }
+    else if($request->type =='searchByPaperId')
+    {
+      $paperId = $request->paperId;
+      $instId = $request->instId;
+      $res = User::where('username',$instId)->where('role','EADMIN')->first();
+      $instUid = $res->uid;
+      $setterId = $request->setterId;
+
+      $result = PaperSetterSubjectMaster::where('uid',$setterId)->where('instId',$instUid)->where('paperId',$paperId)->get();
+      if($result)
+      {
+        return response()->json([
+          'status' 		=> 'success',
+          'data'      => new PaperSetterSubjectCollection($result),
+        ],200);
+      }
+      else
+      {
+        return response()->json([
+          'status' 		=> 'failure',
+        ],400);
+      }
+    }
+    else
+    {
+      $instId = $request->instId;
+      $result = PaperSetterSubjectMaster::where('instId',$instId)->paginate(50);
+      if($result)
+      {
+        return new PaperSetterSubjectCollection($result);
+      }
+    }
+  }
+
+  public function deleteSubSetterAlloc($id)
+  {
+    $result = PaperSetterSubjectMaster::where('id',$id)->delete();
+
+    return response()->json([
+      'status' 		=> 'success',
+      'message'   => 'Paper Setter and Subjects Allocation is Deleted Successfuly.',
+    ],200);
+  }
+
+  public function searchStudentByUsername($username,$instId)
+  {
+    $result = User::where('username',$username)->where('inst_id',$instId)->paginate(50);
+    return $result;
+  }
+
+  public function getAnswerPdfStatistics($paper_code,$request)
+  {
+    $inst_id = $request->instId;
+
+    $result = CandTest::where('paper_id',$paper_code)->where('inst',$inst_id)->get();
+    if($result)
+    {
+      return response()->json([
+        'status' 		=> 'success',
+        'data'   => $result,
+      ],200);
+    }
+    else
+    {
+      return response()->json([
+        'status' 		=> 'failure',
+      ],400);
+    }
+  }
+
+  public function downloadAnswerPdf($paperId,$request)
+  {
+    $inst_id = $request->instId;
+    $results = CandTest::where('paper_id',$paperId)->where('inst',$inst_id)->get();
+    //-------------------------Create Directory-----------------------------------------------
+    $path = public_path().'/data/answers/'.$paperId;
+    File::makeDirectory($path, $mode = 0777, true, true);
+    //----------------------------------------------------------------------------------------
+    $cnt = 0;
+    //---------------------Move Desired files in created directory----------------------------
+    foreach($results as $result)
+    {
+      if($result->answerFile != null && $result->answerFile != '')
+      {
+        try
+        {
+          File::copy(public_path().'/data/answers/'.$result->answerFile, public_path().'/data/answers/'.$paperId.'/'.$result->answerFile);
+          $cnt++;
+        }
+        catch(\Exception $e)
+        {
+
+        }
+      }
+    }
+    //----------------------------------------------------------------------------------------
+
+    //---------------------------Make Zip of the directory----------------------------------
+    try 
+    {
+        $rootPath = realpath(public_path().'/data/answers/'.$paperId);
+        $zip = new ZipArchive();
+        $zip->open($paperId.'.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        $files = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($rootPath),
+            RecursiveIteratorIterator::LEAVES_ONLY
+        );
+
+        foreach ($files as $name => $file)
+        {
+            if (!$file->isDir())
+            {
+                $filePath = $file->getRealPath();
+                $relativePath = substr($filePath, strlen($rootPath) + 1);
+                $zip->addFile($filePath, $relativePath);
+            }
+        }
+        $zip->close();
+
+        File::move($paperId.'.zip',public_path().'/data/answers/'.$paperId.'.zip');
+        File::deleteDirectory(public_path().'/data/answers/'.$paperId);
+
+        $url = Config::get('constants.PROJURL');
+        return response()->json([
+          'status' 		=> 'success',
+          'path'   => $url.'/data/answers/'.$paperId.'.zip',
+        ],200);
+
+    }
+    catch(\Exception $e)
+    {
+      return response()->json([
+        'status' 		=> 'failure',
+      ],400);
+    }
+    //-----------------------------------------------------------------------------------------
+  }
+
+  public function setterConfirmation($uid,$request)
+  {
+    $paperId = $request->paperId;
+    $setterType = $request->setterType;
+    $instId= $request->instId;
+    $res = User::where('username',$instId)->where('role','EADMIN')->first();
+    $instUid = $res->uid;
+
+    $result = PaperSetterSubjectMaster::where('uid',$uid)->where('paperId',$paperId)->where('type',$setterType)->where('instId',$instUid)->first();
+
+    if($result)
+    {
+      $result->conf = '1';
+      $result->save();
+      return response()->json([
+        'status' 		=> 'success',
+      ],200);
+    }
+    else
+    {
+      return response()->json([
+        'status' 		=> 'failure',
+      ],400);
+    }
+  }
+
+  public function unconfSubList($request)
+  {
+    $instId= $request->instId;
+    $res = User::where('username',$instId)->where('role','EADMIN')->first();
+    $instUid = $res->uid;
+    $result = PaperSetterSubjectMaster::where('instId',$instUid)->where('type','PS')->where('conf','0')->get();
+    if($result)
+    {
+      return response()->json([
+        'status' 		=> 'success',
+        'data'      => $result,
+      ],200);
+    }
+    else
+    {
+      return response()->json([
+        'status' 		=> 'success',
+        'data'      => [],
+      ],200);
+    }
   }
 }

@@ -59,6 +59,7 @@ Route::middleware(['auth:api'])->group(function()
     Route::put('answer/{id}', [AnswerController::class, 'update'])->name('updateAnswer');
     Route::post('answer/upload/{id}', [AnswerController::class, 'upload'])->name('uploadAnswer');
     Route::put('answer/{qnidSr}/{examId}', [AnswerController::class, 'updateByExamId'])->name('updateByExamId');
+    Route::post('answer/uploadAnswerPdf', [AnswerController::class, 'uploadAnswerPdf'])->name('uploadAnswerPdf');
 
     Route::post('proctor/{id}', [ProctorController::class, 'store'])->name('PostProctor');
     Route::post('proctorDetails/{id}', [ProctorDetailsController::class, 'store'])->name('PostroctorDetails');
@@ -131,6 +132,12 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('subject/question/add', [SubjectsController::class, 'storeQuestion'])->name('storeQuestion');
     Route::post('subject/question/upload', [SubjectsController::class, 'uploadQuestion'])->name('uploadQuestion');
     Route::post('subject/question/uploadSubjective', [SubjectsController::class, 'uploadSubjectiveQuestion'])->name('uploadSubjectiveQuestion');
+    Route::post('subject/setterAllocation', [SubjectsController::class, 'storeSubSetterAlloc'])->name('storeSetterSubject');
+    Route::get('subject/setterAllocation', [SubjectsController::class, 'getSubSetterAlloc'])->name('getSubSetterAlloc');
+    Route::get('subject/unconfSubList', [SubjectsController::class, 'unconfSubList'])->name('unconfSubList');
+    Route::delete('subject/setterAllocation/{id}', [SubjectsController::class, 'deleteSubSetterAlloc'])->name('deleteSubSetterAlloc');
+    Route::put('subject/setterConfirmation/{uid}', [SubjectsController::class, 'setterConfirmation'])->name('setterConfirmation');
+    Route::post('subject/setterUpload', [SubjectsController::class, 'uploadSetterSubjects'])->name('uploadSetterSubjects');
     Route::get('subject/getStudList/{id}', [SubjectsController::class, 'getStudBySubject'])->name('getStudBySubject');
     Route::get('subject/getStudList1/{id}', [SubjectsController::class, 'getStudBySubject1'])->name('getStudBySubject1');
     Route::get('subject/getCheckerList/{id}', [SubjectsController::class, 'getCheckerBySubject'])->name('getCheckerBySubject');
@@ -146,6 +153,9 @@ Route::middleware(['auth:api','admin'])->group(function()
 
     Route::get('exam/bypaperid/type', [ExamController::class, 'examByPaperIdAndType'])->name('examByPaperIdAndType');
     Route::get('exam/log/{enrollno}/{paperId}', [ExamController::class, 'examLog'])->name('getExamLog');
+    Route::get('exam/AnswerPdfStatistics/{paperId}', [ExamController::class, 'getAnswerPdfStatistics'])->name('getAnswerPdfStatistics');
+    Route::get('exam/downloadAnswerPdf/{paperId}', [ExamController::class, 'downloadAnswerPdf'])->name('downloadAnswerPdf');
+
 
     Route::get('proctor/{enrollno}/{paperId}', [ProctorController::class, 'proctorByEnrollno'])->name('GetProctorByEnrollno');
     Route::get('proctor', [ProctorController::class, 'index'])->name('getProctors');

@@ -48,4 +48,9 @@ class AnswerController extends Controller
   {
     return $a->clearResponse($qnidSr, $examId);
   }
+
+  public function uploadAnswerPdf(Request $request,Student $s)
+  {
+    return $s->uploadAnswerPdf($request);
+  }
 }

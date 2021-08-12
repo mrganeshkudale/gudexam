@@ -170,4 +170,34 @@ class SubjectsController extends Controller
   {
     return $a1->getSubjectByChecker($uid);
   }
+
+  public function storeSubSetterAlloc(Request $request,Admin1 $a1)
+  {
+    return $a1->storeSubSetterAlloc($request);
+  }
+
+  public function uploadSetterSubjects(Request $request,Admin1 $a1)
+  {
+    return $a1->uploadSetterSubjects($request);
+  }
+
+  public function getSubSetterAlloc(Request $request,Admin1 $a1)
+  {
+    return $a1->getSubSetterAlloc($request);
+  }
+
+  public function deleteSubSetterAlloc($id,Admin1 $a1)
+  {
+    return $a1->deleteSubSetterAlloc($id);
+  }
+
+  public function setterConfirmation($uid,Request $request, Admin1 $a1)
+  {
+    return $a1->setterConfirmation($uid,$request);
+  }
+
+  public function unconfSubList(Request $request, Admin1 $a1)
+  {
+    return $a1->unconfSubList($request);
+  }
 }

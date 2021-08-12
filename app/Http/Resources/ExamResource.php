@@ -39,6 +39,7 @@ class ExamResource extends JsonResource
             'marksobt'              =>  $this->marksobt,
             'paper_checking_status' =>  $this->paper_checking_status,
             'result'                =>  $this->result,
+            'answerFile'            =>  $this->answerFile,
         ];
     }
 

@@ -763,4 +763,64 @@ class Student
 			], 400);
 		}
 	}
+
+	public function uploadAnswerPdf($request)
+	{
+		if ($request->file) 
+		{
+			$validation 	= Validator::make($request->all(), ['file' => 'required|mimes:pdf|max:20480']);
+			$path = $request->file('file')->getRealPath();
+
+			if($validation->passes()) 
+			{
+				$examId = $request->examId;
+				$enrollNo = $request->enrollNo;
+				$paperCode = $request->paperCode;
+				$url = Config::get('constants.PROJURL').'/data/answers/';
+
+				$image 		= $request->file('file');
+				$new_name 	= 'Answer_' . $examId . '_'.$enrollNo . '_' . $paperCode . '.pdf';
+				$image->move(public_path('data/answers'), $new_name);
+
+				$result = CandTest::where('id',$examId)->update([
+					'answerFile' => $new_name
+				]);
+
+				if($result)
+				{
+					return response()->json([
+						"status"            => "success",
+						"message"           => 'Answer Pdf Uploaded Successfully...',
+						"path"				=>  $url.'/'.$new_name
+					], 200);
+				}
+				else
+				{
+					return response()->json([
+						"status"            => "failure",
+						"message"           => 'Problem Uploading Answer...',
+					], 400);
+				}
+			} 
+			else 
+			{
+				return response()->json([
+					"status"            => "failure",
+					"message"           => 'Answer Document must be .pdf file with max size of 20 MB.',
+				], 400);
+			}
+		}
+	}
+
+	public function getStudExamData($id)
+	{
+		$result = CandTest::where('id',$id)->first();
+		if($result)
+		{
+			return response()->json([
+				"status"            => "success",
+				"data"				=> $result
+			], 200);
+		}
+	}
 }

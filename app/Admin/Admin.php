@@ -419,12 +419,8 @@ class Admin
     else if($role == 'PAPERSETTER')
     {
       $result = DB::table('users')
-      ->join('paper_setter_subject_master', 'users.uid', '=', 'paper_setter_subject_master.uid')
-      ->join('subject_master', 'subject_master.id', '=', 'paper_setter_subject_master.paperId')
-      ->select(DB::raw("users.uid,users.username,users.name,users.type,users.inst_id,users.mobile,users.email,group_concat(concat(subject_master.id,'-',subject_master.paper_code,'-',subject_master.paper_name)) as subjects,users.origpass"))
-      ->where('users.role', '=', $role)
-      ->where('users.inst_id','=',$inst_id)
-      ->groupBy('users.uid')
+      ->where('role', '=', $role)
+      ->where('inst_id','=',$inst_id)
       ->paginate(50);
     }
     else
@@ -864,6 +860,7 @@ class Admin
     $programId  = $request->programId;
     $instId     = $request->instId;
     $semester   = $request->semester;
+    $exam_mode  = $request->examMode;
     $current_time 			= Carbon::now();
 
     $count = SubjectMaster::where('paper_code',$paperCode)->where('inst_uid',$instId)->get()->count();
@@ -878,6 +875,7 @@ class Admin
           'program_id'    =>  $programId,
           'inst_uid' 			=>  $instId,
           'semester'      =>  $semester,
+          'exam_mode'     =>  $exam_mode,
           'created_at'    =>  $current_time
         ]);
 
@@ -940,6 +938,7 @@ class Admin
         $rrr              =   ProgramMaster::where('program_code',$programCode)->where('inst_uid',$instId)->first();
         $programId        =   $rrr->id;
         $semester         =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+        $exam_mode        =   $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
 
         $count = SubjectMaster::where('paper_code',$paperCode)->where('inst_uid',$instId)->get()->count();
 
@@ -953,6 +952,7 @@ class Admin
               'program_id'    =>  $programId,
               'inst_uid' 			=>  $instId,
               'semester'      =>  $semester,
+              'exam_mode'     =>  $exam_mode,
               'created_at'    =>  $current_time
             ]);
       
@@ -1680,7 +1680,6 @@ class Admin
       'slot'      => $request->slot,
       'from_date' => $fromDate->format('Y-m-d H:i:s.u'),
       'to_date'   => $toDate->format('Y-m-d H:i:s.u'),
-      'exam_mode' => $request->testMode
     ]);
     if($result)
     {
@@ -1745,8 +1744,7 @@ class Admin
         $to_date    = new \DateTime($spreadsheet->getActiveSheet()->getCellByColumnAndRow(9, $i)->getValue(), new \DateTimeZone($tz_from));
         $to_date->setTimezone(new \DateTimeZone($tz_to));
         //--------------------------------------------------------------------------------------------------
-        $mode       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(10, $i)->getValue();
-        $current_time 	  = Carbon::now();
+        
         
           $result = SubjectMaster::where('paper_code','like',$paperCode)->where('inst_uid',$instUid)->update([
             'exam_name' => $exam_name,
@@ -1755,8 +1753,7 @@ class Admin
             'durations' => $durations,
             'slot'      => $slot,
             'from_date' => $from_date->format("Y-m-d H:i:s.u"),
-            'to_date'   => $to_date->format("Y-m-d H:i:s.u"),
-            'exam_mode' => $mode
+            'to_date'   => $to_date->format("Y-m-d H:i:s.u")
           ]);
         
         
@@ -2377,20 +2374,20 @@ class Admin
       $values = [
         'paper_uid'       => $subjectId,
         'paper_id'        => $subjectCode,
-        'question'        => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$question))),
+        'question'        => $question,
         'topic'           => $topic,
         'subtopic'        => $subtopic,
         'qu_fig'          => $qfilepath,
         'figure'          => $questType,
-        'optiona'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optiona))),
+        'optiona'         => $optiona,
         'a1'              => $a1filepath,
-        'optionb'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optionb))),
+        'optionb'         => $optionb,
         'a2'              => $a2filepath,
-        'optionc'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optionc))),
+        'optionc'         => $optionc,
         'a3'              => $a3filepath,
-        'optiond'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optiond))),
+        'optiond'         => $optiond,
         'a4'              => $a4filepath,
-        'correctanswer'   => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$correctAnswer))),
+        'correctanswer'   => $correctAnswer,
         'coption'         => $correctoption,
         'marks'           => $marks,
         'difficulty_level'=> $difficultyLevel
@@ -2459,6 +2456,11 @@ class Admin
         $marks            = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(11, $i)->getValue();
         $diff_level       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(12, $i)->getValue();
         $inst_uid         = User::where('username',$instId)->first()->uid;
+
+        if($subtopic == '')
+        {
+          $subtopic = '0';
+        }
        
         try
         {
@@ -2568,11 +2570,11 @@ class Admin
 
   public function deleteQuestion($qnid)
   {
-    $result = QuestionSet::find($qnid)->delete();
+    $result = QuestionSet::where('qnid',$qnid)->delete();
 
     return response()->json([
       "status"            => "success",
-      "message"              => "Record Deleted successfully...",
+      "message"           => "Record Deleted successfully...",
     ], 200);    
   }
 
@@ -2599,9 +2601,6 @@ class Admin
 
   public function updateQuestion($qnid,$request)
   {
-    
-    
-
     $subjectId              = $request->subjectId;
     $subjectCode            = SubjectMaster::find($subjectId)->paper_code;
     $topic                  = $request->topic;
@@ -2866,15 +2865,15 @@ class Admin
       $values = [
         'paper_uid'       => $subjectId,
         'paper_id'        => $subjectCode,
-        'question'        => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$question))),
+        'question'        => $question,
         'topic'           => $topic,
         'subtopic'        => $subtopic,
         'figure'          => $questType,
-        'optiona'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optiona))),
-        'optionb'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optionb))),
-        'optionc'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optionc))),
-        'optiond'         => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$optiond))),
-        'correctanswer'   => str_replace('&lt;','<',str_replace('&gt;','>',str_replace('amp;','',$correctAnswer))),
+        'optiona'         => $optiona,
+        'optionb'         => $optionb,
+        'optionc'         => $optionc,
+        'optiond'         => $optiond,
+        'correctanswer'   => $correctAnswer,
         'coption'         => $correctoption,
         'marks'           => $marks,
         'difficulty_level'=> $difficultyLevel,
@@ -2959,6 +2958,7 @@ class Admin
       $result->program_id = $request->programId;
       $result->inst_uid   = $request->instId;
       $result->semester   = $request->semester;
+      $result->exam_mode   = $request->examMode;
 
       $result->save();
 

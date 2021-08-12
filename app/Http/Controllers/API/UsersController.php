@@ -13,19 +13,33 @@ class UsersController extends Controller
 {
     public function index(Request $request, Admin $a, Admin1 $a1)
     {
-        if ($request->role != '' && $request->username == '') {
-
-            if ($request->instUid != '') {
+        if ($request->role != '' && $request->username == '') 
+        {
+            if ($request->instUid != '') 
+            {
                 return $a->getFilteredUsers($request->role, $request->instUid);
-            } else if ($request->instId != '') {
+            } 
+            else if ($request->instId != '') 
+            {
                 return $a->getFilteredUsersByInstCode($request->role, $request->instId);
-            } else {
+            } 
+            else 
+            {
                 return $a->getAllUsers($request->role);
             }
-        } else {
+        } 
+        else 
+        {
             if($request->username != '' && $request->role != '')
             {
-                return $a->getUserWithSubject($request->username, Auth::user()->username,$request->role);
+                if($request->role =='STUDENT')
+                {
+                    return $a1->searchStudentByUsername($request->username,$request->instId);
+                }
+                else 
+                {
+                    return $a->getUserWithSubject($request->username, Auth::user()->username,$request->role);
+                }
             }
         }
     }

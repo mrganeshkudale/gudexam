@@ -101,11 +101,13 @@ Route::get('/forceClearDB', function ()
   DB::table('program_master')->truncate();
   DB::table('otp_verify')->truncate();
   DB::table('question_set')->truncate();
+  DB::table('paper_setter_subject_master')->truncate();
   DB::table('sessions')->truncate();
   DB::table('specification')->truncate();
+  DB::table('oauth_access_tokens')->truncate();
   DB::table('subject_master')->truncate();
   DB::table('topic_master')->truncate();
-  DB::table('users')->where('role', '!=', 'ADMIN')->delete();
+  DB::table('users')->where('username', '!=', 'admin')->delete();
   DB::table('student_checker_alloc_master')->truncate();
   DB::table('student_proctor_alloc_master')->truncate();
   DB::table('cluster_to_inst_maps')->truncate();

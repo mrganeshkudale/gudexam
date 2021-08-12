@@ -24,8 +24,11 @@ class PaperSetterSubjectCollection extends ResourceCollection
         {
           $arr[$i++] = [
             'id'            =>  $single->id,
+            'institute'     =>  new UserResource(User::find($single->instId)),
             'paperSetter'   =>  new UserResource(User::find($single->uid)),
             'subject'       =>  new PaperResource(SubjectMaster::find($single->paperId)),
+            'type'          =>  $single->type,
+            'conf'          =>  $single->conf
           ];
         }
         return $arr;

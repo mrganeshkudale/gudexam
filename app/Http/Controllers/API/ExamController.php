@@ -31,10 +31,15 @@ class ExamController extends Controller
     }
   }
 
-  public function show(Request $request, Admin $a)
+  public function show(Request $request, Admin $a,Student $s,$id)
   {
-    if ($request->type === 'byprogramid') {
+    if ($request->type === 'byprogramid') 
+    {
       return $a->getExams($request->id);
+    }
+    else
+    {
+      return $s->getStudExamData($id);
     }
   }
   public function update2(Student $s, Admin1 $a1, Request $request)
@@ -162,4 +167,15 @@ class ExamController extends Controller
   {
     return $s->getExamSwitchCount($id);
   }
+
+  public function getAnswerPdfStatistics($paperId,Request $request,Admin1 $a1)
+  {
+    return $a1->getAnswerPdfStatistics($paperId,$request);
+  }
+
+  public function downloadAnswerPdf($paperId,Request $request,Admin1 $a1)
+  {
+    return $a1->downloadAnswerPdf($paperId,$request);
+  }
+
 }
