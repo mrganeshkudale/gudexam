@@ -23,8 +23,10 @@ class StudentCheckerAllocMaster extends Migration
             $table->index('paperId');
             $table->bigInteger('studid');
             $table->index('studid');
+            $table->string('type',5);
+            $table->index('type');
             $table->timestamps();
-            $table->unique(['instId','checkerid','paperId','studid'],'custom_uniq_index');
+            $table->unique(['instId','checkerid','paperId','studid','type'],'custom_uniq_index');
         });
     }
 

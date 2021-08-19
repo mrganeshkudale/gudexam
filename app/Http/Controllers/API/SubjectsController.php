@@ -147,7 +147,7 @@ class SubjectsController extends Controller
       $instId = $request->instId;
       return $a1->getAllStudentsBySubject($id, $instId);
     } else {
-      return $a1->getStudentsBySubject($id);
+      return $a1->getStudentsBySubject($id,$request);
     }
   }
 
@@ -156,9 +156,9 @@ class SubjectsController extends Controller
     return $a1->getStudentsBySubject1($id);
   }
 
-  public function getCheckerBySubject($id, Admin1 $a1)
+  public function getCheckerBySubject($id, Request $request,Admin1 $a1)
   {
-    return $a1->getCheckersBySubject($id);
+    return $a1->getCheckersBySubject($id,$request);
   }
 
   public function getProctorBySubject($id, Admin1 $a1)
@@ -199,5 +199,30 @@ class SubjectsController extends Controller
   public function unconfSubList(Request $request, Admin1 $a1)
   {
     return $a1->unconfSubList($request);
+  }
+
+  public function getSubjectConfInfo($id,Admin1 $a1)
+  {
+    return $a1->getSubjectConfInfo($id);
+  }
+
+  public function storeSubCheckerAlloc(Request $request, Admin1 $a1)
+  {
+    return $a1->storeSubCheckerAlloc($request);
+  }
+
+  public function uploadCheckerSubjects(Request $request , Admin1 $a1)
+  {
+    return $a1->uploadCheckerSubjects($request);
+  }
+
+  public function getSubCheckerAlloc(Request $request , Admin1 $a1)
+  {
+    return $a1->getSubCheckerAlloc($request);
+  }
+
+  public function deleteSubCheckerAlloc($id, Admin1 $a1)
+  {
+    return $a1->deleteSubCheckerAlloc($id);
   }
 }

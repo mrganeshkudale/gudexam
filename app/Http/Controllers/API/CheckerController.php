@@ -42,13 +42,23 @@ class CheckerController extends Controller
         return $a1->getCheckerStudExams($request);
     }
 
-    public function updateStudExamMarks($id, $marks, Admin1 $a1)
+    public function updateStudExamMarks($id, $marks,Request $request, Admin1 $a1)
     {
-        return $a1->updateStudExamMarks($id, $marks);
+        return $a1->updateStudExamMarks($id, $marks, $request);
     }
 
     public function finishExamChecking($examid, Request $request, Admin1 $a1)
     {
         return $a1->finishExamChecking($examid, $request);
+    }
+
+    public function getCheckerType(Request $request , Admin1 $a1)
+    {
+        return $a1->getCheckerType($request);
+    }
+
+    public function getCheckedStudExams(Request $request, Admin1 $a1)
+    {
+        return $a1->getCheckedStudExams($request);
     }
 }

@@ -25,8 +25,10 @@ class CheckerSubjectCollection extends ResourceCollection
         {
           $arr[$i++] = [
             'id'            =>  $single->id,
+            'instId'        =>  new UserResource(User::find($single->instId)),
             'checker'       =>  new UserResource(User::find($single->uid)),
             'subject'       =>  new PaperResource(SubjectMaster::find($single->paperId)),
+            'type'          =>  $single->type,
           ];
         }
         return $arr;

@@ -34,8 +34,8 @@ class QuestionSet extends Migration
             $table->string('coption',20);
             $table->string('ambiguity',2)->nullable();
             $table->integer('marks');
-            $table->string('psetter',30)->nullable();
-            $table->string('moderator',30)->nullable();
+            $table->integer('psetter')->nullable();
+            $table->integer('moderator')->nullable();
             $table->integer('updated_status')->nullable();
             $table->integer('difficulty_level')->nullable();
             $table->string('quest_type',5)->default('O');
@@ -50,6 +50,8 @@ class QuestionSet extends Migration
             $table->index('topic');
             $table->index('subtopic');
             $table->index('figure');
+            $table->index('psetter');
+            $table->index('moderator');
             $table->index('ambiguity');
             $table->index('marks');
             $table->index('difficulty_level');

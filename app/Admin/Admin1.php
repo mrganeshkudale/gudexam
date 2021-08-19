@@ -195,6 +195,7 @@ class Admin1
     $modelAnswer            = $request->modelAnswer;
     $modelAnswerImage       = $request->modelAnswerImage;
     $allowImageUpload       = $request->allowImageUpload;
+    $setter                 = $request->setter;
 
     $current_time           = Carbon::now();
 
@@ -242,7 +243,7 @@ class Admin1
     }
     //-------------------------------------------------------------------------------------------
 
-    $result = DB::statement("insert into question_set (paper_uid,paper_id,question,topic,subtopic,qu_fig,modelAnswer,modelAnswerImage,marks,difficulty_level,quest_type,coption,allowImageUpload,created_at,updated_at) values ('$subjectId','$subjectCode','$question','$topic','$subtopic','$qfilepath','$modelAnswer','$ansfilepath','$marks','$difficultyLevel','S','-','$allowImageUpload','$current_time','$current_time')");
+    $result = DB::statement("insert into question_set (paper_uid,paper_id,question,topic,subtopic,qu_fig,modelAnswer,modelAnswerImage,marks,difficulty_level,quest_type,coption,allowImageUpload,created_at,updated_at,psetter) values ('$subjectId','$subjectCode','$question','$topic','$subtopic','$qfilepath','$modelAnswer','$ansfilepath','$marks','$difficultyLevel','S','-','$allowImageUpload','$current_time','$current_time','$setter')");
 
     if ($result) {
       return response()->json([
@@ -285,6 +286,7 @@ class Admin1
       $values             = [];
       $new_name           = '';
       $new_name1          = '';
+      $psetter            = $request->psetter;
 
       for ($i = 2; $i <= $highestRow; $i++) {
         $correctAnswer    = '';
@@ -339,7 +341,8 @@ class Admin1
           'marks'           => $marks,
           'difficulty_level' => $diff_level,
           'qu_fig'          => $new_name,
-          'modelAnswerImage' => $new_name1
+          'modelAnswerImage' => $new_name1,
+          'psetter'         => $psetter
         ];
 
         $result         = QuestionSet::create($values);
@@ -362,8 +365,33 @@ class Admin1
   {
     $subArray = rtrim($subArray, ",");
     $array = explode(",", $subArray);
+    $result = null;
+    if(Auth::user()->role == 'PAPERSETTER')
+    {
+      $r = User::where('inst_id',Auth::user()->inst_id)->where('role','EADMIN')->first();
+      $rrr = PaperSetterSubjectMaster::where('uid',Auth::user()->uid)->where('instId',$r->uid)->whereIn('paperId',$array)->where('type','PS')->first();
 
-    $result = QuestionSet::whereIn('paper_uid', $array)->where('quest_type', 'S')->orderBy('created_at')->paginate(50);
+      if($rrr)
+      {
+        $result = QuestionSet::whereIn('paper_uid', $array)->where('quest_type', 'S')->where('psetter',Auth::user()->uid)->orderBy('created_at')->paginate(50);
+      }
+      else
+      {
+        $rrr = PaperSetterSubjectMaster::where('uid',Auth::user()->uid)->where('instId',$r->uid)->whereIn('paperId',$array)->whereIn('type',['PM','PSM'])->first();
+        if($rrr)
+        {
+          $result = QuestionSet::whereIn('paper_uid', $array)->where('quest_type', 'S')->orderBy('created_at')->paginate(50);
+        }
+        else
+        {
+          $result = [];
+        }
+      }
+    }
+    else
+    {
+      $result = QuestionSet::whereIn('paper_uid', $array)->where('quest_type', 'S')->orderBy('created_at')->paginate(50);
+    }
 
     if ($result) {
       return new QuestionCollection($result);
@@ -394,6 +422,7 @@ class Admin1
 
     $qfilepath              = '';
     $modelAnswerImagePath   = '';
+    $moderator = $request->moderator;
 
 
 
@@ -466,7 +495,7 @@ class Admin1
       'allowImageUpload' => $allowImageUpload,
       'marks'           => $marks,
       'difficulty_level' => $difficultyLevel,
-      'moderator'       => Auth::user()->uid,
+      'moderator'       => $moderator,
       'updated_at'      => Carbon::now(),
     ];
 
@@ -518,10 +547,7 @@ class Admin1
     $rrr = User::where('username', $inst)->where('role', 'EADMIN')->first();
     $college_name   = $rrr->college_name;
     $password       = Hash::make($request->password);
-    $checkerType    = $request->chekerType;
-    $subjects       = $request->subjects;
-
-    DB::beginTransaction();
+    
     try {
       $result = User::create([
         'username' => $username,
@@ -536,30 +562,14 @@ class Admin1
         'verified' => 'verified',
         'college_name' => $college_name,
         'origpass' => $request->password,
-        'type'     => $checkerType
       ]);
 
       if ($result) {
-        foreach ($subjects as $subject) {
-          try {
-            $result1 = CheckerSubjectMaster::create([
-              'uid' => $result->uid,
-              'paperId' => $subject
-            ]);
-          } catch (\Exception $e) {
-            DB::rollback();
-            return response()->json([
-              "status"  => "failure"
-            ], 400);
-          }
-        }
-        DB::commit();
         return response()->json([
           "status"  => "success"
         ], 200);
       }
     } catch (\Exception $e) {
-      DB::rollback();
       return response()->json([
         "status"  => "failure"
       ], 400);
@@ -596,7 +606,8 @@ class Admin1
       ], 400);
     }
 
-    if ($extension == "xlsx") {
+    if ($extension == "xlsx") 
+    {
       $fileName           = 'checkers.xlsx';
       $request->file->move(public_path('assets/tempfiles/'), $fileName);
       $reader             = IOFactory::createReader("Xlsx");
@@ -604,29 +615,15 @@ class Admin1
       $current_time       = Carbon::now();
       $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
 
-      for ($i = 2; $i <= $highestRow; $i++) {
-        $paperIdList    = [];
-        $checkerType    = '';
+      for ($i = 2; $i <= $highestRow; $i++) 
+      {
         $instId         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
-        $instUid        = User::where('username', $instId)->where('role', 'EADMIN')->first()->uid;
         $name           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
         $mobile         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
         $email          = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
-        $type           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
-
-        if (strtolower($type) == 'checker') {
-          $checkerType = 'QPC';
-        } else if (strtolower($type) == 'moderator') {
-          $checkerType = 'QPM';
-        } else if (strtolower($type) == 'both') {
-          $checkerType = 'QPCM';
-        }
-
-        $origpass       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(6, $i)->getValue();
-        $list           = explode(',', $spreadsheet->getActiveSheet()->getCellByColumnAndRow(7, $i)->getValue());
-
-        if (sizeof($list) > 0) {
-          DB::beginTransaction();
+        $origpass       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(5, $i)->getValue();
+  
+       
           try {
             $result = User::create([
               'username' => $email,
@@ -640,27 +637,14 @@ class Admin1
               'regi_type' => 'CHECKER',
               'verified' => 'verified',
               'origpass' => $origpass,
-              'type'     => $checkerType
             ]);
-
-            $subjects = SubjectMaster::whereIn('paper_code', $list)->where('inst_uid', $instUid)->get();
-
-            foreach ($subjects as $subject) {
-              array_push($paperIdList, $subject->id);
-              $result1 = CheckerSubjectMaster::create([
-                'uid' => $result->uid,
-                'paperId' => $subject->id
-              ]);
-            }
-            DB::commit();
-          } catch (\Exception $e) {
-            DB::rollback();
+          } 
+          catch (\Exception $e) {
             return response()->json([
               "status"  => "failure",
               "message" => "Problem Uploading Data on Row " . $i . "..."
             ], 400);
           }
-        }
       }
 
       return response()->json([
@@ -675,9 +659,10 @@ class Admin1
     }
   }
 
-  public function getStudentsBySubject($id)
+  public function getStudentsBySubject($id,$request)
   {
-    $result = DB::select("SELECT * FROM cand_test WHERE paper_id='$id' and stdid not in(select distinct studid from student_checker_alloc_master where paperId='$id')");
+    $type = $request->type;
+    $result = DB::select("SELECT * FROM cand_test WHERE paper_id='$id' and stdid not in(select distinct studid from student_checker_alloc_master where paperId='$id' and type='$type')");
 
     if ($result) {
       return json_encode([
@@ -707,9 +692,9 @@ class Admin1
     }
   }
 
-  public function getCheckersBySubject($id)
+  public function getCheckersBySubject($id,$request)
   {
-    $result = SubjectMaster::find($id)->checkers;
+    $result = CheckerSubjectMaster::where('paperId',$id)->where('type',$request->type)->get();
     if ($result) {
       return json_encode([
         'status' => 'success',
@@ -728,30 +713,41 @@ class Admin1
     $checkers = $request->checkers;
     $paperId  = $request->paperId;
     $instId   = $request->inst;
+    $type = $request->type;
 
     $query    = [];
     $now      = Carbon::now();
 
-    if (sizeof($students) > sizeof($checkers)) {
+    if (sizeof($students) > sizeof($checkers)) 
+    {
       $k = 0;
-      for ($j = 1; $j <= ceil(sizeof($students) / sizeof($checkers)); $j++) {
-        for ($i = 0; $i < sizeof($checkers); $i++) {
-          if (sizeof($students) == $k) {
+      for ($j = 1; $j <= ceil(sizeof($students) / sizeof($checkers)); $j++) 
+      {
+        for ($i = 0; $i < sizeof($checkers); $i++) 
+        {
+          if (sizeof($students) == $k) 
+          {
             break;
           }
-          array_push($query, ['instId' => $instId, 'checkerid' => $checkers[$i], 'paperId' => $paperId, 'studid' => $students[$k], 'created_at' => $now]);
+          array_push($query, ['instId' => $instId, 'checkerid' => $checkers[$i], 'paperId' => $paperId, 'studid' => $students[$k], 'type' => $type,'created_at' => $now]);
 
           $k++;
         }
         $i = 0;
       }
-    } else if (sizeof($students) < sizeof($checkers)) {
-      for ($i = 0; $i < sizeof($students); $i++) {
-        array_push($query, ['instId' => $instId, 'checkerid' => $checkers[$i], 'paperId' => $paperId, 'studid' => $students[$i], 'created_at' => $now]);
+    } 
+    else if (sizeof($students) < sizeof($checkers)) 
+    {
+      for ($i = 0; $i < sizeof($students); $i++) 
+      {
+        array_push($query, ['instId' => $instId, 'checkerid' => $checkers[$i], 'paperId' => $paperId, 'studid' => $students[$i], 'type' => $type, 'created_at' => $now]);
       }
-    } else if (sizeof($students) == sizeof($checkers)) {
-      for ($i = 0; $i < sizeof($students); $i++) {
-        array_push($query, ['instId' => $instId, 'checkerid' => $checkers[$i], 'paperId' => $paperId, 'studid' => $students[$i], 'created_at' => $now]);
+    } 
+    else if (sizeof($students) == sizeof($checkers)) 
+    {
+      for ($i = 0; $i < sizeof($students); $i++) 
+      {
+        array_push($query, ['instId' => $instId, 'checkerid' => $checkers[$i], 'paperId' => $paperId, 'studid' => $students[$i], 'type' => $type, 'created_at' => $now]);
       }
     }
 
@@ -878,7 +874,7 @@ class Admin1
     $paperId      = $request->paperId;
     $checkeruid   = $request->checkeruid;
 
-    $results = StudentCheckerAllocMaster::where('checkerId', $checkeruid)->where('paperId', $paperId)->get();
+    $results = StudentCheckerAllocMaster::where('checkerId', $checkeruid)->where('paperId', $paperId)->where('type','QPC')->get();
     $studList = [];
 
     if ($results && $results->count() > 0) {
@@ -907,11 +903,19 @@ class Admin1
     }
   }
 
-  public function updateStudExamMarks($id, $marks)
+  public function updateStudExamMarks($id, $marks,$request)
   {
     $result = CandQuestion::find($id);
+    $checkerType = $request->checkerType;
+    if($checkerType == 'QPC')
+    {
+      $result->obtmarks = $marks;
+    }
+    else if($checkerType == 'QPM')
+    {
+      $result->obtmarks1 = $marks;
+    }
 
-    $result->obtmarks = $marks;
     $result->save();
 
     return json_encode([
@@ -923,10 +927,19 @@ class Admin1
   public function finishExamChecking($examid, $request)
   {
     $totalScore = $request->score;
-    $result = CandTest::find($examid);
+    $checkerType = $request->checkerType;
 
-    $result->paper_checking = '1';
-    $result->result = $totalScore;
+    $result = CandTest::find($examid);
+    if($checkerType == 'QPC')
+    {
+      $result->paper_checking = '1';
+      $result->result = $totalScore;
+    }
+    else if($checkerType == 'QPM')
+    {
+      $result->paper_moderation = '1';
+      $result->result1 = $totalScore;
+    }
 
     $result->save();
 
@@ -958,11 +971,9 @@ class Admin1
     $email          = $request->email;
     $inst           = $request->instId;
     $password       = Hash::make($request->password);
-    $checkerType    = $request->chekerType;
-    $subjects       = $request->subjects;
 
-    DB::beginTransaction();
-    try {
+    try 
+    {
       $result = User::find($id);
 
       if ($result) {
@@ -973,34 +984,19 @@ class Admin1
         $result->inst_id  = $inst;
         $result->password = $password;
         $result->origpass = $request->password;
-        $result->type     = $checkerType;
 
         $result->save();
       }
 
-      if ($result) {
-        $res = CheckerSubjectMaster::where('uid', $id)->delete();
-
-        foreach ($subjects as $subject) {
-          try {
-            $result1 = CheckerSubjectMaster::create([
-              'uid' => $result->uid,
-              'paperId' => $subject
-            ]);
-          } catch (\Exception $e) {
-            DB::rollback();
-            return response()->json([
-              "status"  => "failure"
-            ], 400);
-          }
-        }
-        DB::commit();
+      if ($result) 
+      {
         return response()->json([
           "status"  => "success"
         ], 200);
       }
-    } catch (\Exception $e) {
-      DB::rollback();
+    } 
+    catch (\Exception $e) 
+    {
       return response()->json([
         "status"  => "failure"
       ], 400);
@@ -2074,7 +2070,6 @@ class Admin1
 
   public function getSubjectByPaperSetter($paperSetterId,$instId,$mode)
   {
-
     if($mode == '' || $mode == null)
     {
       $result = PaperSetterSubjectMaster::select(DB::raw('group_concat(paperId) as paperId'))->where('uid', $paperSetterId)->groupBy('uid')->first();
@@ -2435,6 +2430,222 @@ class Admin1
         'status' 		=> 'success',
         'data'      => [],
       ],200);
+    }
+  }
+
+  public function getSubjectConfInfo($id)
+  {
+    $cnt = QuestionSet::where('paper_uid',$id)->count();
+    $cnt1 = 0;
+    $result = DB::select("select count(*) as cnt from question_set where paper_uid='$id'  and (moderator is not null) and moderator!=0");
+    if($result[0])
+    {
+      $cnt1 = $result[0]->cnt;
+
+      return response()->json([
+        'status' 		=> 'success',
+        'questCount'      => $cnt,
+        'modQuestCount' => $cnt1
+      ],200);
+    }
+    else
+    {
+      return response()->json([
+        'status' 		=> 'failure',
+      ],400);
+    }
+  }
+
+  public function storeSubCheckerAlloc($request)
+  {
+    $uid = $request->uid;
+    $paperId = $request->paperId;
+    $type = $request->type;
+    $instId = $request->instId;
+
+    try
+    {
+      $result = CheckerSubjectMaster::create([
+        'instId' => $instId,
+        'uid' => $uid,
+        'paperId' => $paperId,
+        'type' =>$type,
+        'created_at' => Carbon::now()
+      ]);
+
+      return response()->json([
+        'status' 		=> 'success',
+        'message' => 'Checker Subject Allocation Added Successfully...'
+      ],200);
+    }
+    catch(\Exeption $e)
+    {
+      return response()->json([
+        'status' 		=> 'failure',
+      ],400);
+    }
+  }
+
+  public function uploadCheckerSubjects($request)
+  {
+    $validator = Validator::make($request->all(), [
+      'file'      => 'required|max:1024',
+    ]);
+
+    $extension = File::extension($request->file->getClientOriginalName());
+
+    if ($validator->fails()) {
+      return response()->json([
+        "status"          => "failure",
+        "message"         => "File for uploading is required with max file size 1 MB",
+      ], 400);
+    }
+
+    if ($extension == "xlsx") 
+    {
+      $fileName           = 'checkerSubjectAlloc.xlsx';
+      $request->file->move(public_path('assets/tempfiles/'), $fileName);
+      $reader             = IOFactory::createReader("Xlsx");
+      $spreadsheet        = $reader->load(public_path('assets/tempfiles/') . $fileName);
+      $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
+
+      for ($i = 2; $i <= $highestRow; $i++) 
+      {
+        try 
+        {
+          $instId         = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(1, $i)->getValue();
+          $instUid        = User::where('username', $instId)->where('role', 'EADMIN')->first()->uid;
+
+          $username       = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(2, $i)->getValue();
+          $uid            = User::where('username', $username)->where('inst_id',$instId)->where('role', 'CHECKER')->first()->uid;
+
+          $paperCode      = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(3, $i)->getValue();
+          $paperId        = SubjectMaster::where('paper_code',$paperCode)->where('inst_uid',$instUid)->first()->id;
+          $type           = $spreadsheet->getActiveSheet()->getCellByColumnAndRow(4, $i)->getValue();
+
+        
+          $result = CheckerSubjectMaster::create([
+            'instId' => $instUid,
+            'uid' => $uid,
+            'paperId' => $paperId,
+            'type' => $type,
+            'created_at' => Carbon::now()
+          ]);
+        }
+        catch(\Exception $e)
+        {
+          return response()->json([
+            'status' 		=> 'failure',
+            'message'   => 'Problem Inserting Paper Checker Subject Allocation. All Users till row number '.$i.' in Excel file are Inserted Successfully. Error:'.$e->getMessage(),
+            'row'       =>  $i
+          ],400);
+        }
+      } 
+
+      return response()->json([
+        'status' 		=> 'success',
+        'message'   => 'Paper Checker and Subjects Allocation is Successfuly Uploaded.',
+      ],200);
+
+    }
+  }
+
+  public function getSubCheckerAlloc($request)
+  {
+    if($request->type == 'search')
+    {
+      $username = $request->username;
+      $instId = $request->instId;
+      $instUid = $request->instUid;
+
+      $uid = '';
+      $res = User::where('username',$username)->where('inst_id',$instId)->where('role','CHECKER')->first();
+      if($res)
+      {
+        $uid = $res->uid;
+      }
+
+      $result = CheckerSubjectMaster::where('uid',$uid)->where('instId',$instUid)->paginate(50);
+      if($result)
+      {
+        return new CheckerSubjectCollection($result);
+      }
+    }
+    else
+    {
+      $instId = $request->instId;
+      $result = CheckerSubjectMaster::where('instId',$instId)->paginate(50);
+      return new CheckerSubjectCollection($result);
+    }
+  }
+
+  public function deleteSubCheckerAlloc($id)
+  {
+    $result = CheckerSubjectMaster::where('id',$id)->delete();
+
+    return response()->json([
+      'status' 		=> 'success',
+      'message' => 'Subject Checker Allocation Deleted Successfully...'
+    ],200);    
+  }
+  
+  public function getCheckerType($request)
+  {
+    $paperId = $request->paperId;
+    $uid = $request->checkeruid;
+    $instId = $request->instId;
+
+    $result = User::where('username',$instId)->where('role','EADMIN')->first();
+    $instUid = $result->uid;
+
+    $result = CheckerSubjectMaster::where('instId',$instUid)->where('uid',$uid)->where('paperId',$paperId)->first();
+
+    if($result)
+    {
+      return response()->json([
+        'status' 		=> 'success',
+        'data' => $result
+      ],200);    
+    }
+    else
+    {
+      return response()->json([
+        'status' 		=> 'failure',
+      ],400);  
+    }
+  }
+
+  public function getCheckedStudExams($request)
+  {
+    $paperId      = $request->paperId;
+    $checkeruid   = $request->checkeruid;
+
+    $results = StudentCheckerAllocMaster::where('checkerId', $checkeruid)->where('paperId', $paperId)->where('type','QPM')->get();
+    $studList = [];
+
+    if ($results && $results->count() > 0) {
+      foreach ($results as $result) {
+        array_push($studList, $result->studid);
+      }
+
+      $res = CandTest::where('paper_id', $paperId)->whereIn('stdid', $studList)->where('paper_checking','1')->get();
+
+      if ($res->count() > 0) {
+        return json_encode([
+          'status'  => 'success',
+          'data'    => new ExamCollection($res)
+        ], 200);
+      } else {
+        return json_encode([
+          'status'  => 'failure',
+          'message' => 'No Exam Data found...'
+        ], 400);
+      }
+    } else {
+      return json_encode([
+        'status'  => 'failure',
+        'message' => 'No Exam Data found...'
+      ], 400);
     }
   }
 }

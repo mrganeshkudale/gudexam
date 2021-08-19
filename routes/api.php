@@ -122,6 +122,7 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::put('subject/config/generic/{id}', [SubjectsController::class, 'updateGenericConfig'])->name('updateGenericConfig');
     
     Route::get('subject', [SubjectsController::class, 'index'])->name('getSubject');
+    Route::get('subject/{id}/getSubjectConfInfo', [SubjectsController::class, 'getSubjectConfInfo'])->name('getSubjectConfInfo');
     Route::get('subject/byDate/{date}', [SubjectsController::class, 'getSubjectByDate'])->name('getSubjectByDate');
     Route::get('subject/byDateInst/{date}/{inst}', [SubjectsController::class, 'getSubjectByDateInst'])->name('getSubjectByDateInst');
     Route::get('subject/config/generic', [SubjectsController::class, 'getGenericConfig'])->name('getGenericConfig');
@@ -133,11 +134,15 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::post('subject/question/upload', [SubjectsController::class, 'uploadQuestion'])->name('uploadQuestion');
     Route::post('subject/question/uploadSubjective', [SubjectsController::class, 'uploadSubjectiveQuestion'])->name('uploadSubjectiveQuestion');
     Route::post('subject/setterAllocation', [SubjectsController::class, 'storeSubSetterAlloc'])->name('storeSetterSubject');
+    Route::post('subject/checkerAllocation', [SubjectsController::class, 'storeSubCheckerAlloc'])->name('storeSubCheckerAlloc');
+    Route::get('subject/checkerAllocation', [SubjectsController::class, 'getSubCheckerAlloc'])->name('getSubCheckerAlloc');
     Route::get('subject/setterAllocation', [SubjectsController::class, 'getSubSetterAlloc'])->name('getSubSetterAlloc');
     Route::get('subject/unconfSubList', [SubjectsController::class, 'unconfSubList'])->name('unconfSubList');
     Route::delete('subject/setterAllocation/{id}', [SubjectsController::class, 'deleteSubSetterAlloc'])->name('deleteSubSetterAlloc');
+    Route::delete('subject/checkerAllocation/{id}', [SubjectsController::class, 'deleteSubCheckerAlloc'])->name('deleteSubCheckerAlloc');
     Route::put('subject/setterConfirmation/{uid}', [SubjectsController::class, 'setterConfirmation'])->name('setterConfirmation');
     Route::post('subject/setterUpload', [SubjectsController::class, 'uploadSetterSubjects'])->name('uploadSetterSubjects');
+    Route::post('subject/checkerUpload', [SubjectsController::class, 'uploadCheckerSubjects'])->name('uploadCheckerSubjects');
     Route::get('subject/getStudList/{id}', [SubjectsController::class, 'getStudBySubject'])->name('getStudBySubject');
     Route::get('subject/getStudList1/{id}', [SubjectsController::class, 'getStudBySubject1'])->name('getStudBySubject1');
     Route::get('subject/getCheckerList/{id}', [SubjectsController::class, 'getCheckerBySubject'])->name('getCheckerBySubject');
@@ -176,6 +181,9 @@ Route::middleware(['auth:api','admin'])->group(function()
     Route::get('checker/student/exams', [CheckerController::class, 'getCheckerStudExams'])->name('getCheckerStudExams');
     Route::put('checker/student/exams/marks/{id}/{marks}', [CheckerController::class, 'updateStudExamMarks'])->name('updateStudExamMarks');
     Route::put('checker/student/exams/finishExamChecking/{examid}', [CheckerController::class, 'finishExamChecking'])->name('finishExamChecking');
+    Route::get('checker/type', [CheckerController::class, 'getCheckerType'])->name('getCheckerType');
+
+    Route::get('checker/student/checkedExams', [CheckerController::class, 'getCheckedStudExams'])->name('getCheckedStudExams');
 
     Route::post('proctorAllocate', [ProctorController::class, 'allocateProctor'])->name('allocateProctor');
     Route::get('proctorAllocation', [ProctorController::class, 'getProctorAllocation'])->name('getProctorAllocation');

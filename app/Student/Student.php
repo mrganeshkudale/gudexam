@@ -16,6 +16,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Validator;
+use File;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ProctorStudentWarningMaster;
 
@@ -719,9 +720,7 @@ class Student
 		$index    		= null;
 		$result 		= CandQuestion::find($id);
 		$url 			= Config::get('constants.PROJURL');
-
 		$answerImage 	= explode(',', $result->answerImage !== null ? $result->answerImage : '');
-
 
 		for ($i = 0; $i < sizeof($answerImage); $i++) {
 			if (strpos($answerImage[$i], $filePath) !== false) {
@@ -740,6 +739,8 @@ class Student
 		}
 
 		$result->save();
+
+		File::delete(public_path().'/data/answers/'.$filePath);
 
 		return json_encode([
 			'status'						=> 'success',

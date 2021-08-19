@@ -9,6 +9,6 @@ class CheckerSubjectMaster extends Model
 {
     use HasFactory;
     protected $table = 'checker_subject_master';
-    protected $fillable = ['id','uid','paperId','createdAt','updatedAt'];
+    protected $fillable = ['id','instId','uid','paperId','type','createdAt','updatedAt'];
 }
 ?>

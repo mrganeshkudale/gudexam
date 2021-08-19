@@ -15,6 +15,7 @@ use App\Http\Resources\ExamResource;
 use App\Models\CandTest;
 use App\Models\TopicMaster;
 use App\Models\QuestionSet;
+use App\Models\PaperSetterSubjectMaster;
 use App\Models\CandQuestion;
 use App\Models\OauthAccessToken;
 use App\Models\ProctorSnaps;
@@ -379,6 +380,14 @@ class Admin
       ->groupBy('users.uid')
       ->paginate(50);
     }
+    else if($role == 'CHECKER')
+    {
+      $result = DB::table('users')
+      ->where('users.role', '=', $role)
+      ->where('users.inst_id','=',$inst_id)
+      ->where('users.username','=',$username)
+      ->paginate(50);
+    }
 
     if($result)
     {
@@ -397,12 +406,8 @@ class Admin
     if($role == 'CHECKER')
     {
       $result = DB::table('users')
-      ->join('checker_subject_master', 'users.uid', '=', 'checker_subject_master.uid')
-      ->join('subject_master', 'subject_master.id', '=', 'checker_subject_master.paperId')
-      ->select(DB::raw("users.uid,users.username,users.name,users.type,users.inst_id,users.mobile,users.email,group_concat(concat(subject_master.id,'-',subject_master.paper_code,'-',subject_master.paper_name)) as subjects,users.origpass"))
       ->where('users.role', '=', $role)
       ->where('users.inst_id','=',$inst_id)
-      ->groupBy('users.uid')
       ->paginate(50);
     }
     else if($role == 'PROCTOR')
@@ -2186,6 +2191,7 @@ class Admin
     $optionb                = $request->optionb;
     $optionc                = $request->optionc;
     $optiond                = $request->optiond;
+    $setter                 = $request->setter;
     $correctAnswer          = '';
 
     $qfilepath              = '';
@@ -2390,7 +2396,8 @@ class Admin
         'correctanswer'   => $correctAnswer,
         'coption'         => $correctoption,
         'marks'           => $marks,
-        'difficulty_level'=> $difficultyLevel
+        'difficulty_level'=> $difficultyLevel,
+        'psetter'         => $setter,
       ];
     
       $result         = QuestionSet::create($values); 
@@ -2439,7 +2446,8 @@ class Admin
       $current_time 			= Carbon::now();
       $highestRow         = $spreadsheet->getActiveSheet()->getHighestRow();
       $values             = [];
-    
+      $setter             = $request->psetter;
+
       for($i=2;$i<=$highestRow;$i++)
       {
         $correctAnswer    = '';
@@ -2512,7 +2520,8 @@ class Admin
           'correctanswer'   => $correctAnswer,
           'coption'         => $correctoption,
           'marks'           => $marks,
-          'difficulty_level'=> $diff_level
+          'difficulty_level'=> $diff_level,
+          'psetter'         => $setter,
         ];
         
         try 
@@ -2548,16 +2557,36 @@ class Admin
   {
     $subArray = rtrim($subArray,",");
     $array = explode(",",$subArray);
-  
-    $result = QuestionSet::whereIn('paper_uid',$array)->where('quest_type','O')->orderBy('created_at')->paginate(50);
+    $result = null;
+    if(Auth::user()->role == 'PAPERSETTER')
+    {
+      $r = User::where('inst_id',Auth::user()->inst_id)->where('role','EADMIN')->first();
+      $rrr = PaperSetterSubjectMaster::where('uid',Auth::user()->uid)->where('instId',$r->uid)->whereIn('paperId',$array)->where('type','PS')->first();
 
+      if($rrr)
+      {
+        $result = QuestionSet::whereIn('paper_uid', $array)->where('quest_type', 'O')->where('psetter',Auth::user()->uid)->orderBy('created_at')->paginate(50);
+      }
+      else
+      {
+        $rrr = PaperSetterSubjectMaster::where('uid',Auth::user()->uid)->where('instId',$r->uid)->whereIn('paperId',$array)->whereIn('type',['PM','PSM'])->first();
+        if($rrr)
+        {
+          $result = QuestionSet::whereIn('paper_uid', $array)->where('quest_type', 'O')->orderBy('created_at')->paginate(50);
+        }
+        else
+        {
+          $result = [];
+        }
+      }
+    }
+    else
+    {
+      $result = QuestionSet::whereIn('paper_uid',$array)->where('quest_type','O')->orderBy('created_at')->paginate(50);
+    }
     if($result)
     {
       return new QuestionCollection($result);
-      /*return response()->json([
-        "status"            => "success",
-        "data"              => new QuestionCollection($result),
-      ], 200);*/
     }
     else
     {
@@ -2614,6 +2643,7 @@ class Admin
     $optionb                = $request->optionb;
     $optionc                = $request->optionc;
     $optiond                = $request->optiond;
+    $moderator              = $request->moderator;
     $correctAnswer          = '';
     $imgChange              = explode(',',$request->imgChange);
     $values                 = [];
@@ -2879,6 +2909,7 @@ class Admin
         'difficulty_level'=> $difficultyLevel,
         'moderator'       => Auth::user()->uid,
         'updated_at'      => Carbon::now(),
+        'moderator'       => $moderator,
       ];
 
       if(in_array("qufig",$imgChange))
@@ -4044,12 +4075,13 @@ class Admin
         }
                 
         $fetchQuery = rtrim($fetchQuery," UNION ");
+        
         $res5 = DB::select($fetchQuery);
         
         if(sizeof($res5) != $totalQuest)
         {
           return response()->json([
-            "status"  => "failure1".$e->getMessage()
+            "status"  => "failure1"
           ], 400);
         }
 
@@ -4103,7 +4135,7 @@ class Admin
       return response()->json([
         "status"  => "success"
       ], 200);
-    }
+   }
     catch(\Exception $e)
     {
 

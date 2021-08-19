@@ -37,8 +37,10 @@ class ExamResource extends JsonResource
             'now'                   =>  round(microtime(true) * 1000),
             'paper'                 =>  new PaperResource(SubjectMaster::find($this->paper_id)),
             'marksobt'              =>  $this->marksobt,
-            'paper_checking_status' =>  $this->paper_checking_status,
+            'paper_checking_status' =>  $this->paper_checking,
+            'paper_moderation_status' => $this->paper_moderation,
             'result'                =>  $this->result,
+            'result1'               => $this->result1,
             'answerFile'            =>  $this->answerFile,
         ];
     }

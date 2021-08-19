@@ -39,7 +39,9 @@ class ExamCollection extends ResourceCollection
             'paper'       =>  new PaperResource(SubjectMaster::find($single->paper_id)),
             'marksobt'    =>  $single->marksobt,
             'paper_checking_status' => $single->paper_checking,
+            'paper_moderation_status' => $single->paper_moderation,
             'result'      => $single->result,
+            'result1'      => $single->result1,
             'answerFile'    => $single->answerFile,
           ];
         }

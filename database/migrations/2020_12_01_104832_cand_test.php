@@ -46,7 +46,13 @@ class CandTest extends Migration
           $table->index('switched');
           $table->integer('marksobt')->nullable();
           $table->integer('paper_checking')->default('0');
+          $table->index('paper_checking');
+          $table->integer('paper_moderation')->default('0');
+          $table->index('paper_moderation');
           $table->integer('result')->default('0');
+          $table->index('result');
+          $table->integer('result1')->default('0');
+          $table->index('result1');
           $table->string('endExamReason',500)->nullable();
           $table->unique(['stdid','inst','paper_id']);
           $table->timestamps();

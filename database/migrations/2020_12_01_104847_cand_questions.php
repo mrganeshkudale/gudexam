@@ -44,6 +44,9 @@ class CandQuestions extends Migration
           $table->integer('marks');
           $table->string('ip',50);
           $table->integer('obtmarks')->nullable();
+          $table->index('obtmarks');
+          $table->integer('obtmarks1')->nullable();
+          $table->index('obtmarks1');
           $table->unique(['stdid','inst','paper_id','qnid']);
         });
     }
